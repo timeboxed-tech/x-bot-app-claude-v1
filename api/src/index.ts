@@ -1,26 +1,38 @@
-import express from "express";
-import cors from "cors";
-import helmet from "helmet";
-import cookieParser from "cookie-parser";
+import express from 'express';
+import cors from 'cors';
+import helmet from 'helmet';
+import cookieParser from 'cookie-parser';
+import { config } from './config/index.js';
+import { requestLogger } from './middleware/requestLogger.js';
+import { errorHandler } from './middleware/errorHandler.js';
+import { notFoundHandler } from './middleware/notFound.js';
+import healthRoutes from './routes/healthRoutes.js';
+import authRoutes from './routes/authRoutes.js';
+import botRoutes from './routes/botRoutes.js';
 
 const app = express();
 
-// Middleware
+// Global middleware
 app.use(helmet());
 app.use(cors());
 app.use(cookieParser());
 app.use(express.json());
+app.use(requestLogger);
 
-// Health check
-app.get("/health", (_req, res) => {
-  res.json({ status: "ok", timestamp: new Date().toISOString() });
-});
+// Routes
+app.use('/api/health', healthRoutes);
+app.use('/api/auth', authRoutes);
+app.use('/api/bots', botRoutes);
+
+// 404 handler for unknown routes
+app.use(notFoundHandler);
+
+// Global error handler (must be last)
+app.use(errorHandler);
 
 // Start server
-const PORT = process.env.PORT || 3001;
-
-app.listen(PORT, () => {
-  console.log(`API server listening on port ${PORT}`);
+app.listen(config.port, () => {
+  console.log(`API server listening on port ${config.port}`);
 });
 
 export default app;
