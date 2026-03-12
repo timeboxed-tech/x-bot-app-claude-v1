@@ -11,4 +11,7 @@ export const queryKeys = {
       ['posts', 'list', status ?? 'all', page ?? 1] as const,
     all: ['posts'] as const,
   },
+  stats: {
+    forBot: (botId: string) => ['stats', 'bot', botId] as const,
+  },
 } as const;
