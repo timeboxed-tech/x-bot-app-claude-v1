@@ -19,7 +19,7 @@ async function main() {
 
   const user2 = await prisma.user.create({
     data: {
-      email: "bob@tsf.tech",
+      email: "bob@ehe.ai",
       name: "Bob Smith",
     },
   });
@@ -33,7 +33,7 @@ async function main() {
       xAccountHandle: "@alice_bot",
       prompt:
         "You are a friendly tech commentator. Write short, insightful tweets about software engineering trends.",
-      postMode: "scheduled",
+      postMode: "auto",
       postsPerDay: 4,
       minIntervalHours: 3,
       preferredHoursStart: 8,
@@ -121,7 +121,7 @@ async function main() {
       jobId: job2.id,
       content:
         "The best code review feedback is the one that teaches something new, not just catches bugs.",
-      status: "approved",
+      status: "scheduled",
       rating: 5,
       scheduledAt: oneHourFromNow,
     },
