@@ -10,7 +10,7 @@ services:
     runtime: node
     plan: free
     rootDir: .
-    buildCommand: npm ci && npx prisma generate --schema=api/prisma/schema.prisma && npm run build --workspace=shared && npm run build --workspace=api
+    buildCommand: npm ci --include=dev && npx prisma generate --schema=api/prisma/schema.prisma && npm run build --workspace=shared && npm run build --workspace=api
     startCommand: cd api && npm run start
     healthCheckPath: /api/health
     envVars:
