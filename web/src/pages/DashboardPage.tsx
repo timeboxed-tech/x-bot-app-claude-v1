@@ -19,7 +19,7 @@ import Typography from '@mui/material/Typography';
 import CircularProgress from '@mui/material/CircularProgress';
 import AppHeader from '../components/AppHeader';
 import BotSetupForm from '../components/BotSetupForm';
-import { useBot, useUpdateBot } from '../hooks/useBot';
+import { useBot, useCreateBot, useUpdateBot } from '../hooks/useBot';
 import { useStats } from '../hooks/useStats';
 import { usePosts, type PostStatus } from '../hooks/usePosts';
 import { apiClient } from '../lib/apiClient';
@@ -53,6 +53,7 @@ type SnackbarState = {
 
 export default function DashboardPage() {
   const { bot, isLoading } = useBot();
+  const createBot = useCreateBot();
   const updateBot = useUpdateBot();
   const [editOpen, setEditOpen] = useState(false);
   const [connectLoading, setConnectLoading] = useState(false);
@@ -156,24 +157,20 @@ export default function DashboardPage() {
     return (
       <>
         <AppHeader />
-        <Container maxWidth="md" sx={{ mt: 4 }}>
-          <Box
-            sx={{
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              gap: 3,
-              py: 8,
+        <Container maxWidth="sm" sx={{ mt: 4 }}>
+          <Typography variant="h4" gutterBottom>
+            Set up your bot
+          </Typography>
+          <Typography variant="body1" color="text.secondary" sx={{ mb: 3 }}>
+            Configure your bot&apos;s posting behaviour. You can connect your X account afterwards.
+          </Typography>
+          <BotSetupForm
+            onSubmit={(values) => {
+              createBot.mutate(values);
             }}
-          >
-            <Typography variant="h4">Set up your bot</Typography>
-            <Typography variant="body1" color="text.secondary">
-              You don&apos;t have a bot yet. Connect your X account to get started.
-            </Typography>
-            <Typography variant="body2" color="text.secondary">
-              Bot creation requires connecting your X account first via the API.
-            </Typography>
-          </Box>
+            isLoading={createBot.isPending}
+            submitLabel="Create Bot"
+          />
         </Container>
       </>
     );

@@ -27,9 +27,6 @@ type BotResponse = {
 };
 
 type CreateBotInput = {
-  xAccessToken: string;
-  xAccessSecret: string;
-  xAccountHandle: string;
   prompt: string;
   postMode: string;
   postsPerDay: number;

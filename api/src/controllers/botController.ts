@@ -4,9 +4,6 @@ import { botService } from '../services/botService.js';
 import { paginationSchema, uuidSchema } from '../utils/validation.js';
 
 const createBotSchema = z.object({
-  xAccessToken: z.string().min(1, 'X access token is required'),
-  xAccessSecret: z.string().min(1, 'X access secret is required'),
-  xAccountHandle: z.string().min(1, 'X account handle is required'),
   prompt: z.string().min(1, 'Prompt is required'),
   postMode: z.enum(['auto', 'manual']).default('manual'),
   postsPerDay: z.number().int().min(1).max(15).default(3),

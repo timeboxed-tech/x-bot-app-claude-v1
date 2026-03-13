@@ -19,9 +19,9 @@ model User {
 model Bot {
   id                  String   @id @default(uuid()) @db.Uuid
   userId              String   @db.Uuid
-  xAccessToken        String
-  xAccessSecret       String
-  xAccountHandle      String
+  xAccessToken        String   @default("")
+  xAccessSecret       String   @default("")
+  xAccountHandle      String   @default("")
   prompt              String   @db.Text
   postMode            String   @default("manual")
   postsPerDay         Int      @default(3)

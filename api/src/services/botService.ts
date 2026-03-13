@@ -6,9 +6,6 @@ import { NotFoundError, ForbiddenError } from '../utils/errors.js';
 
 type CreateBotInput = {
   userId: string;
-  xAccessToken: string;
-  xAccessSecret: string;
-  xAccountHandle: string;
   prompt: string;
   postMode: string;
   postsPerDay: number;
