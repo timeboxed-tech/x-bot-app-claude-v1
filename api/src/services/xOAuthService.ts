@@ -1,229 +1,182 @@
 import crypto from 'node:crypto';
 import { config } from '../config/index.js';
 
-const TWITTER_REQUEST_TOKEN_URL = 'https://api.twitter.com/oauth/request_token';
-const TWITTER_ACCESS_TOKEN_URL = 'https://api.twitter.com/oauth/access_token';
-const TWITTER_AUTHORIZE_URL = 'https://api.twitter.com/oauth/authorize';
+const TWITTER_AUTHORIZE_URL = 'https://twitter.com/i/oauth2/authorize';
+const TWITTER_TOKEN_URL = 'https://api.twitter.com/2/oauth2/token';
+const TWITTER_ME_URL = 'https://api.twitter.com/2/users/me';
 
-type RequestTokenEntry = {
-  token: string;
-  secret: string;
+type PkceEntry = {
+  codeVerifier: string;
   botId: string;
   createdAt: number;
 };
 
-// In-memory store with TTL (10 minutes)
-const REQUEST_TOKEN_TTL_MS = 10 * 60 * 1000;
-const requestTokenStore = new Map<string, RequestTokenEntry>();
+// In-memory store for PKCE state → verifier mapping (10 min TTL)
+const PKCE_TTL_MS = 10 * 60 * 1000;
+const pkceStore = new Map<string, PkceEntry>();
 
-function cleanExpiredTokens(): void {
+function cleanExpired(): void {
   const now = Date.now();
-  for (const [key, entry] of requestTokenStore.entries()) {
-    if (now - entry.createdAt > REQUEST_TOKEN_TTL_MS) {
-      requestTokenStore.delete(key);
+  for (const [key, entry] of pkceStore.entries()) {
+    if (now - entry.createdAt > PKCE_TTL_MS) {
+      pkceStore.delete(key);
     }
   }
 }
 
-function percentEncode(str: string): string {
-  return encodeURIComponent(str).replace(
-    /[!'()*]/g,
-    (c) => `%${c.charCodeAt(0).toString(16).toUpperCase()}`,
-  );
+function generateCodeVerifier(): string {
+  return crypto.randomBytes(32).toString('base64url');
 }
 
-function generateNonce(): string {
-  return crypto.randomBytes(16).toString('hex');
+function generateCodeChallenge(verifier: string): string {
+  return crypto.createHash('sha256').update(verifier).digest('base64url');
 }
 
-function generateTimestamp(): string {
-  return Math.floor(Date.now() / 1000).toString();
+function getClientId(): string {
+  return process.env.X_CLIENT_ID || '';
 }
 
-function buildSignatureBaseString(
-  method: string,
-  url: string,
-  params: Record<string, string>,
-): string {
-  const sortedKeys = Object.keys(params).sort();
-  const paramString = sortedKeys
-    .map((key) => `${percentEncode(key)}=${percentEncode(params[key])}`)
-    .join('&');
-
-  return `${method.toUpperCase()}&${percentEncode(url)}&${percentEncode(paramString)}`;
+function getClientSecret(): string {
+  return process.env.X_CLIENT_SECRET || '';
 }
 
-function signHmacSha1(baseString: string, consumerSecret: string, tokenSecret: string): string {
-  const signingKey = `${percentEncode(consumerSecret)}&${percentEncode(tokenSecret)}`;
-  const hmac = crypto.createHmac('sha1', signingKey);
-  hmac.update(baseString);
-  return hmac.digest('base64');
-}
-
-function buildAuthorizationHeader(params: Record<string, string>): string {
-  const parts = Object.keys(params)
-    .sort()
-    .map((key) => `${percentEncode(key)}="${percentEncode(params[key])}"`)
-    .join(', ');
-  return `OAuth ${parts}`;
-}
-
-async function makeOAuthRequest(
-  method: string,
-  url: string,
-  oauthParams: Record<string, string>,
-  consumerSecret: string,
-  tokenSecret: string,
-  bodyParams?: Record<string, string>,
-): Promise<string> {
-  const allParams = { ...oauthParams, ...bodyParams };
-  const baseString = buildSignatureBaseString(method, url, allParams);
-  const signature = signHmacSha1(baseString, consumerSecret, tokenSecret);
-
-  const headerParams = {
-    ...oauthParams,
-    oauth_signature: signature,
-  };
-
-  const headers: Record<string, string> = {
-    Authorization: buildAuthorizationHeader(headerParams),
-  };
-
-  let body: string | undefined;
-  if (bodyParams && Object.keys(bodyParams).length > 0) {
-    headers['Content-Type'] = 'application/x-www-form-urlencoded';
-    body = Object.entries(bodyParams)
-      .map(([k, v]) => `${percentEncode(k)}=${percentEncode(v)}`)
-      .join('&');
-  }
-
-  const response = await fetch(url, {
-    method,
-    headers,
-    body,
-  });
-
-  if (!response.ok) {
-    const text = await response.text();
-    throw new Error(`Twitter OAuth request failed: ${response.status} ${text}`);
-  }
-
-  return response.text();
-}
-
-function parseResponseParams(body: string): Record<string, string> {
-  const params: Record<string, string> = {};
-  for (const pair of body.split('&')) {
-    const [key, value] = pair.split('=');
-    params[decodeURIComponent(key)] = decodeURIComponent(value || '');
-  }
-  return params;
+function getCallbackUrl(): string {
+  return `${config.app.baseUrl}/api/auth/x/callback`;
 }
 
 export const xOAuthService = {
-  async getRequestToken(botId: string): Promise<{ oauthToken: string }> {
-    cleanExpiredTokens();
+  generateAuthUrl(botId: string): string {
+    cleanExpired();
 
-    const consumerKey = process.env.X_CONSUMER_KEY || '';
-    const consumerSecret = process.env.X_CONSUMER_SECRET || '';
-    const callbackUrl = `${config.app.baseUrl}/api/auth/x/callback`;
+    const state = crypto.randomBytes(16).toString('hex');
+    const codeVerifier = generateCodeVerifier();
+    const codeChallenge = generateCodeChallenge(codeVerifier);
 
-    const oauthParams: Record<string, string> = {
-      oauth_consumer_key: consumerKey,
-      oauth_nonce: generateNonce(),
-      oauth_signature_method: 'HMAC-SHA1',
-      oauth_timestamp: generateTimestamp(),
-      oauth_version: '1.0',
-      oauth_callback: callbackUrl,
-    };
-
-    const responseBody = await makeOAuthRequest(
-      'POST',
-      TWITTER_REQUEST_TOKEN_URL,
-      oauthParams,
-      consumerSecret,
-      '',
-    );
-
-    const parsed = parseResponseParams(responseBody);
-    const oauthToken = parsed['oauth_token'];
-    const oauthTokenSecret = parsed['oauth_token_secret'];
-
-    if (!oauthToken || !oauthTokenSecret) {
-      throw new Error('Failed to obtain request token from Twitter');
-    }
-
-    requestTokenStore.set(oauthToken, {
-      token: oauthToken,
-      secret: oauthTokenSecret,
+    pkceStore.set(state, {
+      codeVerifier,
       botId,
       createdAt: Date.now(),
     });
 
-    return { oauthToken };
+    const params = new URLSearchParams({
+      response_type: 'code',
+      client_id: getClientId(),
+      redirect_uri: getCallbackUrl(),
+      scope: 'tweet.read tweet.write users.read offline.access',
+      state,
+      code_challenge: codeChallenge,
+      code_challenge_method: 'S256',
+    });
+
+    return `${TWITTER_AUTHORIZE_URL}?${params.toString()}`;
   },
 
-  async getAccessToken(
-    oauthToken: string,
-    oauthVerifier: string,
+  async exchangeCode(
+    code: string,
+    state: string,
   ): Promise<{
     accessToken: string;
-    accessTokenSecret: string;
+    refreshToken: string;
     screenName: string;
     botId: string;
   }> {
-    cleanExpiredTokens();
+    cleanExpired();
 
-    const entry = requestTokenStore.get(oauthToken);
+    const entry = pkceStore.get(state);
     if (!entry) {
-      throw new Error('Invalid or expired request token');
+      throw new Error('Invalid or expired OAuth state');
+    }
+    pkceStore.delete(state);
+
+    const clientId = getClientId();
+    const clientSecret = getClientSecret();
+    const basicAuth = Buffer.from(`${clientId}:${clientSecret}`).toString('base64');
+
+    // Exchange authorization code for tokens
+    const tokenResponse = await fetch(TWITTER_TOKEN_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+        Authorization: `Basic ${basicAuth}`,
+      },
+      body: new URLSearchParams({
+        code,
+        grant_type: 'authorization_code',
+        redirect_uri: getCallbackUrl(),
+        code_verifier: entry.codeVerifier,
+      }).toString(),
+    });
+
+    if (!tokenResponse.ok) {
+      const text = await tokenResponse.text();
+      throw new Error(`Token exchange failed: ${tokenResponse.status} ${text}`);
     }
 
-    requestTokenStore.delete(oauthToken);
-
-    const consumerKey = process.env.X_CONSUMER_KEY || '';
-    const consumerSecret = process.env.X_CONSUMER_SECRET || '';
-
-    const oauthParams: Record<string, string> = {
-      oauth_consumer_key: consumerKey,
-      oauth_nonce: generateNonce(),
-      oauth_signature_method: 'HMAC-SHA1',
-      oauth_timestamp: generateTimestamp(),
-      oauth_token: oauthToken,
-      oauth_version: '1.0',
+    const tokenData = (await tokenResponse.json()) as {
+      access_token: string;
+      refresh_token?: string;
+      token_type: string;
     };
 
-    const bodyParams: Record<string, string> = {
-      oauth_verifier: oauthVerifier,
-    };
+    if (!tokenData.access_token) {
+      throw new Error('No access token in response');
+    }
 
-    const responseBody = await makeOAuthRequest(
-      'POST',
-      TWITTER_ACCESS_TOKEN_URL,
-      oauthParams,
-      consumerSecret,
-      entry.secret,
-      bodyParams,
-    );
+    // Fetch user info to get screen name
+    const meResponse = await fetch(TWITTER_ME_URL, {
+      headers: {
+        Authorization: `Bearer ${tokenData.access_token}`,
+      },
+    });
 
-    const parsed = parseResponseParams(responseBody);
-    const accessToken = parsed['oauth_token'];
-    const accessTokenSecret = parsed['oauth_token_secret'];
-    const screenName = parsed['screen_name'] || '';
-
-    if (!accessToken || !accessTokenSecret) {
-      throw new Error('Failed to obtain access token from Twitter');
+    let screenName = '';
+    if (meResponse.ok) {
+      const meData = (await meResponse.json()) as {
+        data?: { username?: string };
+      };
+      screenName = meData.data?.username ?? '';
     }
 
     return {
-      accessToken,
-      accessTokenSecret,
+      accessToken: tokenData.access_token,
+      refreshToken: tokenData.refresh_token ?? '',
       screenName,
       botId: entry.botId,
     };
   },
 
-  generateAuthUrl(oauthToken: string): string {
-    return `${TWITTER_AUTHORIZE_URL}?oauth_token=${percentEncode(oauthToken)}`;
+  async refreshAccessToken(
+    refreshToken: string,
+  ): Promise<{ accessToken: string; refreshToken: string }> {
+    const clientId = getClientId();
+    const clientSecret = getClientSecret();
+    const basicAuth = Buffer.from(`${clientId}:${clientSecret}`).toString('base64');
+
+    const response = await fetch(TWITTER_TOKEN_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+        Authorization: `Basic ${basicAuth}`,
+      },
+      body: new URLSearchParams({
+        grant_type: 'refresh_token',
+        refresh_token: refreshToken,
+      }).toString(),
+    });
+
+    if (!response.ok) {
+      const text = await response.text();
+      throw new Error(`Token refresh failed: ${response.status} ${text}`);
+    }
+
+    const data = (await response.json()) as {
+      access_token: string;
+      refresh_token?: string;
+    };
+
+    return {
+      accessToken: data.access_token,
+      refreshToken: data.refresh_token ?? refreshToken,
+    };
   },
 };

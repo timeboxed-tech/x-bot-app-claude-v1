@@ -28,7 +28,7 @@ services:
         sync: false
       - key: ANTHROPIC_API_KEY
         sync: false
-      - key: X_CONSUMER_KEY
+      - key: X_CLIENT_ID
         sync: false
-      - key: X_CONSUMER_SECRET
+      - key: X_CLIENT_SECRET
         sync: false

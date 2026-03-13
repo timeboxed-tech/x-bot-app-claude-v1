@@ -28,7 +28,7 @@ async function publishPosts(): Promise<void> {
       }
 
       const bot = post.bot;
-      const result = await publishTweet(post.content, bot.xAccessToken, bot.xAccessSecret);
+      const result = await publishTweet(post.content, bot.xAccessToken, bot.xAccessSecret, bot.id);
 
       if (result.success) {
         await postRepository.update(post.id, {

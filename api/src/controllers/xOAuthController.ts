@@ -10,8 +10,8 @@ const connectQuerySchema = z.object({
 });
 
 const callbackQuerySchema = z.object({
-  oauth_token: z.string().min(1),
-  oauth_verifier: z.string().min(1),
+  code: z.string().min(1),
+  state: z.string().min(1),
 });
 
 export const xOAuthController = {
@@ -28,8 +28,7 @@ export const xOAuthController = {
         throw new ForbiddenError('You do not have access to this bot');
       }
 
-      const { oauthToken } = await xOAuthService.getRequestToken(botId);
-      const authUrl = xOAuthService.generateAuthUrl(oauthToken);
+      const authUrl = xOAuthService.generateAuthUrl(botId);
 
       res.status(200).json({
         data: { url: authUrl },
@@ -41,14 +40,17 @@ export const xOAuthController = {
 
   async callback(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const { oauth_token, oauth_verifier } = callbackQuerySchema.parse(req.query);
+      const { code, state } = callbackQuerySchema.parse(req.query);
 
-      const { accessToken, accessTokenSecret, screenName, botId } =
-        await xOAuthService.getAccessToken(oauth_token, oauth_verifier);
+      const { accessToken, refreshToken, screenName, botId } = await xOAuthService.exchangeCode(
+        code,
+        state,
+      );
 
+      // Store OAuth 2.0 tokens: accessToken in xAccessToken, refreshToken in xAccessSecret
       await botRepository.update(botId, {
         xAccessToken: accessToken,
-        xAccessSecret: accessTokenSecret,
+        xAccessSecret: refreshToken,
         xAccountHandle: screenName,
       });
 
