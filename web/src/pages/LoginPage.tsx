@@ -16,7 +16,7 @@ function validateEmail(email: string): string | null {
   if (parts.length !== 2) return 'Invalid email address';
   const domain = parts[1];
   if (!ALLOWED_DOMAINS.includes(domain)) {
-    return `Email must be from: ${ALLOWED_DOMAINS.join(', ')}`;
+    return 'Your email is not allowed';
   }
   return null;
 }

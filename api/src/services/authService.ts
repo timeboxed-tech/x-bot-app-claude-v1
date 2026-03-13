@@ -8,9 +8,7 @@ export const authService = {
   validateEmailDomain(email: string): void {
     const domain = email.split('@')[1];
     if (!domain || !config.allowedDomains.includes(domain)) {
-      throw new ValidationError(
-        `Email domain not allowed. Allowed domains: ${config.allowedDomains.join(', ')}`,
-      );
+      throw new ValidationError('Your email is not allowed');
     }
   },
 
