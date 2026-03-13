@@ -18,6 +18,7 @@ async function publishPosts(): Promise<void> {
   try {
     const posts = await postRepository.findScheduledReady(20);
     log('postPublisher', `Poll: found ${posts.length} post(s) ready to publish`);
+    console.log(`[postPublisher] Poll: found ${posts.length} post(s) ready to publish`);
 
     for (const post of posts) {
       // Skip posts that have exceeded retry limit
@@ -81,6 +82,7 @@ async function publishPosts(): Promise<void> {
 
 export function start(pollIntervalMs?: number): void {
   const interval = pollIntervalMs ?? POLL_INTERVAL_MS;
+  log('postPublisher', `Starting with poll interval ${interval}ms`);
   console.log(`[postPublisher] Starting with poll interval ${interval}ms`);
   void publishPosts();
   intervalHandle = setInterval(() => void publishPosts(), interval);

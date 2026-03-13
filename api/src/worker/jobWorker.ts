@@ -45,6 +45,7 @@ async function processJobs(): Promise<void> {
   try {
     const pendingJobs = await jobRepository.findPendingJobs(10);
     log('jobWorker', `Poll: found ${pendingJobs.length} pending job(s)`);
+    console.log(`[jobWorker] Poll: found ${pendingJobs.length} pending job(s)`);
 
     for (const job of pendingJobs) {
       const lockToken = uuidv4();
@@ -117,6 +118,7 @@ async function processJobs(): Promise<void> {
 }
 
 export function start(): void {
+  log('jobWorker', `Starting with poll interval ${POLL_INTERVAL_MS}ms`);
   console.log(`[jobWorker] Starting with poll interval ${POLL_INTERVAL_MS}ms`);
   // Run immediately on start
   void processJobs();

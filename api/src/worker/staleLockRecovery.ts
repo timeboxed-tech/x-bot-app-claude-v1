@@ -30,6 +30,7 @@ async function recoverStaleLocks(): Promise<void> {
 }
 
 export function start(): void {
+  log('staleLockRecovery', 'Starting stale lock recovery');
   console.log('[staleLockRecovery] Starting stale lock recovery');
   // Run immediately on start
   void recoverStaleLocks();
