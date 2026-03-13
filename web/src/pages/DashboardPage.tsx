@@ -12,6 +12,8 @@ import DialogContent from '@mui/material/DialogContent';
 import DialogContentText from '@mui/material/DialogContentText';
 import DialogTitle from '@mui/material/DialogTitle';
 import Grid from '@mui/material/Grid';
+import MenuItem from '@mui/material/MenuItem';
+import Select from '@mui/material/Select';
 import Skeleton from '@mui/material/Skeleton';
 import Snackbar from '@mui/material/Snackbar';
 import Switch from '@mui/material/Switch';
@@ -52,10 +54,12 @@ type SnackbarState = {
 };
 
 export default function DashboardPage() {
-  const { bot, isLoading } = useBot();
+  const { bots, isLoading } = useBot();
   const createBot = useCreateBot();
   const updateBot = useUpdateBot();
+  const [selectedBotIndex, setSelectedBotIndex] = useState(0);
   const [editOpen, setEditOpen] = useState(false);
+  const [createOpen, setCreateOpen] = useState(false);
   const [connectLoading, setConnectLoading] = useState(false);
   const [toggleConfirmOpen, setToggleConfirmOpen] = useState(false);
   const [snackbar, setSnackbar] = useState<SnackbarState>({
@@ -64,6 +68,8 @@ export default function DashboardPage() {
     severity: 'success',
   });
   const navigate = useNavigate();
+
+  const bot = bots.length > 0 ? bots[Math.min(selectedBotIndex, bots.length - 1)] : null;
 
   const { data: stats, isLoading: statsLoading } = useStats(bot?.id);
   const { data: recentPostsData, isLoading: recentPostsLoading } = usePosts(undefined, 1, 5);
@@ -182,9 +188,36 @@ export default function DashboardPage() {
     <>
       <AppHeader />
       <Container maxWidth="md" sx={{ mt: 4 }}>
-        <Typography variant="h4" gutterBottom>
-          Dashboard
-        </Typography>
+        <Box
+          sx={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            mb: 2,
+          }}
+        >
+          <Typography variant="h4">Dashboard</Typography>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+            {bots.length > 1 && (
+              <Select
+                size="small"
+                value={selectedBotIndex}
+                onChange={(e) => setSelectedBotIndex(Number(e.target.value))}
+                sx={{ minWidth: 200 }}
+              >
+                {bots.map((b, i) => (
+                  <MenuItem key={b.id} value={i}>
+                    @{b.xAccountHandle || `Bot ${i + 1}`}
+                    {!b.active && ' (paused)'}
+                  </MenuItem>
+                ))}
+              </Select>
+            )}
+            <Button variant="outlined" size="small" onClick={() => setCreateOpen(true)}>
+              + New Bot
+            </Button>
+          </Box>
+        </Box>
 
         <Card sx={{ mb: 3 }}>
           <CardContent>
@@ -408,6 +441,36 @@ export default function DashboardPage() {
           </DialogContent>
           <DialogActions>
             <Button onClick={() => setEditOpen(false)} disabled={updateBot.isPending}>
+              Cancel
+            </Button>
+          </DialogActions>
+        </Dialog>
+
+        {/* Create new bot dialog */}
+        <Dialog open={createOpen} onClose={() => setCreateOpen(false)} maxWidth="sm" fullWidth>
+          <DialogTitle>Create New Bot</DialogTitle>
+          <DialogContent>
+            <Box sx={{ pt: 1 }}>
+              <BotSetupForm
+                onSubmit={(values) => {
+                  createBot.mutate(values, {
+                    onSuccess: () => {
+                      setCreateOpen(false);
+                      setSelectedBotIndex(bots.length);
+                      showSnackbar('Bot created successfully', 'success');
+                    },
+                    onError: () => {
+                      showSnackbar('Failed to create bot', 'error');
+                    },
+                  });
+                }}
+                isLoading={createBot.isPending}
+                submitLabel="Create Bot"
+              />
+            </Box>
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={() => setCreateOpen(false)} disabled={createBot.isPending}>
               Cancel
             </Button>
           </DialogActions>
