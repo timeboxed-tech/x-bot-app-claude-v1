@@ -36,6 +36,12 @@ export type JobQueueStats = {
   }>;
   lastCompletedAt: string | null;
   nextScheduledAt: string | null;
+  activityLog: Array<{
+    timestamp: string;
+    worker: string;
+    message: string;
+    level: 'info' | 'warn' | 'error';
+  }>;
 };
 
 type JobQueueStatsResponse = {

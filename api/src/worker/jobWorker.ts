@@ -3,6 +3,7 @@ import { jobRepository } from '../repositories/jobRepository.js';
 import { postRepository } from '../repositories/postRepository.js';
 import { generateTweet } from '../services/aiService.js';
 import { computeNextScheduledAt } from '../services/scheduler.js';
+import { log } from './activityLog.js';
 
 const POLL_INTERVAL_MS = parseInt(process.env.WORKER_POLL_INTERVAL_MS || '30000', 10);
 
@@ -43,6 +44,7 @@ async function processJobs(): Promise<void> {
 
   try {
     const pendingJobs = await jobRepository.findPendingJobs(10);
+    log('jobWorker', `Poll: found ${pendingJobs.length} pending job(s)`);
 
     for (const job of pendingJobs) {
       const lockToken = uuidv4();
@@ -58,6 +60,7 @@ async function processJobs(): Promise<void> {
         // Check if X account is connected
         if (!bot.xAccessToken) {
           const errorMsg = 'X account not connected — skipping content generation';
+          log('jobWorker', `Job ${job.id}: ${errorMsg}`, 'warn');
           console.warn(`[jobWorker] Job ${job.id}: ${errorMsg}`);
           await jobRepository.markFailed(job.id, errorMsg);
           continue;
@@ -67,6 +70,7 @@ async function processJobs(): Promise<void> {
 
         if (!result.success) {
           const errorMsg = `AI generation failed: ${result.error}`;
+          log('jobWorker', `Job ${job.id}: ${errorMsg}`, 'error');
           console.error(`[jobWorker] Job ${job.id}: ${errorMsg}`);
           await jobRepository.markFailed(job.id, errorMsg);
           continue;
@@ -84,9 +88,15 @@ async function processJobs(): Promise<void> {
         });
 
         await jobRepository.markCompleted(job.id);
+        log('jobWorker', `Job ${job.id} completed — created ${postStatus} post`);
         console.log(`[jobWorker] Job ${job.id} completed successfully`);
       } catch (err) {
         const errorMsg = err instanceof Error ? `${err.message}\n${err.stack}` : String(err);
+        log(
+          'jobWorker',
+          `Job ${job.id} error: ${err instanceof Error ? err.message : String(err)}`,
+          'error',
+        );
         console.error(`[jobWorker] Error processing job ${job.id}:`, err);
         await jobRepository.markFailed(job.id, errorMsg);
       } finally {
@@ -99,6 +109,7 @@ async function processJobs(): Promise<void> {
       }
     }
   } catch (err) {
+    log('jobWorker', `Poll error: ${err instanceof Error ? err.message : String(err)}`, 'error');
     console.error('[jobWorker] Error polling for jobs:', err);
   } finally {
     running = false;

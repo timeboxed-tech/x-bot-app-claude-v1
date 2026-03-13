@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import { prisma } from '../utils/prisma.js';
+import { getEntries as getActivityLog } from '../worker/activityLog.js';
 
 export const jobQueueController = {
   async getStats(req: Request, res: Response, next: NextFunction): Promise<void> {
@@ -102,6 +103,7 @@ export const jobQueueController = {
           recentErrors: recentErrors.map(formatJob),
           lastCompletedAt: lastCompleted?.completedAt ?? null,
           nextScheduledAt: nextScheduled?.scheduledAt ?? null,
+          activityLog: getActivityLog(),
         },
       });
     } catch (err) {

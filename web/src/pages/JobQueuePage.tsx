@@ -467,6 +467,80 @@ export default function JobQueuePage() {
             </TableContainer>
           </>
         )}
+        {/* Worker Activity Log */}
+        <Typography variant="h6" gutterBottom>
+          Worker Activity Log
+        </Typography>
+        <TableContainer component={Paper} sx={{ mb: 3, maxHeight: 400 }}>
+          <Table size="small" stickyHeader>
+            <TableHead>
+              <TableRow>
+                <TableCell sx={{ width: 180 }}>Time</TableCell>
+                <TableCell sx={{ width: 140 }}>Worker</TableCell>
+                <TableCell>Message</TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {!data.activityLog || data.activityLog.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={3} align="center">
+                    <Typography variant="body2" color="text.secondary" sx={{ py: 2 }}>
+                      No activity yet — workers may not have started
+                    </Typography>
+                  </TableCell>
+                </TableRow>
+              ) : (
+                data.activityLog.map((entry, i) => (
+                  <TableRow
+                    key={`${entry.timestamp}-${i}`}
+                    sx={{
+                      bgcolor:
+                        entry.level === 'error'
+                          ? 'rgba(211, 47, 47, 0.04)'
+                          : entry.level === 'warn'
+                            ? 'rgba(237, 108, 2, 0.04)'
+                            : undefined,
+                    }}
+                  >
+                    <TableCell
+                      sx={{ fontFamily: 'monospace', fontSize: '0.75rem', whiteSpace: 'nowrap' }}
+                    >
+                      {new Date(entry.timestamp).toLocaleTimeString()}
+                    </TableCell>
+                    <TableCell>
+                      <Chip
+                        label={entry.worker}
+                        size="small"
+                        variant="outlined"
+                        color={
+                          entry.worker === 'jobWorker'
+                            ? 'primary'
+                            : entry.worker === 'postPublisher'
+                              ? 'success'
+                              : 'default'
+                        }
+                      />
+                    </TableCell>
+                    <TableCell
+                      sx={{
+                        fontFamily: 'monospace',
+                        fontSize: '0.75rem',
+                        color:
+                          entry.level === 'error'
+                            ? 'error.main'
+                            : entry.level === 'warn'
+                              ? 'warning.main'
+                              : 'text.primary',
+                      }}
+                    >
+                      {entry.message}
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
+          </Table>
+        </TableContainer>
       </Container>
     </>
   );

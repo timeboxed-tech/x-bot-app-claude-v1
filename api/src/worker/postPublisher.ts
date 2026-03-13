@@ -1,5 +1,6 @@
 import { postRepository } from '../repositories/postRepository.js';
 import { publishTweet } from '../services/xApiService.js';
+import { log } from './activityLog.js';
 
 const POLL_INTERVAL_MS = parseInt(process.env.POST_PUBLISHER_POLL_INTERVAL_MS || '30000', 10);
 const MAX_RETRIES = 3;
@@ -16,6 +17,7 @@ async function publishPosts(): Promise<void> {
 
   try {
     const posts = await postRepository.findScheduledReady(20);
+    log('postPublisher', `Poll: found ${posts.length} post(s) ready to publish`);
 
     for (const post of posts) {
       // Skip posts that have exceeded retry limit
@@ -39,6 +41,7 @@ async function publishPosts(): Promise<void> {
         // Clean up retry counter on success
         retryCounts.delete(post.id);
 
+        log('postPublisher', `Published post ${post.id} as tweet ${result.tweetId ?? 'unknown'}`);
         console.log(
           `[postPublisher] Published post ${post.id} as tweet ${result.tweetId ?? 'unknown'}`,
         );
@@ -46,6 +49,11 @@ async function publishPosts(): Promise<void> {
         const newCount = currentRetries + 1;
         retryCounts.set(post.id, newCount);
 
+        log(
+          'postPublisher',
+          `Failed post ${post.id} (attempt ${newCount}/${MAX_RETRIES}): ${result.error}`,
+          'error',
+        );
         console.error(
           `[postPublisher] Failed to publish post ${post.id} (attempt ${newCount}/${MAX_RETRIES}): ${result.error}`,
         );
@@ -60,6 +68,11 @@ async function publishPosts(): Promise<void> {
       }
     }
   } catch (err) {
+    log(
+      'postPublisher',
+      `Poll error: ${err instanceof Error ? err.message : String(err)}`,
+      'error',
+    );
     console.error('[postPublisher] Error polling for scheduled posts:', err);
   } finally {
     running = false;
