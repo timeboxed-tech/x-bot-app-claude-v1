@@ -38,11 +38,66 @@ async function scheduleNextJob(bot: {
   );
 }
 
+async function reconcileBots(): Promise<void> {
+  try {
+    const botsWithoutJobs = await jobRepository.findActiveBotsWithoutPendingJobs();
+
+    if (botsWithoutJobs.length === 0) return;
+
+    log('jobWorker', `Reconciliation: ${botsWithoutJobs.length} bot(s) have no pending jobs`);
+    console.log(
+      `[jobWorker] Reconciliation: ${botsWithoutJobs.length} bot(s) need new jobs`,
+    );
+
+    for (const bot of botsWithoutJobs) {
+      try {
+        const lastCompleted = bot.jobs[0]?.completedAt ?? null;
+        const baseTime = lastCompleted ?? new Date();
+
+        const nextScheduledAt = computeNextScheduledAt(
+          {
+            postsPerDay: bot.postsPerDay,
+            minIntervalHours: bot.minIntervalHours,
+            preferredHoursStart: bot.preferredHoursStart,
+            preferredHoursEnd: bot.preferredHoursEnd,
+          },
+          baseTime,
+        );
+
+        await jobRepository.create({
+          botId: bot.id,
+          scheduledAt: nextScheduledAt,
+          status: 'pending',
+        });
+
+        log(
+          'jobWorker',
+          `Reconciliation: created job for bot ${bot.id} scheduled at ${nextScheduledAt.toISOString()}`,
+        );
+        console.log(
+          `[jobWorker] Reconciliation: created job for bot ${bot.id} at ${nextScheduledAt.toISOString()}`,
+        );
+      } catch (err) {
+        console.error(`[jobWorker] Reconciliation: failed to create job for bot ${bot.id}:`, err);
+      }
+    }
+  } catch (err) {
+    log(
+      'jobWorker',
+      `Reconciliation error: ${err instanceof Error ? err.message : String(err)}`,
+      'error',
+    );
+    console.error('[jobWorker] Reconciliation error:', err);
+  }
+}
+
 async function processJobs(): Promise<void> {
   if (running) return;
   running = true;
 
   try {
+    await reconcileBots();
+
     const pendingJobs = await jobRepository.findPendingJobs(10);
     log('jobWorker', `Poll: found ${pendingJobs.length} pending job(s)`);
     console.log(`[jobWorker] Poll: found ${pendingJobs.length} pending job(s)`);

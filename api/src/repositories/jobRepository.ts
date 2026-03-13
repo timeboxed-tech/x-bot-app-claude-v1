@@ -123,4 +123,25 @@ export const jobRepository = {
       },
     });
   },
+
+  async findActiveBotsWithoutPendingJobs() {
+    return prisma.bot.findMany({
+      where: {
+        active: true,
+        user: { archivedAt: null },
+        jobs: {
+          none: {
+            status: { in: ['pending', 'locked'] },
+          },
+        },
+      },
+      include: {
+        jobs: {
+          where: { status: 'completed' },
+          orderBy: { completedAt: 'desc' },
+          take: 1,
+        },
+      },
+    });
+  },
 };
