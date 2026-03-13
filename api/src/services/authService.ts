@@ -1,8 +1,9 @@
+import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { config } from '../config/index.js';
 import { userRepository } from '../repositories/userRepository.js';
-import { ValidationError, UnauthorizedError } from '../utils/errors.js';
-import type { SessionPayload, MagicLinkPayload } from '../middleware/auth.js';
+import { ValidationError, UnauthorizedError, ConflictError } from '../utils/errors.js';
+import type { SessionPayload } from '../middleware/auth.js';
 
 export const authService = {
   validateEmailDomain(email: string): void {
@@ -12,34 +13,16 @@ export const authService = {
     }
   },
 
-  generateMagicLinkToken(email: string): string {
-    const payload: MagicLinkPayload = { email, type: 'magic-link' };
-    return jwt.sign(payload, config.jwt.secret, {
-      expiresIn: config.jwt.magicLinkExpiresInSeconds,
-    });
-  },
+  async register(email: string, password: string, name: string) {
+    this.validateEmailDomain(email);
 
-  generateMagicLinkUrl(email: string): string {
-    const token = this.generateMagicLinkToken(email);
-    return `${config.app.baseUrl}/api/auth/verify?token=${token}`;
-  },
-
-  verifyMagicLinkToken(token: string): MagicLinkPayload {
-    try {
-      const payload = jwt.verify(token, config.jwt.secret) as MagicLinkPayload;
-      if (payload.type !== 'magic-link') {
-        throw new UnauthorizedError('Invalid token type');
-      }
-      return payload;
-    } catch (err) {
-      if (err instanceof UnauthorizedError) throw err;
-      throw new UnauthorizedError('Invalid or expired magic link');
+    const existing = await userRepository.findByEmail(email);
+    if (existing) {
+      throw new ConflictError('A user with this email already exists');
     }
-  },
 
-  async verifyAndCreateSession(token: string) {
-    const { email } = this.verifyMagicLinkToken(token);
-    const user = await userRepository.upsertByEmail(email);
+    const passwordHash = await bcrypt.hash(password, 10);
+    const user = await userRepository.create(email, name, passwordHash);
 
     const sessionPayload: SessionPayload = {
       userId: user.id,
@@ -52,6 +35,33 @@ export const authService = {
     });
 
     return { user, sessionToken };
+  },
+
+  async login(email: string, password: string) {
+    const user = await userRepository.findByEmailWithPassword(email);
+    if (!user) {
+      throw new UnauthorizedError('Invalid email or password');
+    }
+
+    const valid = await bcrypt.compare(password, user.passwordHash);
+    if (!valid) {
+      throw new UnauthorizedError('Invalid email or password');
+    }
+
+    const sessionPayload: SessionPayload = {
+      userId: user.id,
+      email: user.email,
+      type: 'session',
+    };
+
+    const sessionToken = jwt.sign(sessionPayload, config.jwt.secret, {
+      expiresIn: config.jwt.sessionExpiresInSeconds,
+    });
+
+    return {
+      user: { id: user.id, email: user.email, name: user.name, createdAt: user.createdAt },
+      sessionToken,
+    };
   },
 
   async getCurrentUser(userId: string) {

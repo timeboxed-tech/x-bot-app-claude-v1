@@ -12,6 +12,7 @@ import authRoutes from './routes/authRoutes.js';
 import botRoutes from './routes/botRoutes.js';
 import xOAuthRoutes from './routes/xOAuthRoutes.js';
 import postRoutes from './routes/postRoutes.js';
+import userRoutes from './routes/userRoutes.js';
 import statsRoutes from './routes/statsRoutes.js';
 import * as jobWorker from './worker/jobWorker.js';
 import * as staleLockRecovery from './worker/staleLockRecovery.js';
@@ -39,6 +40,7 @@ app.use('/api/bots', botRoutes);
 app.use('/api/bots', statsRoutes);
 app.use('/api/auth/x', xOAuthRoutes);
 app.use('/api/posts', postRoutes);
+app.use('/api/users', userRoutes);
 
 // 404 handler for unknown routes
 app.use(notFoundHandler);

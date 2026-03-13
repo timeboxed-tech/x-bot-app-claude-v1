@@ -5,21 +5,21 @@ import { authMiddleware } from '../middleware/auth.js';
 
 const router = Router();
 
-const magicLinkLimiter = rateLimit({
+const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 5,
+  max: 20,
   standardHeaders: true,
   legacyHeaders: false,
   message: {
     error: 'TOO_MANY_REQUESTS',
     statusCode: 429,
-    message: 'Too many magic link requests. Please try again later.',
+    message: 'Too many requests. Please try again later.',
   },
 });
 
 // Public routes
-router.post('/magic-link', magicLinkLimiter, authController.requestMagicLink);
-router.get('/verify', authController.verify);
+router.post('/register', authLimiter, authController.register);
+router.post('/login', authLimiter, authController.login);
 
 // Protected routes
 router.post('/logout', authMiddleware, authController.logout);

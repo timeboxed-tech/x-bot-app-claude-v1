@@ -9,11 +9,6 @@ export type SessionPayload = {
   type: 'session';
 };
 
-export type MagicLinkPayload = {
-  email: string;
-  type: 'magic-link';
-};
-
 declare global {
   // eslint-disable-next-line @typescript-eslint/no-namespace
   namespace Express {

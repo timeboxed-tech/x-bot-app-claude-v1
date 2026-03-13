@@ -4,43 +4,53 @@ import { authService } from '../services/authService.js';
 import { config } from '../config/index.js';
 import { emailSchema } from '../utils/validation.js';
 
-const magicLinkSchema = z.object({
+const registerSchema = z.object({
   email: emailSchema,
+  password: z.string().min(6, 'Password must be at least 6 characters'),
+  name: z.string().min(1, 'Name is required'),
 });
 
-const verifyQuerySchema = z.object({
-  token: z.string().min(1, 'Token is required'),
+const loginSchema = z.object({
+  email: emailSchema,
+  password: z.string().min(1, 'Password is required'),
 });
+
+function setSessionCookie(res: Response, sessionToken: string): void {
+  res.cookie(config.cookie.name, sessionToken, {
+    httpOnly: true,
+    secure: config.isProduction,
+    sameSite: 'lax',
+    maxAge: config.cookie.maxAge,
+    path: '/',
+  });
+}
 
 export const authController = {
-  async requestMagicLink(req: Request, res: Response, next: NextFunction): Promise<void> {
+  async register(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const { email } = magicLinkSchema.parse(req.body);
-      authService.validateEmailDomain(email);
-      const url = authService.generateMagicLinkUrl(email);
+      const { email, password, name } = registerSchema.parse(req.body);
+      const { user, sessionToken } = await authService.register(email, password, name);
 
-      res.status(200).json({
-        data: { url },
+      setSessionCookie(res, sessionToken);
+
+      res.status(201).json({
+        data: user,
       });
     } catch (err) {
       next(err);
     }
   },
 
-  async verify(req: Request, res: Response, next: NextFunction): Promise<void> {
+  async login(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const { token } = verifyQuerySchema.parse(req.query);
-      const { sessionToken } = await authService.verifyAndCreateSession(token);
+      const { email, password } = loginSchema.parse(req.body);
+      const { user, sessionToken } = await authService.login(email, password);
 
-      res.cookie(config.cookie.name, sessionToken, {
-        httpOnly: true,
-        secure: config.isProduction,
-        sameSite: 'lax',
-        maxAge: config.cookie.maxAge,
-        path: '/',
+      setSessionCookie(res, sessionToken);
+
+      res.status(200).json({
+        data: user,
       });
-
-      res.redirect(`${config.app.frontendUrl}/dashboard`);
     } catch (err) {
       next(err);
     }
