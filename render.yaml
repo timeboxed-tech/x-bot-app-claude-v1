@@ -1,0 +1,57 @@
+databases:
+  - name: x-bot-db
+    plan: free
+    databaseName: xbot
+    user: xbot
+
+services:
+  - type: web
+    name: x-bot-api
+    runtime: node
+    plan: free
+    rootDir: .
+    buildCommand: npm ci && npx prisma generate --schema=api/prisma/schema.prisma && npm run build --workspace=shared && npm run build --workspace=api
+    startCommand: cd api && npm run start
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        fromDatabase:
+          name: x-bot-db
+          property: connectionString
+      - key: JWT_SECRET
+        generateValue: true
+      - key: APP_BASE_URL
+        sync: false
+      - key: FRONTEND_URL
+        sync: false
+      - key: ANTHROPIC_API_KEY
+        sync: false
+      - key: X_CONSUMER_KEY
+        sync: false
+      - key: X_CONSUMER_SECRET
+        sync: false
+
+  - type: worker
+    name: x-bot-worker
+    runtime: node
+    plan: free
+    rootDir: .
+    buildCommand: npm ci && npx prisma generate --schema=api/prisma/schema.prisma && npm run build --workspace=shared && npm run build --workspace=api
+    startCommand: cd api && npm run start:worker
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        fromDatabase:
+          name: x-bot-db
+          property: connectionString
+      - key: ANTHROPIC_API_KEY
+        sync: false
+      - key: X_CONSUMER_KEY
+        sync: false
+      - key: X_CONSUMER_SECRET
+        sync: false
+      - key: WORKER_POLL_INTERVAL_MS
+        value: '30000'
