@@ -19,7 +19,7 @@ function setSessionCookie(res: Response, sessionToken: string): void {
   res.cookie(config.cookie.name, sessionToken, {
     httpOnly: true,
     secure: config.isProduction,
-    sameSite: 'lax',
+    sameSite: config.isProduction ? 'none' : 'lax',
     maxAge: config.cookie.maxAge,
     path: '/',
   });
@@ -61,7 +61,7 @@ export const authController = {
       res.clearCookie(config.cookie.name, {
         httpOnly: true,
         secure: config.isProduction,
-        sameSite: 'lax',
+        sameSite: config.isProduction ? 'none' : 'lax',
         path: '/',
       });
 
