@@ -47,7 +47,7 @@ export const jobRepository = {
       where: {
         status: 'pending',
         scheduledAt: { lte: new Date() },
-        bot: { active: true },
+        bot: { active: true, user: { archivedAt: null } },
       },
       include: { bot: true },
       take: limit,

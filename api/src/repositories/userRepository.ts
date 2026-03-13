@@ -1,6 +1,6 @@
 import { prisma } from '../utils/prisma.js';
 
-const userSelect = { id: true, email: true, name: true, createdAt: true };
+const userSelect = { id: true, email: true, name: true, archivedAt: true, createdAt: true };
 
 export const userRepository = {
   async findByEmail(email: string) {
@@ -31,17 +31,35 @@ export const userRepository = {
     });
   },
 
-  async findAll(page: number, pageSize: number) {
+  async findAll(page: number, pageSize: number, includeArchived = false) {
+    const where = includeArchived ? {} : { archivedAt: null };
     const [users, total] = await Promise.all([
       prisma.user.findMany({
+        where,
         select: userSelect,
         orderBy: { createdAt: 'desc' },
         skip: (page - 1) * pageSize,
         take: pageSize,
       }),
-      prisma.user.count(),
+      prisma.user.count({ where }),
     ]);
     return { users, total };
+  },
+
+  async archive(id: string) {
+    return prisma.user.update({
+      where: { id },
+      data: { archivedAt: new Date() },
+      select: userSelect,
+    });
+  },
+
+  async reinstate(id: string) {
+    return prisma.user.update({
+      where: { id },
+      data: { archivedAt: null },
+      select: userSelect,
+    });
   },
 
   async updatePassword(id: string, passwordHash: string) {

@@ -48,6 +48,10 @@ export const authService = {
       throw new UnauthorizedError('Invalid email or password');
     }
 
+    if (user.archivedAt) {
+      throw new ValidationError('Your account has been archived');
+    }
+
     const sessionPayload: SessionPayload = {
       userId: user.id,
       email: user.email,

@@ -12,6 +12,7 @@ model User {
   email     String   @unique
   name         String
   passwordHash String   @default("")
+  archivedAt   DateTime?
   createdAt    DateTime @default(now())
 
   bots Bot[]

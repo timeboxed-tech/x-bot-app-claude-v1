@@ -63,6 +63,7 @@ export const postRepository = {
       where: {
         status: 'scheduled',
         scheduledAt: { lte: new Date() },
+        bot: { user: { archivedAt: null } },
       },
       take: limit,
       orderBy: { scheduledAt: 'asc' },
