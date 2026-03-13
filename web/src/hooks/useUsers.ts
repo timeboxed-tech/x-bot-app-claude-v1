@@ -6,6 +6,7 @@ type User = {
   name: string;
   email: string;
   createdAt: string;
+  archivedAt: string | null;
 };
 
 type UsersResponse = {
@@ -13,12 +14,16 @@ type UsersResponse = {
   meta: { page: number; pageSize: number; total: number };
 };
 
-export function useUsers(page: number = 1, pageSize: number = 20) {
+export function useUsers(
+  page: number = 1,
+  pageSize: number = 20,
+  includeArchived: boolean = false,
+) {
   return useQuery({
-    queryKey: ['users', 'list', page, pageSize],
+    queryKey: ['users', 'list', page, pageSize, includeArchived],
     queryFn: async () => {
       const response = await apiClient.get<UsersResponse>('/users', {
-        params: { page, pageSize },
+        params: { page, pageSize, ...(includeArchived ? { includeArchived: true } : {}) },
       });
       return response.data;
     },
@@ -31,6 +36,34 @@ export function useUpdateUserPassword() {
   return useMutation({
     mutationFn: async ({ id, password }: { id: string; password: string }) => {
       const response = await apiClient.patch(`/users/${id}/password`, { password });
+      return response.data;
+    },
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ['users', 'list'] });
+    },
+  });
+}
+
+export function useArchiveUser() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const response = await apiClient.patch(`/users/${id}/archive`);
+      return response.data;
+    },
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ['users', 'list'] });
+    },
+  });
+}
+
+export function useReinstateUser() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const response = await apiClient.patch(`/users/${id}/reinstate`);
       return response.data;
     },
     onSuccess: () => {
