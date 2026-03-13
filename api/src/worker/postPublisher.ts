@@ -49,6 +49,14 @@ async function publishPosts(): Promise<void> {
         console.error(
           `[postPublisher] Failed to publish post ${post.id} (attempt ${newCount}/${MAX_RETRIES}): ${result.error}`,
         );
+
+        if (newCount >= MAX_RETRIES) {
+          await postRepository.update(post.id, { status: 'discarded' });
+          retryCounts.delete(post.id);
+          console.error(
+            `[postPublisher] Post ${post.id} discarded after ${MAX_RETRIES} failed attempts: ${result.error}`,
+          );
+        }
       }
     }
   } catch (err) {

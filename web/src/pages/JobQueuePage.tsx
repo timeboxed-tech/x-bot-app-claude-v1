@@ -1,11 +1,14 @@
+import { useState } from 'react';
 import Alert from '@mui/material/Alert';
 import Box from '@mui/material/Box';
 import Card from '@mui/material/Card';
 import CardContent from '@mui/material/CardContent';
 import Chip from '@mui/material/Chip';
+import Collapse from '@mui/material/Collapse';
 import Container from '@mui/material/Container';
 import CircularProgress from '@mui/material/CircularProgress';
 import Grid from '@mui/material/Grid';
+import IconButton from '@mui/material/IconButton';
 import Paper from '@mui/material/Paper';
 import Table from '@mui/material/Table';
 import TableBody from '@mui/material/TableBody';
@@ -14,6 +17,8 @@ import TableContainer from '@mui/material/TableContainer';
 import TableHead from '@mui/material/TableHead';
 import TableRow from '@mui/material/TableRow';
 import Typography from '@mui/material/Typography';
+import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
+import KeyboardArrowUpIcon from '@mui/icons-material/KeyboardArrowUp';
 import AppHeader from '../components/AppHeader';
 import { useJobQueue } from '../hooks/useJobQueue';
 
@@ -58,6 +63,12 @@ function computeDuration(startedAt: string | null, completedAt: string | null): 
   return `${minutes}m ${remainingSeconds}s`;
 }
 
+function getErrorFirstLine(error: string | null): string {
+  if (!error) return '';
+  const firstLine = error.split('\n')[0];
+  return firstLine.length > 120 ? firstLine.slice(0, 120) + '...' : firstLine;
+}
+
 function StatCard({
   title,
   value,
@@ -95,6 +106,194 @@ const statusChipColors: Record<string, 'default' | 'info' | 'success' | 'error' 
   completed: 'success',
   failed: 'error',
 };
+
+function ExpandableErrorRow({ error, colSpan }: { error: string | null; colSpan: number }) {
+  const [open, setOpen] = useState(false);
+
+  if (!error) return null;
+
+  const hasDetails = error.includes('\n');
+
+  return (
+    <>
+      <TableCell
+        sx={{
+          maxWidth: 300,
+          overflow: 'hidden',
+          textOverflow: 'ellipsis',
+          whiteSpace: 'nowrap',
+          cursor: hasDetails ? 'pointer' : 'default',
+        }}
+        onClick={hasDetails ? () => setOpen(!open) : undefined}
+      >
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+          {hasDetails && (
+            <IconButton size="small" sx={{ p: 0 }}>
+              {open ? (
+                <KeyboardArrowUpIcon fontSize="small" />
+              ) : (
+                <KeyboardArrowDownIcon fontSize="small" />
+              )}
+            </IconButton>
+          )}
+          <Typography variant="body2" color="error" noWrap>
+            {getErrorFirstLine(error)}
+          </Typography>
+        </Box>
+      </TableCell>
+    </>
+  );
+}
+
+function ErrorDetailCollapse({
+  error,
+  open,
+  colSpan,
+}: {
+  error: string | null;
+  open: boolean;
+  colSpan: number;
+}) {
+  if (!error || !error.includes('\n')) return null;
+
+  return (
+    <TableRow>
+      <TableCell colSpan={colSpan} sx={{ py: 0, borderBottom: open ? undefined : 'none' }}>
+        <Collapse in={open}>
+          <Box
+            sx={{
+              whiteSpace: 'pre-wrap',
+              fontFamily: 'monospace',
+              fontSize: '0.75rem',
+              backgroundColor: 'rgba(211, 47, 47, 0.04)',
+              p: 2,
+              my: 1,
+              borderRadius: 1,
+              maxHeight: 300,
+              overflow: 'auto',
+            }}
+          >
+            {error}
+          </Box>
+        </Collapse>
+      </TableCell>
+    </TableRow>
+  );
+}
+
+function RecentJobRow({
+  job,
+}: {
+  job: {
+    id: string;
+    botHandle: string;
+    status: string;
+    startedAt: string | null;
+    completedAt: string | null;
+    error: string | null;
+  };
+}) {
+  const [open, setOpen] = useState(false);
+  const isFailed = job.status === 'failed';
+  const hasDetails = !!job.error && job.error.includes('\n');
+
+  return (
+    <>
+      <TableRow sx={isFailed ? { bgcolor: 'rgba(211, 47, 47, 0.04)' } : undefined}>
+        <TableCell>{job.botHandle || '-'}</TableCell>
+        <TableCell>
+          <Chip label={job.status} color={statusChipColors[job.status] ?? 'default'} size="small" />
+        </TableCell>
+        <TableCell>{job.startedAt ? new Date(job.startedAt).toLocaleString() : '-'}</TableCell>
+        <TableCell>{job.completedAt ? new Date(job.completedAt).toLocaleString() : '-'}</TableCell>
+        <TableCell>{computeDuration(job.startedAt, job.completedAt)}</TableCell>
+        <TableCell
+          sx={{
+            maxWidth: 250,
+            cursor: hasDetails ? 'pointer' : 'default',
+          }}
+          onClick={hasDetails ? () => setOpen(!open) : undefined}
+        >
+          {job.error ? (
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+              {hasDetails && (
+                <IconButton size="small" sx={{ p: 0 }}>
+                  {open ? (
+                    <KeyboardArrowUpIcon fontSize="small" />
+                  ) : (
+                    <KeyboardArrowDownIcon fontSize="small" />
+                  )}
+                </IconButton>
+              )}
+              <Typography variant="body2" color="error" noWrap>
+                {getErrorFirstLine(job.error)}
+              </Typography>
+            </Box>
+          ) : (
+            '-'
+          )}
+        </TableCell>
+      </TableRow>
+      <ErrorDetailCollapse error={job.error} open={open} colSpan={6} />
+    </>
+  );
+}
+
+function ErrorJobRow({
+  job,
+}: {
+  job: {
+    id: string;
+    botHandle: string;
+    scheduledAt: string;
+    completedAt: string | null;
+    error: string | null;
+  };
+}) {
+  const [open, setOpen] = useState(false);
+  const hasDetails = !!job.error && job.error.includes('\n');
+
+  return (
+    <>
+      <TableRow sx={{ bgcolor: 'rgba(211, 47, 47, 0.04)' }}>
+        <TableCell>
+          <Chip label={job.botHandle || '-'} color="error" size="small" variant="outlined" />
+        </TableCell>
+        <TableCell>{new Date(job.scheduledAt).toLocaleString()}</TableCell>
+        <TableCell>{job.completedAt ? new Date(job.completedAt).toLocaleString() : '-'}</TableCell>
+        <TableCell
+          sx={{
+            maxWidth: 300,
+            cursor: hasDetails ? 'pointer' : 'default',
+          }}
+          onClick={hasDetails ? () => setOpen(!open) : undefined}
+        >
+          {job.error ? (
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+              {hasDetails && (
+                <IconButton size="small" sx={{ p: 0 }}>
+                  {open ? (
+                    <KeyboardArrowUpIcon fontSize="small" />
+                  ) : (
+                    <KeyboardArrowDownIcon fontSize="small" />
+                  )}
+                </IconButton>
+              )}
+              <Typography variant="body2" color="error" noWrap>
+                {getErrorFirstLine(job.error)}
+              </Typography>
+            </Box>
+          ) : (
+            <Typography variant="body2" color="text.secondary">
+              No error details
+            </Typography>
+          )}
+        </TableCell>
+      </TableRow>
+      <ErrorDetailCollapse error={job.error} open={open} colSpan={4} />
+    </>
+  );
+}
 
 export default function JobQueuePage() {
   const { data, isLoading, error } = useJobQueue();
@@ -201,7 +400,7 @@ export default function JobQueuePage() {
               ) : (
                 data.upcomingJobs.map((job) => (
                   <TableRow key={job.id}>
-                    <TableCell>@{job.botHandle}</TableCell>
+                    <TableCell>{job.botHandle || '-'}</TableCell>
                     <TableCell>{new Date(job.scheduledAt).toLocaleString()}</TableCell>
                     <TableCell>{new Date(job.createdAt).toLocaleString()}</TableCell>
                   </TableRow>
@@ -224,37 +423,20 @@ export default function JobQueuePage() {
                 <TableCell>Started At</TableCell>
                 <TableCell>Completed At</TableCell>
                 <TableCell>Duration</TableCell>
+                <TableCell>Error</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
               {data.recentJobs.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={5} align="center">
+                  <TableCell colSpan={6} align="center">
                     <Typography variant="body2" color="text.secondary" sx={{ py: 2 }}>
                       No recent jobs
                     </Typography>
                   </TableCell>
                 </TableRow>
               ) : (
-                data.recentJobs.map((job) => (
-                  <TableRow key={job.id}>
-                    <TableCell>@{job.botHandle}</TableCell>
-                    <TableCell>
-                      <Chip
-                        label={job.status}
-                        color={statusChipColors[job.status] ?? 'default'}
-                        size="small"
-                      />
-                    </TableCell>
-                    <TableCell>
-                      {job.startedAt ? new Date(job.startedAt).toLocaleString() : '-'}
-                    </TableCell>
-                    <TableCell>
-                      {job.completedAt ? new Date(job.completedAt).toLocaleString() : '-'}
-                    </TableCell>
-                    <TableCell>{computeDuration(job.startedAt, job.completedAt)}</TableCell>
-                  </TableRow>
-                ))
+                data.recentJobs.map((job) => <RecentJobRow key={job.id} job={job} />)
               )}
             </TableBody>
           </Table>
@@ -269,28 +451,16 @@ export default function JobQueuePage() {
             <TableContainer component={Paper} sx={{ mb: 3 }}>
               <Table size="small">
                 <TableHead>
-                  <TableRow sx={{ bgcolor: 'error.50' }}>
+                  <TableRow sx={{ bgcolor: 'rgba(211, 47, 47, 0.08)' }}>
                     <TableCell>Bot</TableCell>
                     <TableCell>Scheduled At</TableCell>
                     <TableCell>Failed At</TableCell>
+                    <TableCell>Error</TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
                   {data.recentErrors.map((job) => (
-                    <TableRow key={job.id} sx={{ bgcolor: 'rgba(211, 47, 47, 0.04)' }}>
-                      <TableCell>
-                        <Chip
-                          label={`@${job.botHandle}`}
-                          color="error"
-                          size="small"
-                          variant="outlined"
-                        />
-                      </TableCell>
-                      <TableCell>{new Date(job.scheduledAt).toLocaleString()}</TableCell>
-                      <TableCell>
-                        {job.completedAt ? new Date(job.completedAt).toLocaleString() : '-'}
-                      </TableCell>
-                    </TableRow>
+                    <ErrorJobRow key={job.id} job={job} />
                   ))}
                 </TableBody>
               </Table>

@@ -9,6 +9,34 @@ const POLL_INTERVAL_MS = parseInt(process.env.WORKER_POLL_INTERVAL_MS || '30000'
 let intervalHandle: ReturnType<typeof setInterval> | null = null;
 let running = false;
 
+async function scheduleNextJob(bot: {
+  id: string;
+  postsPerDay: number;
+  minIntervalHours: number;
+  preferredHoursStart: number;
+  preferredHoursEnd: number;
+}): Promise<void> {
+  const nextScheduledAt = computeNextScheduledAt(
+    {
+      postsPerDay: bot.postsPerDay,
+      minIntervalHours: bot.minIntervalHours,
+      preferredHoursStart: bot.preferredHoursStart,
+      preferredHoursEnd: bot.preferredHoursEnd,
+    },
+    new Date(),
+  );
+
+  await jobRepository.create({
+    botId: bot.id,
+    scheduledAt: nextScheduledAt,
+    status: 'pending',
+  });
+
+  console.log(
+    `[jobWorker] Next job for bot ${bot.id} scheduled at ${nextScheduledAt.toISOString()}`,
+  );
+}
+
 async function processJobs(): Promise<void> {
   if (running) return;
   running = true;
@@ -24,13 +52,23 @@ async function processJobs(): Promise<void> {
         continue;
       }
 
+      const bot = job.bot;
+
       try {
-        const bot = job.bot;
+        // Check if X account is connected
+        if (!bot.xAccessToken) {
+          const errorMsg = 'X account not connected — skipping content generation';
+          console.warn(`[jobWorker] Job ${job.id}: ${errorMsg}`);
+          await jobRepository.markFailed(job.id, errorMsg);
+          continue;
+        }
+
         const result = await generateTweet(bot.prompt);
 
         if (!result.success) {
-          console.error(`[jobWorker] AI generation failed for job ${job.id}: ${result.error}`);
-          await jobRepository.markFailed(job.id);
+          const errorMsg = `AI generation failed: ${result.error}`;
+          console.error(`[jobWorker] Job ${job.id}: ${errorMsg}`);
+          await jobRepository.markFailed(job.id, errorMsg);
           continue;
         }
 
@@ -46,30 +84,18 @@ async function processJobs(): Promise<void> {
         });
 
         await jobRepository.markCompleted(job.id);
-
-        // Schedule next job
-        const nextScheduledAt = computeNextScheduledAt(
-          {
-            postsPerDay: bot.postsPerDay,
-            minIntervalHours: bot.minIntervalHours,
-            preferredHoursStart: bot.preferredHoursStart,
-            preferredHoursEnd: bot.preferredHoursEnd,
-          },
-          new Date(),
-        );
-
-        await jobRepository.create({
-          botId: bot.id,
-          scheduledAt: nextScheduledAt,
-          status: 'pending',
-        });
-
-        console.log(
-          `[jobWorker] Job ${job.id} completed. Next job scheduled at ${nextScheduledAt.toISOString()}`,
-        );
+        console.log(`[jobWorker] Job ${job.id} completed successfully`);
       } catch (err) {
+        const errorMsg = err instanceof Error ? `${err.message}\n${err.stack}` : String(err);
         console.error(`[jobWorker] Error processing job ${job.id}:`, err);
-        await jobRepository.markFailed(job.id);
+        await jobRepository.markFailed(job.id, errorMsg);
+      } finally {
+        // Always schedule next job, even after failure
+        try {
+          await scheduleNextJob(bot);
+        } catch (schedErr) {
+          console.error(`[jobWorker] Failed to schedule next job for bot ${bot.id}:`, schedErr);
+        }
       }
     }
   } catch (err) {

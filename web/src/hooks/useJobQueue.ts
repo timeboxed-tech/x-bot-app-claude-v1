@@ -13,6 +13,7 @@ export type JobQueueStats = {
     scheduledAt: string;
     startedAt: string | null;
     completedAt: string | null;
+    error: string | null;
     createdAt: string;
   }>;
   upcomingJobs: Array<{
@@ -30,6 +31,7 @@ export type JobQueueStats = {
     status: string;
     scheduledAt: string;
     completedAt: string | null;
+    error: string | null;
     createdAt: string;
   }>;
   lastCompletedAt: string | null;

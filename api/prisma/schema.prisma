@@ -65,6 +65,7 @@ model Job {
   scheduledAt DateTime
   startedAt   DateTime?
   completedAt DateTime?
+  error       String?   @db.Text
   createdAt   DateTime  @default(now())
 
   bot   Bot    @relation(fields: [botId], references: [id])

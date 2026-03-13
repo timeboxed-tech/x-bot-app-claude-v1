@@ -88,12 +88,13 @@ export const jobRepository = {
     });
   },
 
-  async markFailed(jobId: string) {
+  async markFailed(jobId: string, error?: string) {
     return prisma.job.update({
       where: { id: jobId },
       data: {
         status: 'failed',
         completedAt: new Date(),
+        error: error ?? null,
       },
     });
   },

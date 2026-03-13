@@ -78,6 +78,7 @@ export const jobQueueController = {
         scheduledAt: Date;
         startedAt: Date | null;
         completedAt: Date | null;
+        error: string | null;
         createdAt: Date;
         bot: { xAccountHandle: string };
       }) => ({
@@ -88,6 +89,7 @@ export const jobQueueController = {
         scheduledAt: job.scheduledAt,
         ...(job.startedAt && { startedAt: job.startedAt }),
         ...(job.completedAt && { completedAt: job.completedAt }),
+        error: job.error ?? null,
         createdAt: job.createdAt,
       });
 
