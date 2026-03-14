@@ -139,7 +139,7 @@ async function processJobs(): Promise<void> {
         const tips = await botTipRepository.findByBotId(bot.id);
         const result = await generateTweet(
           bot.prompt,
-          tips.map((t) => t.content),
+          tips.map((t: { content: string }) => t.content),
         );
 
         if (!result.success) {
