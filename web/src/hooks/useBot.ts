@@ -11,6 +11,7 @@ type BotOwner = {
 export type Bot = {
   id: string;
   userId: string;
+  platform: string;
   xAccountHandle: string;
   prompt: string;
   postMode: string;

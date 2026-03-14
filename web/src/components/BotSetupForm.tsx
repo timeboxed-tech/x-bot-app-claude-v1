@@ -12,10 +12,18 @@ import Slider from '@mui/material/Slider';
 import TextField from '@mui/material/TextField';
 import Typography from '@mui/material/Typography';
 import Alert from '@mui/material/Alert';
+import Chip from '@mui/material/Chip';
 import InputLabel from '@mui/material/InputLabel';
 import { z } from 'zod';
 
+const PLATFORMS = [
+  { value: 'x', label: 'X (Twitter)', enabled: true },
+  { value: 'linkedin', label: 'LinkedIn', enabled: false },
+  { value: 'threads', label: 'Threads', enabled: false },
+] as const;
+
 const botConfigSchema = z.object({
+  platform: z.enum(['x']),
   prompt: z.string().min(1, 'Prompt is required'),
   postMode: z.enum(['auto', 'manual']),
   postsPerDay: z.number().int().min(1).max(15),
@@ -34,6 +42,7 @@ type BotSetupFormProps = {
 };
 
 const defaultValues: BotConfigValues = {
+  platform: 'x',
   prompt: '',
   postMode: 'manual',
   postsPerDay: 3,
@@ -78,6 +87,23 @@ export default function BotSetupForm({
       onSubmit={handleSubmit}
       sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}
     >
+      <FormControl>
+        <FormLabel>Platform</FormLabel>
+        <Box sx={{ display: 'flex', gap: 1, mt: 1 }}>
+          {PLATFORMS.map((p) => (
+            <Chip
+              key={p.value}
+              label={p.enabled ? p.label : `${p.label} (coming soon)`}
+              color={values.platform === p.value ? 'primary' : 'default'}
+              variant={values.platform === p.value ? 'filled' : 'outlined'}
+              onClick={p.enabled ? () => setValues((v) => ({ ...v, platform: p.value as 'x' })) : undefined}
+              disabled={!p.enabled}
+              sx={{ opacity: p.enabled ? 1 : 0.5 }}
+            />
+          ))}
+        </Box>
+      </FormControl>
+
       <TextField
         label="Bot Prompt"
         multiline

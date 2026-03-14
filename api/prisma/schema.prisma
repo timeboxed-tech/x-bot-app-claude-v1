@@ -26,6 +26,7 @@ model Bot {
   xAccessToken        String   @default("")
   xAccessSecret       String   @default("")
   xAccountHandle      String   @default("")
+  platform            String   @default("x")
   prompt              String   @db.Text
   postMode            String   @default("manual")
   postsPerDay         Int      @default(3)

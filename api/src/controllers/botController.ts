@@ -7,6 +7,7 @@ import { botTipRepository } from '../repositories/botTipRepository.js';
 import { paginationSchema, uuidSchema } from '../utils/validation.js';
 
 const createBotSchema = z.object({
+  platform: z.enum(['x']).default('x'),
   prompt: z.string().min(1, 'Prompt is required'),
   postMode: z.enum(['auto', 'manual']).default('manual'),
   postsPerDay: z.number().int().min(1).max(15).default(3),
