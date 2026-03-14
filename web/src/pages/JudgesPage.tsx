@@ -21,9 +21,18 @@ import Alert from '@mui/material/Alert';
 import CircularProgress from '@mui/material/CircularProgress';
 import IconButton from '@mui/material/IconButton';
 import EditIcon from '@mui/icons-material/Edit';
-import DeleteIcon from '@mui/icons-material/Delete';
+import ArchiveIcon from '@mui/icons-material/Archive';
+import UnarchiveIcon from '@mui/icons-material/Unarchive';
+import DeleteForeverIcon from '@mui/icons-material/DeleteForever';
 import AppHeader from '../components/AppHeader';
-import { useJudges, useCreateJudge, useUpdateJudge, useDeleteJudge } from '../hooks/useJudges';
+import {
+  useJudges,
+  useCreateJudge,
+  useUpdateJudge,
+  useArchiveJudge,
+  useReactivateJudge,
+  useDeleteJudge,
+} from '../hooks/useJudges';
 import { useAuth } from '../hooks/useAuth';
 import { AxiosError } from 'axios';
 
@@ -49,7 +58,12 @@ export default function JudgesPage() {
 
   const createJudge = useCreateJudge();
   const updateJudge = useUpdateJudge();
+  const archiveJudge = useArchiveJudge();
+  const reactivateJudge = useReactivateJudge();
   const deleteJudge = useDeleteJudge();
+
+  const activeJudges = judges?.filter((j) => j.archivedAt === null) ?? [];
+  const archivedJudges = judges?.filter((j) => j.archivedAt !== null) ?? [];
 
   const handleOpenCreate = () => {
     setEditingId(null);
@@ -110,6 +124,44 @@ export default function JudgesPage() {
     }
   };
 
+  const handleArchive = (judge: { id: string; name: string }) => {
+    archiveJudge.mutate(judge.id, {
+      onSuccess: () => {
+        setSnackbar({
+          open: true,
+          message: `Judge "${judge.name}" archived`,
+          severity: 'success',
+        });
+      },
+      onError: (err) => {
+        let message = 'Failed to archive judge';
+        if (err instanceof AxiosError && err.response?.data?.error) {
+          message = err.response.data.error;
+        }
+        setSnackbar({ open: true, message, severity: 'error' });
+      },
+    });
+  };
+
+  const handleReactivate = (judge: { id: string; name: string }) => {
+    reactivateJudge.mutate(judge.id, {
+      onSuccess: () => {
+        setSnackbar({
+          open: true,
+          message: `Judge "${judge.name}" reactivated`,
+          severity: 'success',
+        });
+      },
+      onError: (err) => {
+        let message = 'Failed to reactivate judge';
+        if (err instanceof AxiosError && err.response?.data?.error) {
+          message = err.response.data.error;
+        }
+        setSnackbar({ open: true, message, severity: 'error' });
+      },
+    });
+  };
+
   const handleDeleteClick = (judge: { id: string; name: string }) => {
     setJudgeToDelete(judge);
     setDeleteConfirmOpen(true);
@@ -121,7 +173,7 @@ export default function JudgesPage() {
       onSuccess: () => {
         setSnackbar({
           open: true,
-          message: `Judge "${judgeToDelete.name}" deleted`,
+          message: `Judge "${judgeToDelete.name}" permanently deleted`,
           severity: 'success',
         });
         setDeleteConfirmOpen(false);
@@ -176,50 +228,104 @@ export default function JudgesPage() {
         )}
 
         {judges && (
-          <TableContainer component={Paper}>
-            <Table>
-              <TableHead>
-                <TableRow>
-                  <TableCell>Name</TableCell>
-                  <TableCell>Personality Prompt</TableCell>
-                  <TableCell>Created At</TableCell>
-                  <TableCell align="right">Actions</TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {judges.map((judge) => (
-                  <TableRow key={judge.id}>
-                    <TableCell>{judge.name}</TableCell>
-                    <TableCell
-                      sx={{
-                        maxWidth: 400,
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis',
-                        whiteSpace: 'nowrap',
-                      }}
-                    >
-                      {judge.prompt}
-                    </TableCell>
-                    <TableCell>{new Date(judge.createdAt).toLocaleDateString()}</TableCell>
-                    <TableCell align="right">
-                      <Box sx={{ display: 'flex', gap: 0.5, justifyContent: 'flex-end' }}>
-                        <IconButton size="small" onClick={() => handleOpenEdit(judge)}>
-                          <EditIcon fontSize="small" />
-                        </IconButton>
-                        <IconButton
-                          size="small"
-                          color="error"
-                          onClick={() => handleDeleteClick(judge)}
-                        >
-                          <DeleteIcon fontSize="small" />
-                        </IconButton>
-                      </Box>
-                    </TableCell>
+          <>
+            <Typography variant="h6" sx={{ mb: 1 }}>
+              Active Judges
+            </Typography>
+            <TableContainer component={Paper} sx={{ mb: 4 }}>
+              <Table>
+                <TableHead>
+                  <TableRow>
+                    <TableCell>Name</TableCell>
+                    <TableCell>Personality Prompt</TableCell>
+                    <TableCell>Created At</TableCell>
+                    <TableCell align="right">Actions</TableCell>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </TableContainer>
+                </TableHead>
+                <TableBody>
+                  {activeJudges.map((judge) => (
+                    <TableRow key={judge.id}>
+                      <TableCell>{judge.name}</TableCell>
+                      <TableCell
+                        sx={{
+                          maxWidth: 400,
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          whiteSpace: 'nowrap',
+                        }}
+                      >
+                        {judge.prompt}
+                      </TableCell>
+                      <TableCell>{new Date(judge.createdAt).toLocaleDateString()}</TableCell>
+                      <TableCell align="right">
+                        <Box sx={{ display: 'flex', gap: 0.5, justifyContent: 'flex-end' }}>
+                          <IconButton size="small" onClick={() => handleOpenEdit(judge)}>
+                            <EditIcon fontSize="small" />
+                          </IconButton>
+                          <IconButton
+                            size="small"
+                            color="warning"
+                            onClick={() => handleArchive(judge)}
+                          >
+                            <ArchiveIcon fontSize="small" />
+                          </IconButton>
+                        </Box>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </TableContainer>
+
+            {archivedJudges.length > 0 && (
+              <>
+                <Typography variant="h6" sx={{ mb: 1 }}>
+                  Archived Judges
+                </Typography>
+                <TableContainer component={Paper}>
+                  <Table>
+                    <TableHead>
+                      <TableRow>
+                        <TableCell>Name</TableCell>
+                        <TableCell>Archived Date</TableCell>
+                        <TableCell align="right">Actions</TableCell>
+                      </TableRow>
+                    </TableHead>
+                    <TableBody>
+                      {archivedJudges.map((judge) => (
+                        <TableRow key={judge.id}>
+                          <TableCell>{judge.name}</TableCell>
+                          <TableCell>
+                            {judge.archivedAt
+                              ? new Date(judge.archivedAt).toLocaleDateString()
+                              : ''}
+                          </TableCell>
+                          <TableCell align="right">
+                            <Box sx={{ display: 'flex', gap: 0.5, justifyContent: 'flex-end' }}>
+                              <IconButton
+                                size="small"
+                                color="primary"
+                                onClick={() => handleReactivate(judge)}
+                              >
+                                <UnarchiveIcon fontSize="small" />
+                              </IconButton>
+                              <IconButton
+                                size="small"
+                                color="error"
+                                onClick={() => handleDeleteClick(judge)}
+                              >
+                                <DeleteForeverIcon fontSize="small" />
+                              </IconButton>
+                            </Box>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </TableContainer>
+              </>
+            )}
+          </>
         )}
 
         {/* Create/Edit Dialog */}
@@ -257,7 +363,7 @@ export default function JudgesPage() {
           </DialogActions>
         </Dialog>
 
-        {/* Delete Confirmation Dialog */}
+        {/* Permanent Delete Confirmation Dialog */}
         <Dialog
           open={deleteConfirmOpen}
           onClose={() => {
@@ -265,10 +371,11 @@ export default function JudgesPage() {
             setJudgeToDelete(null);
           }}
         >
-          <DialogTitle>Delete Judge</DialogTitle>
+          <DialogTitle>Permanently Delete Judge</DialogTitle>
           <DialogContent>
             <DialogContentText>
-              Are you sure you want to delete the judge &quot;{judgeToDelete?.name}&quot;?
+              Are you sure you want to permanently delete the judge &quot;{judgeToDelete?.name}
+              &quot;? This action cannot be undone and will also remove all related reviews.
             </DialogContentText>
           </DialogContent>
           <DialogActions>
@@ -286,7 +393,7 @@ export default function JudgesPage() {
               variant="contained"
               disabled={deleteJudge.isPending}
             >
-              {deleteJudge.isPending ? 'Deleting...' : 'Delete'}
+              {deleteJudge.isPending ? 'Deleting...' : 'Delete Forever'}
             </Button>
           </DialogActions>
         </Dialog>

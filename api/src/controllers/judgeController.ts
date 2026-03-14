@@ -70,6 +70,44 @@ export const judgeController = {
     }
   },
 
+  async archive(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const userId = req.userId!;
+      await assertAdmin(userId);
+
+      const { id } = judgeIdParamSchema.parse(req.params);
+
+      const existing = await judgeRepository.findById(id);
+      if (!existing) {
+        throw new NotFoundError('Judge not found');
+      }
+
+      const judge = await judgeRepository.archive(id);
+      res.status(200).json({ data: judge });
+    } catch (err) {
+      next(err);
+    }
+  },
+
+  async reactivate(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const userId = req.userId!;
+      await assertAdmin(userId);
+
+      const { id } = judgeIdParamSchema.parse(req.params);
+
+      const existing = await judgeRepository.findById(id);
+      if (!existing) {
+        throw new NotFoundError('Judge not found');
+      }
+
+      const judge = await judgeRepository.reactivate(id);
+      res.status(200).json({ data: judge });
+    } catch (err) {
+      next(err);
+    }
+  },
+
   async remove(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const userId = req.userId!;
@@ -80,6 +118,11 @@ export const judgeController = {
       const existing = await judgeRepository.findById(id);
       if (!existing) {
         throw new NotFoundError('Judge not found');
+      }
+
+      if (!existing.archivedAt) {
+        res.status(400).json({ error: 'Judge must be archived before permanent deletion' });
+        return;
       }
 
       await judgeRepository.delete(id);

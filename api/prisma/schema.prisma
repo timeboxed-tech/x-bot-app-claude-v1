@@ -104,10 +104,11 @@ model Job {
 }
 
 model Judge {
-  id        String   @id @default(uuid()) @db.Uuid
-  name      String
-  prompt    String   @db.Text
-  createdAt DateTime @default(now())
+  id         String    @id @default(uuid()) @db.Uuid
+  name       String
+  prompt     String    @db.Text
+  createdAt  DateTime  @default(now())
+  archivedAt DateTime?
 
   botJudges BotJudge[]
   reviews   PostReview[]

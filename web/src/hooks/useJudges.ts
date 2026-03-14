@@ -7,6 +7,7 @@ export type Judge = {
   name: string;
   prompt: string;
   createdAt: string;
+  archivedAt: string | null;
 };
 
 export type BotJudge = {
@@ -70,6 +71,34 @@ export function useUpdateJudge() {
   return useMutation({
     mutationFn: async ({ id, ...input }: { id: string; name?: string; prompt?: string }) => {
       const response = await apiClient.patch<{ data: Judge }>(`/judges/${id}`, input);
+      return response.data.data;
+    },
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: queryKeys.judges.list });
+    },
+  });
+}
+
+export function useArchiveJudge() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const response = await apiClient.patch<{ data: Judge }>(`/judges/${id}/archive`);
+      return response.data.data;
+    },
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: queryKeys.judges.list });
+    },
+  });
+}
+
+export function useReactivateJudge() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const response = await apiClient.patch<{ data: Judge }>(`/judges/${id}/reactivate`);
       return response.data.data;
     },
     onSuccess: () => {
@@ -145,6 +174,21 @@ export function usePostReviews(postId: string | undefined) {
       return response.data.data;
     },
     enabled: !!postId,
+  });
+}
+
+export function useDeleteReview() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ postId, reviewId }: { postId: string; reviewId: string }) => {
+      await apiClient.delete(`/posts/${postId}/reviews/${reviewId}`);
+    },
+    onSuccess: (_data, variables) => {
+      void queryClient.invalidateQueries({
+        queryKey: queryKeys.posts.reviews(variables.postId),
+      });
+    },
   });
 }
 
