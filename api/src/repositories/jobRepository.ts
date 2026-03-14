@@ -1,5 +1,5 @@
 import { prisma } from '../utils/prisma.js';
-import type { PrismaClient } from '@prisma/client';
+import type { PrismaClient } from '../generated/prisma/client.js';
 
 type TransactionClient = Omit<
   PrismaClient,
