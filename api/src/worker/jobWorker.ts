@@ -1,6 +1,7 @@
 import { v4 as uuidv4 } from 'uuid';
 import { jobRepository } from '../repositories/jobRepository.js';
 import { postRepository } from '../repositories/postRepository.js';
+import { botTipRepository } from '../repositories/botTipRepository.js';
 import { generateTweet } from '../services/aiService.js';
 import { computeNextScheduledAt } from '../services/scheduler.js';
 import { log } from './activityLog.js';
@@ -137,7 +138,8 @@ async function processJobs(): Promise<void> {
           continue;
         }
 
-        const result = await generateTweet(bot.prompt);
+        const tips = await botTipRepository.findByBotId(bot.id);
+        const result = await generateTweet(bot.prompt, tips.map((t) => t.content));
 
         if (!result.success) {
           const errorMsg = `AI generation failed: ${result.error}`;

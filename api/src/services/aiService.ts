@@ -15,11 +15,21 @@ Rules:
 - Do not include quotation marks around the tweet
 - Output ONLY the tweet text, nothing else`;
 
-async function callClaude(client: Anthropic, prompt: string): Promise<string> {
+const TWEAK_SYSTEM_PROMPT = `You are helping revise a tweet. Given the current tweet and user feedback, output ONLY the revised tweet text (under 280 chars). Do not include quotation marks around the tweet.`;
+
+const TIPS_SYSTEM_PROMPT = `Analyze this conversation where a user refined a tweet draft. Extract 1-3 concise tips/preferences that should guide future tweet generation for this account. Each tip should be a single sentence. Output only the tips, one per line.`;
+
+function getClient(): Anthropic | null {
+  const apiKey = process.env.ANTHROPIC_API_KEY;
+  if (!apiKey) return null;
+  return new Anthropic({ apiKey });
+}
+
+async function callClaude(client: Anthropic, prompt: string, systemPrompt?: string): Promise<string> {
   const response = await client.messages.create({
     model: 'claude-sonnet-4-20250514',
     max_tokens: 300,
-    system: SYSTEM_PROMPT,
+    system: systemPrompt ?? SYSTEM_PROMPT,
     messages: [{ role: 'user', content: prompt }],
   });
 
@@ -31,10 +41,30 @@ async function callClaude(client: Anthropic, prompt: string): Promise<string> {
   throw new Error('Unexpected response format from Claude API');
 }
 
-export async function generateTweet(prompt: string): Promise<GenerateTweetResult> {
-  const apiKey = process.env.ANTHROPIC_API_KEY;
+async function callClaudeWithMessages(
+  client: Anthropic,
+  systemPrompt: string,
+  messages: Array<{ role: 'user' | 'assistant'; content: string }>,
+): Promise<string> {
+  const response = await client.messages.create({
+    model: 'claude-sonnet-4-20250514',
+    max_tokens: 300,
+    system: systemPrompt,
+    messages,
+  });
 
-  if (!apiKey) {
+  const block = response.content[0];
+  if (block.type === 'text') {
+    return block.text.trim();
+  }
+
+  throw new Error('Unexpected response format from Claude API');
+}
+
+export async function generateTweet(prompt: string, tips?: string[]): Promise<GenerateTweetResult> {
+  const client = getClient();
+
+  if (!client) {
     return {
       content: 'AI service not configured \u2014 set ANTHROPIC_API_KEY',
       success: false,
@@ -42,20 +72,73 @@ export async function generateTweet(prompt: string): Promise<GenerateTweetResult
     };
   }
 
-  const client = new Anthropic({ apiKey });
+  let systemPrompt = SYSTEM_PROMPT;
+  if (tips && tips.length > 0) {
+    systemPrompt += `\n\nRemember these tips from past feedback:\n${tips.map((t) => `- ${t}`).join('\n')}`;
+  }
 
   // First attempt
   try {
-    const content = await callClaude(client, prompt);
+    const content = await callClaude(client, prompt, systemPrompt);
     return { content, success: true };
   } catch {
     // Retry once on failure
     try {
-      const content = await callClaude(client, prompt);
+      const content = await callClaude(client, prompt, systemPrompt);
       return { content, success: true };
     } catch (retryErr: unknown) {
       const message = retryErr instanceof Error ? retryErr.message : String(retryErr);
       return { content: '', success: false, error: message };
     }
   }
+}
+
+export async function tweakPost(
+  currentContent: string,
+  feedback: string,
+  previousMessages?: Array<{ role: 'user' | 'assistant'; content: string }>,
+): Promise<string> {
+  const client = getClient();
+  if (!client) {
+    throw new Error('AI service not configured \u2014 set ANTHROPIC_API_KEY');
+  }
+
+  const messages: Array<{ role: 'user' | 'assistant'; content: string }> = [];
+
+  if (previousMessages && previousMessages.length > 0) {
+    messages.push(...previousMessages);
+  } else {
+    messages.push({ role: 'user', content: `Current tweet:\n${currentContent}` });
+  }
+
+  messages.push({ role: 'user', content: `Feedback: ${feedback}` });
+
+  const revised = await callClaudeWithMessages(client, TWEAK_SYSTEM_PROMPT, messages);
+  return revised;
+}
+
+export async function generateTips(
+  conversation: Array<{ role: string; content: string }>,
+): Promise<string[]> {
+  const client = getClient();
+  if (!client) {
+    throw new Error('AI service not configured \u2014 set ANTHROPIC_API_KEY');
+  }
+
+  const formattedConversation = conversation
+    .map((msg) => `${msg.role}: ${msg.content}`)
+    .join('\n\n');
+
+  const result = await callClaude(
+    client,
+    `Here is the conversation:\n\n${formattedConversation}`,
+    TIPS_SYSTEM_PROMPT,
+  );
+
+  const tips = result
+    .split('\n')
+    .map((line) => line.replace(/^[-*•]\s*/, '').trim())
+    .filter((line) => line.length > 0);
+
+  return tips;
 }

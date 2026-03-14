@@ -64,3 +64,59 @@ export function useUpdatePost() {
     },
   });
 }
+
+type TweakPostInput = {
+  postId: string;
+  feedback: string;
+  previousMessages?: Array<{ role: 'user' | 'assistant'; content: string }>;
+};
+
+type TweakPostResponse = {
+  data: { content: string };
+};
+
+export function useTweakPost() {
+  return useMutation({
+    mutationFn: async ({ postId, feedback, previousMessages }: TweakPostInput) => {
+      const response = await apiClient.post<TweakPostResponse>(`/posts/${postId}/tweak`, {
+        feedback,
+        previousMessages,
+      });
+      return response.data.data;
+    },
+  });
+}
+
+type BotTip = {
+  id: string;
+  botId: string;
+  content: string;
+  createdAt: string;
+};
+
+type AcceptTweakInput = {
+  postId: string;
+  content: string;
+  conversation: Array<{ role: string; content: string }>;
+};
+
+type AcceptTweakResponse = {
+  data: { post: Post; newTips: BotTip[] };
+};
+
+export function useAcceptTweak() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ postId, content, conversation }: AcceptTweakInput) => {
+      const response = await apiClient.post<AcceptTweakResponse>(
+        `/posts/${postId}/accept-tweak`,
+        { content, conversation },
+      );
+      return response.data.data;
+    },
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: queryKeys.posts.all });
+    },
+  });
+}
