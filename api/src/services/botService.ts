@@ -1,4 +1,4 @@
-import { Prisma } from '@prisma/client';
+import { Prisma } from '../generated/prisma/client.js';
 import { prisma } from '../utils/prisma.js';
 import { botRepository } from '../repositories/botRepository.js';
 import { botShareRepository } from '../repositories/botShareRepository.js';

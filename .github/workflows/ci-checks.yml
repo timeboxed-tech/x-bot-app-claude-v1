@@ -20,6 +20,10 @@ jobs:
 
       - run: npm ci
 
+      - name: Generate Prisma Client
+        run: npx prisma generate
+        working-directory: api
+
       - name: Prettier check
         run: npx prettier --check .
 
@@ -49,6 +53,10 @@ jobs:
 
       - run: npm ci
 
+      - name: Generate Prisma Client
+        run: npx prisma generate
+        working-directory: api
+
       - name: Build shared
         run: npm run build --workspace=shared
 
@@ -75,6 +83,10 @@ jobs:
       - name: Install Playwright browsers
         run: npx playwright install --with-deps chromium
         working-directory: web
+
+      - name: Generate Prisma Client
+        run: npx prisma generate
+        working-directory: api
 
       - name: Build shared
         run: npm run build --workspace=shared
