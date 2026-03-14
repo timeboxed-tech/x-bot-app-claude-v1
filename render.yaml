@@ -14,6 +14,8 @@ services:
     startCommand: cd api && npm run start
     healthCheckPath: /api/health
     envVars:
+      - key: NODE_VERSION
+        value: '24'
       - key: NODE_ENV
         value: production
       - key: DATABASE_URL
