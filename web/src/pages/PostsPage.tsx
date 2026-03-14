@@ -44,15 +44,11 @@ export default function PostsPage() {
 
   const posts = data?.data ?? [];
   const meta = data?.meta;
-  const hasMore = meta ? meta.page * meta.pageSize < meta.total : false;
+  const totalPages = meta ? Math.ceil(meta.total / meta.pageSize) : 0;
 
   const handleTabChange = (_event: React.SyntheticEvent, newValue: number) => {
     setTabIndex(newValue);
     setPage(1);
-  };
-
-  const handleLoadMore = () => {
-    setPage((prev) => prev + 1);
   };
 
   return (
@@ -114,10 +110,36 @@ export default function PostsPage() {
             {posts.map((post) => (
               <PostCard key={post.id} post={post} />
             ))}
-            {hasMore && (
-              <Box sx={{ textAlign: 'center', mt: 2, mb: 4 }}>
-                <Button variant="outlined" onClick={handleLoadMore}>
-                  Load more
+            {totalPages > 1 && (
+              <Box
+                sx={{
+                  display: 'flex',
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                  gap: 2,
+                  mt: 2,
+                  mb: 4,
+                }}
+              >
+                <Button
+                  variant="outlined"
+                  size="small"
+                  disabled={page <= 1}
+                  onClick={() => setPage((p) => p - 1)}
+                >
+                  Previous
+                </Button>
+                <Typography variant="body2" color="text.secondary">
+                  Page {page} of {totalPages}
+                  {meta ? ` (${meta.total} posts)` : ''}
+                </Typography>
+                <Button
+                  variant="outlined"
+                  size="small"
+                  disabled={page >= totalPages}
+                  onClick={() => setPage((p) => p + 1)}
+                >
+                  Next
                 </Button>
               </Box>
             )}
