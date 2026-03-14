@@ -26,6 +26,9 @@ import TextField from '@mui/material/TextField';
 import Typography from '@mui/material/Typography';
 import CircularProgress from '@mui/material/CircularProgress';
 import DeleteIcon from '@mui/icons-material/Delete';
+import EditIcon from '@mui/icons-material/Edit';
+import CheckIcon from '@mui/icons-material/Check';
+import CloseIcon from '@mui/icons-material/Close';
 import AppHeader from '../components/AppHeader';
 import BotSetupForm from '../components/BotSetupForm';
 import {
@@ -35,6 +38,9 @@ import {
   useBotShares,
   useShareBot,
   useUnshareBot,
+  useBotTips,
+  useUpdateTip,
+  useDeleteTip,
 } from '../hooks/useBot';
 import { useAuth } from '../hooks/useAuth';
 import { useStats } from '../hooks/useStats';
@@ -93,6 +99,13 @@ export default function DashboardPage() {
   const { data: shares } = useBotShares(bot?.id);
   const shareBot = useShareBot();
   const unshareBot = useUnshareBot();
+
+  const { data: tips } = useBotTips(bot?.id);
+  const updateTip = useUpdateTip();
+  const deleteTip = useDeleteTip();
+  const [editingTipId, setEditingTipId] = useState<string | null>(null);
+  const [editingTipContent, setEditingTipContent] = useState('');
+  const [deleteConfirmTipId, setDeleteConfirmTipId] = useState<string | null>(null);
 
   const { data: stats, isLoading: statsLoading } = useStats(bot?.id);
   const { data: recentPostsData, isLoading: recentPostsLoading } = usePosts(undefined, 1, 5);
@@ -420,6 +433,134 @@ export default function DashboardPage() {
             </CardContent>
           </Card>
         )}
+
+        {/* Memory Tips */}
+        <Typography variant="h6" gutterBottom>
+          Memory Tips {tips && tips.length > 0 && `(${tips.length})`}
+        </Typography>
+        <Card sx={{ mb: 3 }}>
+          <CardContent>
+            {tips && tips.length > 0 ? (
+              <List dense disablePadding>
+                {tips.map((tip, index) => (
+                  <div key={tip.id}>
+                    {index > 0 && <Divider />}
+                    <ListItem
+                      secondaryAction={
+                        editingTipId === tip.id ? (
+                          <Box sx={{ display: 'flex', gap: 0.5 }}>
+                            <IconButton
+                              edge="end"
+                              size="small"
+                              onClick={() => {
+                                updateTip.mutate(
+                                  {
+                                    botId: bot!.id,
+                                    tipId: tip.id,
+                                    content: editingTipContent,
+                                  },
+                                  {
+                                    onSuccess: () => {
+                                      setEditingTipId(null);
+                                      showSnackbar('Tip updated', 'success');
+                                    },
+                                    onError: () => showSnackbar('Failed to update tip', 'error'),
+                                  },
+                                );
+                              }}
+                              disabled={updateTip.isPending}
+                            >
+                              <CheckIcon fontSize="small" />
+                            </IconButton>
+                            <IconButton
+                              edge="end"
+                              size="small"
+                              onClick={() => setEditingTipId(null)}
+                            >
+                              <CloseIcon fontSize="small" />
+                            </IconButton>
+                          </Box>
+                        ) : (
+                          <Box sx={{ display: 'flex', gap: 0.5 }}>
+                            <IconButton
+                              edge="end"
+                              size="small"
+                              onClick={() => {
+                                setEditingTipId(tip.id);
+                                setEditingTipContent(tip.content);
+                              }}
+                            >
+                              <EditIcon fontSize="small" />
+                            </IconButton>
+                            <IconButton
+                              edge="end"
+                              size="small"
+                              onClick={() => setDeleteConfirmTipId(tip.id)}
+                            >
+                              <DeleteIcon fontSize="small" />
+                            </IconButton>
+                          </Box>
+                        )
+                      }
+                    >
+                      {editingTipId === tip.id ? (
+                        <TextField
+                          fullWidth
+                          size="small"
+                          value={editingTipContent}
+                          onChange={(e) => setEditingTipContent(e.target.value)}
+                          sx={{ mr: 2 }}
+                        />
+                      ) : (
+                        <ListItemText primary={tip.content} />
+                      )}
+                    </ListItem>
+                  </div>
+                ))}
+              </List>
+            ) : (
+              <Typography variant="body2" color="text.secondary">
+                No memory tips yet. Tips are generated when you tweak and accept posts.
+              </Typography>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Delete tip confirmation dialog */}
+        <Dialog
+          open={!!deleteConfirmTipId}
+          onClose={() => setDeleteConfirmTipId(null)}
+        >
+          <DialogTitle>Delete Tip</DialogTitle>
+          <DialogContent>
+            <DialogContentText>
+              Are you sure you want to delete this memory tip?
+            </DialogContentText>
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={() => setDeleteConfirmTipId(null)}>Cancel</Button>
+            <Button
+              variant="contained"
+              color="error"
+              disabled={deleteTip.isPending}
+              onClick={() => {
+                if (!deleteConfirmTipId || !bot) return;
+                deleteTip.mutate(
+                  { botId: bot.id, tipId: deleteConfirmTipId },
+                  {
+                    onSuccess: () => {
+                      setDeleteConfirmTipId(null);
+                      showSnackbar('Tip deleted', 'success');
+                    },
+                    onError: () => showSnackbar('Failed to delete tip', 'error'),
+                  },
+                );
+              }}
+            >
+              Delete
+            </Button>
+          </DialogActions>
+        </Dialog>
 
         {/* Quick Actions */}
         <Typography variant="h6" gutterBottom>

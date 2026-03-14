@@ -39,6 +39,7 @@ model Bot {
   posts  Post[]
   jobs   Job[]
   shares BotShare[]
+  tips   BotTip[]
 }
 
 model BotShare {
@@ -69,6 +70,15 @@ model Post {
 
   @@index([botId, status])
   @@index([status, scheduledAt])
+}
+
+model BotTip {
+  id        String   @id @default(uuid()) @db.Uuid
+  botId     String   @db.Uuid
+  content   String   @db.Text
+  createdAt DateTime @default(now())
+
+  bot Bot @relation(fields: [botId], references: [id])
 }
 
 model Job {

@@ -20,6 +20,28 @@ const updatePostSchema = z.object({
   scheduledAt: z.string().datetime().nullable().optional(),
 });
 
+const tweakPostSchema = z.object({
+  feedback: z.string().min(1, 'Feedback is required'),
+  previousMessages: z
+    .array(
+      z.object({
+        role: z.enum(['user', 'assistant']),
+        content: z.string(),
+      }),
+    )
+    .optional(),
+});
+
+const acceptTweakSchema = z.object({
+  content: z.string().min(1, 'Content is required'),
+  conversation: z.array(
+    z.object({
+      role: z.string(),
+      content: z.string(),
+    }),
+  ),
+});
+
 export const postController = {
   async list(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
@@ -57,6 +79,36 @@ export const postController = {
 
       res.status(200).json({
         data: post,
+      });
+    } catch (err) {
+      next(err);
+    }
+  },
+
+  async tweak(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const userId = req.userId!;
+      const { id } = postIdParamSchema.parse(req.params);
+      const { feedback, previousMessages } = tweakPostSchema.parse(req.body);
+      const result = await postService.tweakPost(id, userId, feedback, previousMessages);
+
+      res.status(200).json({
+        data: result,
+      });
+    } catch (err) {
+      next(err);
+    }
+  },
+
+  async acceptTweak(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const userId = req.userId!;
+      const { id } = postIdParamSchema.parse(req.params);
+      const { content, conversation } = acceptTweakSchema.parse(req.body);
+      const result = await postService.acceptTweak(id, userId, content, conversation);
+
+      res.status(200).json({
+        data: result,
       });
     } catch (err) {
       next(err);

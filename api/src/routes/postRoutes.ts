@@ -9,5 +9,7 @@ router.use(authMiddleware);
 
 router.get('/', postController.list);
 router.patch('/:id', postController.update);
+router.post('/:id/tweak', postController.tweak);
+router.post('/:id/accept-tweak', postController.acceptTweak);
 
 export default router;

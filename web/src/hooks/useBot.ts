@@ -179,3 +179,67 @@ export function useUnshareBot() {
     },
   });
 }
+
+export type BotTip = {
+  id: string;
+  botId: string;
+  content: string;
+  createdAt: string;
+};
+
+type BotTipListResponse = {
+  data: BotTip[];
+};
+
+export function useBotTips(botId: string | undefined) {
+  return useQuery({
+    queryKey: queryKeys.bots.tips(botId ?? ''),
+    queryFn: async () => {
+      const response = await apiClient.get<BotTipListResponse>(`/bots/${botId}/tips`);
+      return response.data.data;
+    },
+    enabled: !!botId,
+  });
+}
+
+export function useUpdateTip() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({
+      botId,
+      tipId,
+      content,
+    }: {
+      botId: string;
+      tipId: string;
+      content: string;
+    }) => {
+      const response = await apiClient.patch<{ data: BotTip }>(
+        `/bots/${botId}/tips/${tipId}`,
+        { content },
+      );
+      return response.data.data;
+    },
+    onSuccess: (_data, variables) => {
+      void queryClient.invalidateQueries({
+        queryKey: queryKeys.bots.tips(variables.botId),
+      });
+    },
+  });
+}
+
+export function useDeleteTip() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ botId, tipId }: { botId: string; tipId: string }) => {
+      await apiClient.delete(`/bots/${botId}/tips/${tipId}`);
+    },
+    onSuccess: (_data, variables) => {
+      void queryClient.invalidateQueries({
+        queryKey: queryKeys.bots.tips(variables.botId),
+      });
+    },
+  });
+}

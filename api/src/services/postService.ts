@@ -1,5 +1,7 @@
 import { botRepository } from '../repositories/botRepository.js';
 import { postRepository } from '../repositories/postRepository.js';
+import { botTipRepository } from '../repositories/botTipRepository.js';
+import { tweakPost, generateTips } from './aiService.js';
 import { NotFoundError, ForbiddenError, ValidationError } from '../utils/errors.js';
 
 type UpdatePostInput = {
@@ -87,6 +89,65 @@ export const postService = {
     }
 
     return postRepository.update(postId, updateData);
+  },
+
+  async tweakPost(
+    postId: string,
+    userId: string,
+    feedback: string,
+    previousMessages?: Array<{ role: 'user' | 'assistant'; content: string }>,
+  ) {
+    const post = await postRepository.findById(postId);
+    if (!post) {
+      throw new NotFoundError('Post not found');
+    }
+    if (post.bot.userId !== userId) {
+      throw new ForbiddenError('You do not have access to this post');
+    }
+    if (post.status !== 'draft') {
+      throw new ValidationError('Only draft posts can be tweaked');
+    }
+
+    const revised = await tweakPost(post.content, feedback, previousMessages);
+    return { content: revised };
+  },
+
+  async acceptTweak(
+    postId: string,
+    userId: string,
+    content: string,
+    conversation: Array<{ role: string; content: string }>,
+  ) {
+    const post = await postRepository.findById(postId);
+    if (!post) {
+      throw new NotFoundError('Post not found');
+    }
+    if (post.bot.userId !== userId) {
+      throw new ForbiddenError('You do not have access to this post');
+    }
+    if (post.status !== 'draft') {
+      throw new ValidationError('Only draft posts can be updated');
+    }
+
+    const updatedPost = await postRepository.update(postId, { content });
+
+    // Generate tips from the conversation
+    let newTips: Array<{ id: string; botId: string; content: string; createdAt: Date }> = [];
+    try {
+      const tipStrings = await generateTips(conversation);
+      if (tipStrings.length > 0) {
+        newTips = await botTipRepository.createMany(
+          tipStrings.map((tipContent) => ({
+            botId: post.botId,
+            content: tipContent,
+          })),
+        );
+      }
+    } catch {
+      // Tips generation is best-effort; don't fail the accept
+    }
+
+    return { post: updatedPost, newTips };
   },
 };
 
