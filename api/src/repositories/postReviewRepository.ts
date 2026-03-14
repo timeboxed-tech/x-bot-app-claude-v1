@@ -21,7 +21,9 @@ export const postReviewRepository = {
     });
   },
 
-  async createMany(reviews: Array<{ postId: string; judgeId: string; rating: number; opinion: string }>) {
+  async createMany(
+    reviews: Array<{ postId: string; judgeId: string; rating: number; opinion: string }>,
+  ) {
     const created = await Promise.all(
       reviews.map((review) =>
         prisma.postReview.create({

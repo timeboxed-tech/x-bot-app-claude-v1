@@ -109,10 +109,10 @@ export function useAcceptTweak() {
 
   return useMutation({
     mutationFn: async ({ postId, content, conversation }: AcceptTweakInput) => {
-      const response = await apiClient.post<AcceptTweakResponse>(
-        `/posts/${postId}/accept-tweak`,
-        { content, conversation },
-      );
+      const response = await apiClient.post<AcceptTweakResponse>(`/posts/${postId}/accept-tweak`, {
+        content,
+        conversation,
+      });
       return response.data.data;
     },
     onSuccess: () => {

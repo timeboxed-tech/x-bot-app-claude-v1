@@ -56,10 +56,11 @@ export const postController = {
         }
       }
 
-      const { posts, total } = await postService.listPosts(
-        scopeToUser ? userId : undefined,
-        { status, page, pageSize },
-      );
+      const { posts, total } = await postService.listPosts(scopeToUser ? userId : undefined, {
+        status,
+        page,
+        pageSize,
+      });
 
       res.status(200).json({
         data: posts,

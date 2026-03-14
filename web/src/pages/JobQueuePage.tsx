@@ -126,13 +126,7 @@ type JobDetail = {
   createdAt: string;
 };
 
-function JobDetailDialog({
-  job,
-  onClose,
-}: {
-  job: JobDetail | null;
-  onClose: () => void;
-}) {
+function JobDetailDialog({ job, onClose }: { job: JobDetail | null; onClose: () => void }) {
   if (!job) return null;
 
   const rows: { label: string; value: string }[] = [
@@ -160,11 +154,7 @@ function JobDetailDialog({
       <DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
           Job Details
-          <Chip
-            label={job.status}
-            color={statusChipColors[job.status] ?? 'default'}
-            size="small"
-          />
+          <Chip label={job.status} color={statusChipColors[job.status] ?? 'default'} size="small" />
         </Box>
         <IconButton onClick={onClose} size="small">
           <CloseIcon />
@@ -175,9 +165,7 @@ function JobDetailDialog({
           <TableBody>
             {rows.map((row) => (
               <TableRow key={row.label}>
-                <TableCell
-                  sx={{ fontWeight: 600, width: 140, borderBottom: 'none', py: 0.75 }}
-                >
+                <TableCell sx={{ fontWeight: 600, width: 140, borderBottom: 'none', py: 0.75 }}>
                   {row.label}
                 </TableCell>
                 <TableCell
@@ -268,10 +256,7 @@ export default function JobQueuePage() {
             {user?.isAdmin && (
               <FormControlLabel
                 control={
-                  <Switch
-                    checked={showAll}
-                    onChange={(e) => setShowAll(e.target.checked)}
-                  />
+                  <Switch checked={showAll} onChange={(e) => setShowAll(e.target.checked)} />
                 }
                 label="Show all bots"
               />
@@ -405,9 +390,7 @@ export default function JobQueuePage() {
                     hover
                     sx={{
                       cursor: 'pointer',
-                      ...(job.status === 'failed'
-                        ? { bgcolor: 'rgba(211, 47, 47, 0.04)' }
-                        : {}),
+                      ...(job.status === 'failed' ? { bgcolor: 'rgba(211, 47, 47, 0.04)' } : {}),
                     }}
                     onClick={() => setSelectedJob(job)}
                   >

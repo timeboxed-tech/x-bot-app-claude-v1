@@ -295,11 +295,7 @@ export default function PostCard({ post }: PostCardProps) {
       {/* Reviews Section */}
       {reviews && reviews.length > 0 && (
         <CardContent sx={{ pt: 0 }}>
-          <Button
-            size="small"
-            onClick={() => setShowReviews(!showReviews)}
-            sx={{ mb: 1 }}
-          >
+          <Button size="small" onClick={() => setShowReviews(!showReviews)} sx={{ mb: 1 }}>
             {showReviews ? 'Hide Reviews' : `Show Reviews (${reviews.length})`}
           </Button>
           {showReviews && (
@@ -313,7 +309,14 @@ export default function PostCard({ post }: PostCardProps) {
                     bgcolor: 'action.hover',
                   }}
                 >
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 0.5 }}>
+                  <Box
+                    sx={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      mb: 0.5,
+                    }}
+                  >
                     <Typography variant="subtitle2">{review.judge.name}</Typography>
                     <Rating value={review.rating} readOnly size="small" />
                   </Box>
@@ -415,7 +418,10 @@ export default function PostCard({ post }: PostCardProps) {
           />
         </DialogContent>
         <DialogActions>
-          <Button onClick={handleCloseTweak} disabled={tweakPost.isPending || acceptTweak.isPending}>
+          <Button
+            onClick={handleCloseTweak}
+            disabled={tweakPost.isPending || acceptTweak.isPending}
+          >
             Cancel
           </Button>
           <Button

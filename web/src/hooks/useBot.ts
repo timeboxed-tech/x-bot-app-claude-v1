@@ -233,10 +233,9 @@ export function useUpdateTip() {
       tipId: string;
       content: string;
     }) => {
-      const response = await apiClient.patch<{ data: BotTip }>(
-        `/bots/${botId}/tips/${tipId}`,
-        { content },
-      );
+      const response = await apiClient.patch<{ data: BotTip }>(`/bots/${botId}/tips/${tipId}`, {
+        content,
+      });
       return response.data.data;
     },
     onSuccess: (_data, variables) => {

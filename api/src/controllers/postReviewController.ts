@@ -58,15 +58,17 @@ export const postReviewController = {
       }
 
       // Call AI for each judge in parallel
-      const reviewPromises = botJudges.map(async (bj) => {
-        const result = await reviewPostWithJudge(bj.judge.name, bj.judge.prompt, post.content);
-        return {
-          postId: id,
-          judgeId: bj.judgeId,
-          rating: result.rating,
-          opinion: result.opinion,
-        };
-      });
+      const reviewPromises = botJudges.map(
+        async (bj: { judgeId: string; judge: { name: string; prompt: string } }) => {
+          const result = await reviewPostWithJudge(bj.judge.name, bj.judge.prompt, post.content);
+          return {
+            postId: id,
+            judgeId: bj.judgeId,
+            rating: result.rating,
+            opinion: result.opinion,
+          };
+        },
+      );
 
       const reviewResults = await Promise.all(reviewPromises);
       const reviews = await postReviewRepository.createMany(reviewResults);

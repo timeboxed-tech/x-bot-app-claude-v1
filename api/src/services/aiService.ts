@@ -33,7 +33,11 @@ function getClient(): Anthropic | null {
   return new Anthropic({ apiKey });
 }
 
-async function callClaude(client: Anthropic, prompt: string, systemPrompt?: string): Promise<string> {
+async function callClaude(
+  client: Anthropic,
+  prompt: string,
+  systemPrompt?: string,
+): Promise<string> {
   const response = await client.messages.create({
     model: 'claude-sonnet-4-20250514',
     max_tokens: 300,

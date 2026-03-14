@@ -43,12 +43,7 @@ import {
   useUpdateTip,
   useDeleteTip,
 } from '../hooks/useBot';
-import {
-  useJudges,
-  useBotJudges,
-  useAssignJudge,
-  useRemoveJudge,
-} from '../hooks/useJudges';
+import { useJudges, useBotJudges, useAssignJudge, useRemoveJudge } from '../hooks/useJudges';
 import { useAuth } from '../hooks/useAuth';
 import { useStats } from '../hooks/useStats';
 import { usePosts, type PostStatus } from '../hooks/usePosts';
@@ -549,15 +544,10 @@ export default function DashboardPage() {
         </Card>
 
         {/* Delete tip confirmation dialog */}
-        <Dialog
-          open={!!deleteConfirmTipId}
-          onClose={() => setDeleteConfirmTipId(null)}
-        >
+        <Dialog open={!!deleteConfirmTipId} onClose={() => setDeleteConfirmTipId(null)}>
           <DialogTitle>Delete Tip</DialogTitle>
           <DialogContent>
-            <DialogContentText>
-              Are you sure you want to delete this memory tip?
-            </DialogContentText>
+            <DialogContentText>Are you sure you want to delete this memory tip?</DialogContentText>
           </DialogContent>
           <DialogActions>
             <Button onClick={() => setDeleteConfirmTipId(null)}>Cancel</Button>
@@ -607,8 +597,7 @@ export default function DashboardPage() {
                               {
                                 onSuccess: () =>
                                   showSnackbar(`Removed judge "${bj.judge.name}"`, 'success'),
-                                onError: () =>
-                                  showSnackbar('Failed to remove judge', 'error'),
+                                onError: () => showSnackbar('Failed to remove judge', 'error'),
                               },
                             );
                           }}
@@ -620,7 +609,11 @@ export default function DashboardPage() {
                     >
                       <ListItemText
                         primary={bj.judge.name}
-                        secondary={bj.judge.prompt.length > 100 ? bj.judge.prompt.substring(0, 100) + '...' : bj.judge.prompt}
+                        secondary={
+                          bj.judge.prompt.length > 100
+                            ? bj.judge.prompt.substring(0, 100) + '...'
+                            : bj.judge.prompt
+                        }
                       />
                     </ListItem>
                   </div>
@@ -758,10 +751,7 @@ export default function DashboardPage() {
                             </IconButton>
                           }
                         >
-                          <ListItemText
-                            primary={share.user.name}
-                            secondary={share.user.email}
-                          />
+                          <ListItemText primary={share.user.name} secondary={share.user.email} />
                         </ListItem>
                       </div>
                     ))}

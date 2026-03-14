@@ -3,7 +3,13 @@ import { apiClient } from '../lib/apiClient';
 import { queryKeys } from '../lib/queryKeys';
 
 export type JobQueueStats = {
-  jobCounts: { pending: number; locked: number; completed: number; failed: number; cancelled: number };
+  jobCounts: {
+    pending: number;
+    locked: number;
+    completed: number;
+    failed: number;
+    cancelled: number;
+  };
   postCounts: { draft: number; scheduled: number; published: number; discarded: number };
   recentJobs: Array<{
     id: string;

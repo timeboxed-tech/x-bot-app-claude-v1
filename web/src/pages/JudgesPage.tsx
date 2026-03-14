@@ -154,9 +154,7 @@ export default function JudgesPage() {
     <Box>
       <AppHeader />
       <Container maxWidth="lg" sx={{ mt: 4 }}>
-        <Box
-          sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 3 }}
-        >
+        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 3 }}>
           <Typography variant="h4" component="h1" fontWeight={700}>
             Judges
           </Typography>
@@ -205,10 +203,7 @@ export default function JudgesPage() {
                     <TableCell>{new Date(judge.createdAt).toLocaleDateString()}</TableCell>
                     <TableCell align="right">
                       <Box sx={{ display: 'flex', gap: 0.5, justifyContent: 'flex-end' }}>
-                        <IconButton
-                          size="small"
-                          onClick={() => handleOpenEdit(judge)}
-                        >
+                        <IconButton size="small" onClick={() => handleOpenEdit(judge)}>
                           <EditIcon fontSize="small" />
                         </IconButton>
                         <IconButton
@@ -254,10 +249,7 @@ export default function JudgesPage() {
               onClick={handleSave}
               variant="contained"
               disabled={
-                !name.trim() ||
-                !prompt.trim() ||
-                createJudge.isPending ||
-                updateJudge.isPending
+                !name.trim() || !prompt.trim() || createJudge.isPending || updateJudge.isPending
               }
             >
               {createJudge.isPending || updateJudge.isPending ? 'Saving...' : 'Save'}

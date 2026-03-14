@@ -96,7 +96,9 @@ export default function BotSetupForm({
               label={p.enabled ? p.label : `${p.label} (coming soon)`}
               color={values.platform === p.value ? 'primary' : 'default'}
               variant={values.platform === p.value ? 'filled' : 'outlined'}
-              onClick={p.enabled ? () => setValues((v) => ({ ...v, platform: p.value as 'x' })) : undefined}
+              onClick={
+                p.enabled ? () => setValues((v) => ({ ...v, platform: p.value as 'x' })) : undefined
+              }
               disabled={!p.enabled}
               sx={{ opacity: p.enabled ? 1 : 0.5 }}
             />

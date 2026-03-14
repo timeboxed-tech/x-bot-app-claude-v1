@@ -47,9 +47,7 @@ async function reconcileBots(): Promise<void> {
     if (botsWithoutJobs.length === 0) return;
 
     log('jobWorker', `Reconciliation: ${botsWithoutJobs.length} bot(s) have no pending jobs`);
-    console.log(
-      `[jobWorker] Reconciliation: ${botsWithoutJobs.length} bot(s) need new jobs`,
-    );
+    console.log(`[jobWorker] Reconciliation: ${botsWithoutJobs.length} bot(s) need new jobs`);
 
     for (const bot of botsWithoutJobs) {
       try {
@@ -139,7 +137,10 @@ async function processJobs(): Promise<void> {
         }
 
         const tips = await botTipRepository.findByBotId(bot.id);
-        const result = await generateTweet(bot.prompt, tips.map((t) => t.content));
+        const result = await generateTweet(
+          bot.prompt,
+          tips.map((t: { content: string }) => t.content),
+        );
 
         if (!result.success) {
           const errorMsg = `AI generation failed: ${result.error}`;

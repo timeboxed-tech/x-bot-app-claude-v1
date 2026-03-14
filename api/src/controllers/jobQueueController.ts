@@ -25,7 +25,7 @@ export const jobQueueController = {
       const user = await userRepository.findById(userId);
       const isOwnerOrShared =
         job.bot.userId === userId ||
-        job.bot.shares.some((s) => s.userId === userId);
+        job.bot.shares.some((s: { userId: string }) => s.userId === userId);
 
       if (!isOwnerOrShared && !user?.isAdmin) {
         res.status(403).json({ error: 'You do not have access to this job' });

@@ -1,6 +1,13 @@
 import { prisma } from '../utils/prisma.js';
 
-const userSelect = { id: true, email: true, name: true, isAdmin: true, archivedAt: true, createdAt: true };
+const userSelect = {
+  id: true,
+  email: true,
+  name: true,
+  isAdmin: true,
+  archivedAt: true,
+  createdAt: true,
+};
 
 export const userRepository = {
   async findByEmail(email: string) {
