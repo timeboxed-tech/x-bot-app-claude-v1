@@ -108,8 +108,8 @@ export const postService = {
       throw new ValidationError('Only draft posts can be tweaked');
     }
 
-    const revised = await tweakPost(post.content, feedback, previousMessages);
-    return { content: revised };
+    const result = await tweakPost(post.content, feedback, previousMessages);
+    return result;
   },
 
   async acceptTweak(
@@ -131,17 +131,22 @@ export const postService = {
 
     const updatedPost = await postRepository.update(postId, { content });
 
-    // Generate tips from the conversation
+    // Generate tips from the conversation (max 10 per bot)
     let newTips: Array<{ id: string; botId: string; content: string; createdAt: Date }> = [];
     try {
-      const tipStrings = await generateTips(conversation);
-      if (tipStrings.length > 0) {
-        newTips = await botTipRepository.createMany(
-          tipStrings.map((tipContent) => ({
-            botId: post.botId,
-            content: tipContent,
-          })),
-        );
+      const existingCount = await botTipRepository.countByBotId(post.botId);
+      const slotsAvailable = Math.max(0, 10 - existingCount);
+      if (slotsAvailable > 0) {
+        const tipStrings = await generateTips(conversation);
+        const tipsToSave = tipStrings.slice(0, slotsAvailable);
+        if (tipsToSave.length > 0) {
+          newTips = await botTipRepository.createMany(
+            tipsToSave.map((tipContent) => ({
+              botId: post.botId,
+              content: tipContent,
+            })),
+          );
+        }
       }
     } catch {
       // Tips generation is best-effort; don't fail the accept

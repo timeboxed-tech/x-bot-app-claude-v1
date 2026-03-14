@@ -35,6 +35,7 @@ import {
   useBot,
   useCreateBot,
   useUpdateBot,
+  useGenerateDrafts,
   useBotShares,
   useShareBot,
   useUnshareBot,
@@ -95,6 +96,8 @@ export default function DashboardPage() {
 
   const bot = bots.length > 0 ? bots[Math.min(selectedBotIndex, bots.length - 1)] : null;
   const isOwner = bot ? bot.userId === user?.id : false;
+
+  const generateDrafts = useGenerateDrafts();
 
   const { data: shares } = useBotShares(bot?.id);
   const shareBot = useShareBot();
@@ -436,7 +439,7 @@ export default function DashboardPage() {
 
         {/* Memory Tips */}
         <Typography variant="h6" gutterBottom>
-          Memory Tips {tips && tips.length > 0 && `(${tips.length})`}
+          Memory Tips {tips && `(${tips.length}/10)`}
         </Typography>
         <Card sx={{ mb: 3 }}>
           <CardContent>
@@ -507,6 +510,9 @@ export default function DashboardPage() {
                         <TextField
                           fullWidth
                           size="small"
+                          multiline
+                          minRows={2}
+                          maxRows={6}
                           value={editingTipContent}
                           onChange={(e) => setEditingTipContent(e.target.value)}
                           sx={{ mr: 2 }}
@@ -567,7 +573,34 @@ export default function DashboardPage() {
           Quick Actions
         </Typography>
         <Box sx={{ display: 'flex', gap: 2, mb: 4 }}>
-          <Button variant="contained" onClick={() => void navigate({ to: '/posts' })}>
+          <Button
+            variant="contained"
+            disabled={generateDrafts.isPending}
+            onClick={() => {
+              if (!bot) return;
+              generateDrafts.mutate(
+                { botId: bot.id, count: 3 },
+                {
+                  onSuccess: (posts) => {
+                    showSnackbar(`Generated ${posts.length} practice draft(s)`, 'success');
+                  },
+                  onError: () => {
+                    showSnackbar('Failed to generate drafts', 'error');
+                  },
+                },
+              );
+            }}
+          >
+            {generateDrafts.isPending ? (
+              <>
+                <CircularProgress size={18} sx={{ mr: 1 }} />
+                Generating...
+              </>
+            ) : (
+              'Generate Practice Drafts'
+            )}
+          </Button>
+          <Button variant="outlined" onClick={() => void navigate({ to: '/posts' })}>
             View Post Queue
           </Button>
           <Button variant="outlined" onClick={() => setEditOpen(true)}>

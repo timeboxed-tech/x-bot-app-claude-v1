@@ -24,6 +24,10 @@ export const botTipRepository = {
     return created;
   },
 
+  async countByBotId(botId: string) {
+    return prisma.botTip.count({ where: { botId } });
+  },
+
   async findByBotId(botId: string) {
     return prisma.botTip.findMany({
       where: { botId },

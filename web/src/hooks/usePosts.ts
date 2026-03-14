@@ -72,7 +72,7 @@ type TweakPostInput = {
 };
 
 type TweakPostResponse = {
-  data: { content: string };
+  data: { message: string; content: string };
 };
 
 export function useTweakPost() {

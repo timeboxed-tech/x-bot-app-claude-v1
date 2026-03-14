@@ -57,7 +57,7 @@ model BotShare {
 model Post {
   id          String    @id @default(uuid()) @db.Uuid
   botId       String    @db.Uuid
-  jobId       String    @db.Uuid
+  jobId       String?   @db.Uuid
   content     String    @db.Text
   status      String    @default("draft")
   rating      Int?
@@ -66,7 +66,7 @@ model Post {
   createdAt   DateTime  @default(now())
 
   bot Bot @relation(fields: [botId], references: [id])
-  job Job @relation(fields: [jobId], references: [id])
+  job Job? @relation(fields: [jobId], references: [id])
 
   @@index([botId, status])
   @@index([status, scheduledAt])

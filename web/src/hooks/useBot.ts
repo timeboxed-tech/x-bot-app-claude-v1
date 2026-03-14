@@ -136,6 +136,23 @@ export function useUpdateBot() {
   });
 }
 
+export function useGenerateDrafts() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ botId, count = 3 }: { botId: string; count?: number }) => {
+      const response = await apiClient.post<{ data: Array<{ id: string; content: string }> }>(
+        `/bots/${botId}/generate-drafts`,
+        { count },
+      );
+      return response.data.data;
+    },
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: queryKeys.posts.all });
+    },
+  });
+}
+
 export function useBotShares(botId: string | undefined) {
   return useQuery({
     queryKey: queryKeys.bots.shares(botId ?? ''),

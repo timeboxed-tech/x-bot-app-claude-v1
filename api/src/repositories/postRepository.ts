@@ -3,7 +3,7 @@ import { prisma } from '../utils/prisma.js';
 export const postRepository = {
   async create(data: {
     botId: string;
-    jobId: string;
+    jobId?: string;
     content: string;
     status: string;
     scheduledAt?: Date | null;
@@ -11,7 +11,7 @@ export const postRepository = {
     return prisma.post.create({
       data: {
         botId: data.botId,
-        jobId: data.jobId,
+        jobId: data.jobId ?? null,
         content: data.content,
         status: data.status,
         scheduledAt: data.scheduledAt ?? null,

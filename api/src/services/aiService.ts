@@ -15,7 +15,15 @@ Rules:
 - Do not include quotation marks around the tweet
 - Output ONLY the tweet text, nothing else`;
 
-const TWEAK_SYSTEM_PROMPT = `You are helping revise a tweet. Given the current tweet and user feedback, output ONLY the revised tweet text (under 280 chars). Do not include quotation marks around the tweet.`;
+const TWEAK_SYSTEM_PROMPT = `You are a collaborative social media editor helping refine a tweet. Have a natural conversation with the user — explain your changes, ask clarifying questions, suggest alternatives, and be a helpful creative partner.
+
+IMPORTANT: Always end your response with the revised tweet on its own line after the marker "---TWEET---". The tweet must be under 280 characters.
+
+Example format:
+Great idea to make it punchier! I shortened the opening and added a hook question at the end. Want me to try a different angle?
+
+---TWEET---
+The actual revised tweet text here`;
 
 const TIPS_SYSTEM_PROMPT = `Analyze this conversation where a user refined a tweet draft. Extract 1-3 concise tips/preferences that should guide future tweet generation for this account. Each tip should be a single sentence. Output only the tips, one per line.`;
 
@@ -45,10 +53,11 @@ async function callClaudeWithMessages(
   client: Anthropic,
   systemPrompt: string,
   messages: Array<{ role: 'user' | 'assistant'; content: string }>,
+  maxTokens = 300,
 ): Promise<string> {
   const response = await client.messages.create({
     model: 'claude-sonnet-4-20250514',
-    max_tokens: 300,
+    max_tokens: maxTokens,
     system: systemPrompt,
     messages,
   });
@@ -97,7 +106,7 @@ export async function tweakPost(
   currentContent: string,
   feedback: string,
   previousMessages?: Array<{ role: 'user' | 'assistant'; content: string }>,
-): Promise<string> {
+): Promise<{ message: string; content: string }> {
   const client = getClient();
   if (!client) {
     throw new Error('AI service not configured \u2014 set ANTHROPIC_API_KEY');
@@ -111,10 +120,20 @@ export async function tweakPost(
     messages.push({ role: 'user', content: `Current tweet:\n${currentContent}` });
   }
 
-  messages.push({ role: 'user', content: `Feedback: ${feedback}` });
+  messages.push({ role: 'user', content: feedback });
 
-  const revised = await callClaudeWithMessages(client, TWEAK_SYSTEM_PROMPT, messages);
-  return revised;
+  const response = await callClaudeWithMessages(client, TWEAK_SYSTEM_PROMPT, messages, 600);
+
+  const tweetMarker = '---TWEET---';
+  const markerIndex = response.indexOf(tweetMarker);
+  if (markerIndex === -1) {
+    // Fallback: treat entire response as the tweet (backward compat)
+    return { message: '', content: response };
+  }
+
+  const message = response.substring(0, markerIndex).trim();
+  const content = response.substring(markerIndex + tweetMarker.length).trim();
+  return { message, content };
 }
 
 export async function generateTips(
