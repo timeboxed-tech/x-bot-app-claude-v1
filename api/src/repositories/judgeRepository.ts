@@ -1,4 +1,7 @@
+import { Prisma } from '@prisma/client';
 import { prisma } from '../utils/prisma.js';
+
+type TxClient = Prisma.TransactionClient;
 
 export const judgeRepository = {
   async findAll() {
@@ -44,7 +47,7 @@ export const judgeRepository = {
   },
 
   async delete(id: string) {
-    return prisma.$transaction(async (tx) => {
+    return prisma.$transaction(async (tx: TxClient) => {
       await tx.botJudge.deleteMany({ where: { judgeId: id } });
       await tx.postReview.deleteMany({ where: { judgeId: id } });
       return tx.judge.delete({ where: { id } });
