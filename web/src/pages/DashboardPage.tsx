@@ -623,7 +623,7 @@ export default function DashboardPage() {
                     Add a judge...
                   </MenuItem>
                   {allJudges
-                    .filter((j) => !j.archivedAt && !botJudges.some((bj) => bj.judgeId === j.id))
+                    .filter((j) => !botJudges.some((bj) => bj.judgeId === j.id))
                     .map((j) => (
                       <MenuItem key={j.id} value={j.id}>
                         {j.name}
