@@ -87,7 +87,7 @@ export default function PostCard({ post }: PostCardProps) {
 
   const handleOpenTweak = () => {
     setTweakCurrent(post.content);
-    setConversation([{ role: 'user', content: `Current tweet:\n${post.content}` }]);
+    setConversation([]);
     setTweakFeedback('');
     setSuccessMessage('');
     setTweakOpen(true);
@@ -106,20 +106,36 @@ export default function PostCard({ post }: PostCardProps) {
     const feedbackText = tweakFeedback.trim();
     setTweakFeedback('');
 
+    // Build messages for the API — include the initial tweet context on first message
+    const apiMessages: ConversationMessage[] =
+      conversation.length === 0
+        ? [{ role: 'user', content: `Current tweet:\n${post.content}` }]
+        : [...conversation];
+
     tweakPost.mutate(
       {
         postId: post.id,
         feedback: feedbackText,
-        previousMessages: conversation.length > 0 ? conversation : undefined,
+        previousMessages: apiMessages,
       },
       {
         onSuccess: (data) => {
           setTweakCurrent(data.content);
-          setConversation((prev) => [
-            ...prev,
-            { role: 'user' as const, content: `Feedback: ${feedbackText}` },
-            { role: 'assistant' as const, content: data.content },
-          ]);
+          // Store the full AI response (message + tweet) for conversation continuity
+          const aiResponse = data.message
+            ? `${data.message}\n\n---TWEET---\n${data.content}`
+            : data.content;
+          setConversation((prev) => {
+            const base =
+              prev.length === 0
+                ? [{ role: 'user' as const, content: `Current tweet:\n${post.content}` }]
+                : prev;
+            return [
+              ...base,
+              { role: 'user' as const, content: feedbackText },
+              { role: 'assistant' as const, content: aiResponse },
+            ];
+          });
         },
       },
     );
@@ -286,7 +302,7 @@ export default function PostCard({ post }: PostCardProps) {
               </Typography>
               <Box
                 sx={{
-                  maxHeight: 200,
+                  maxHeight: 300,
                   overflowY: 'auto',
                   mb: 2,
                   border: '1px solid',
@@ -295,24 +311,35 @@ export default function PostCard({ post }: PostCardProps) {
                   p: 1,
                 }}
               >
-                {conversation.slice(1).map((msg, idx) => (
-                  <Box
-                    key={idx}
-                    sx={{
-                      mb: 1,
-                      p: 1,
-                      borderRadius: 1,
-                      bgcolor: msg.role === 'user' ? 'action.hover' : 'primary.50',
-                    }}
-                  >
-                    <Typography variant="caption" color="text.secondary">
-                      {msg.role === 'user' ? 'You' : 'AI'}:
-                    </Typography>
-                    <Typography variant="body2" sx={{ whiteSpace: 'pre-wrap' }}>
-                      {msg.content}
-                    </Typography>
-                  </Box>
-                ))}
+                {conversation.slice(1).map((msg, idx) => {
+                  // For AI messages, strip the ---TWEET--- portion for display
+                  let displayContent = msg.content;
+                  if (msg.role === 'assistant') {
+                    const markerIdx = msg.content.indexOf('---TWEET---');
+                    if (markerIdx !== -1) {
+                      displayContent = msg.content.substring(0, markerIdx).trim();
+                    }
+                  }
+                  if (!displayContent) return null;
+                  return (
+                    <Box
+                      key={idx}
+                      sx={{
+                        mb: 1,
+                        p: 1.5,
+                        borderRadius: 1,
+                        bgcolor: msg.role === 'user' ? 'action.hover' : 'primary.50',
+                      }}
+                    >
+                      <Typography variant="caption" color="text.secondary" fontWeight="bold">
+                        {msg.role === 'user' ? 'You' : 'AI'}
+                      </Typography>
+                      <Typography variant="body2" sx={{ whiteSpace: 'pre-wrap', mt: 0.5 }}>
+                        {displayContent}
+                      </Typography>
+                    </Box>
+                  );
+                })}
                 <div ref={conversationEndRef} />
               </Box>
             </>
@@ -322,10 +349,16 @@ export default function PostCard({ post }: PostCardProps) {
             fullWidth
             multiline
             minRows={2}
-            label="Feedback"
-            placeholder="e.g., make it more casual, add a question at the end"
+            label="Your message"
+            placeholder="e.g., make it more casual, add a question at the end..."
             value={tweakFeedback}
             onChange={(e) => setTweakFeedback(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                handleTweak();
+              }
+            }}
             disabled={tweakPost.isPending || acceptTweak.isPending}
             sx={{ mt: 1 }}
           />
@@ -339,12 +372,12 @@ export default function PostCard({ post }: PostCardProps) {
             onClick={handleTweak}
             disabled={!tweakFeedback.trim() || tweakPost.isPending || acceptTweak.isPending}
           >
-            {tweakPost.isPending ? <CircularProgress size={20} /> : 'Tweak'}
+            {tweakPost.isPending ? <CircularProgress size={20} /> : 'Send'}
           </Button>
           <Button
             variant="contained"
             onClick={handleAcceptTweak}
-            disabled={conversation.length <= 1 || acceptTweak.isPending || tweakPost.isPending}
+            disabled={conversation.length === 0 || acceptTweak.isPending || tweakPost.isPending}
           >
             {acceptTweak.isPending ? <CircularProgress size={20} /> : 'Accept'}
           </Button>

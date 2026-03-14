@@ -1,6 +1,9 @@
 import { Request, Response, NextFunction } from 'express';
 import { z } from 'zod';
 import { botService } from '../services/botService.js';
+import { generateTweet } from '../services/aiService.js';
+import { postRepository } from '../repositories/postRepository.js';
+import { botTipRepository } from '../repositories/botTipRepository.js';
 import { paginationSchema, uuidSchema } from '../utils/validation.js';
 
 const createBotSchema = z.object({
@@ -82,6 +85,41 @@ export const botController = {
 
       res.status(200).json({
         data: bot,
+      });
+    } catch (err) {
+      next(err);
+    }
+  },
+
+  async generateDrafts(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const userId = req.userId!;
+      const { id } = botIdParamSchema.parse(req.params);
+      const countSchema = z.object({
+        count: z.number().int().min(1).max(5).default(3),
+      });
+      const { count } = countSchema.parse(req.body);
+
+      const bot = await botService.getBot(id, userId);
+
+      const tips = await botTipRepository.findByBotId(bot.id);
+      const tipContents = tips.map((t) => t.content);
+
+      const posts = [];
+      for (let i = 0; i < count; i++) {
+        const result = await generateTweet(bot.prompt, tipContents);
+        if (result.success) {
+          const post = await postRepository.create({
+            botId: bot.id,
+            content: result.content,
+            status: 'draft',
+          });
+          posts.push(post);
+        }
+      }
+
+      res.status(201).json({
+        data: posts,
       });
     } catch (err) {
       next(err);

@@ -14,6 +14,9 @@ router.get('/', botController.list);
 router.get('/:id', botController.getById);
 router.patch('/:id', botController.update);
 
+// Generate practice drafts
+router.post('/:id/generate-drafts', botController.generateDrafts);
+
 // Share routes
 router.post('/:id/shares', botShareController.create);
 router.get('/:id/shares', botShareController.list);
