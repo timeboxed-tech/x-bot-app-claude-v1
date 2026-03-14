@@ -21,8 +21,11 @@ import TableRow from '@mui/material/TableRow';
 import Typography from '@mui/material/Typography';
 import CloseIcon from '@mui/icons-material/Close';
 import Button from '@mui/material/Button';
+import FormControlLabel from '@mui/material/FormControlLabel';
+import Switch from '@mui/material/Switch';
 import CancelIcon from '@mui/icons-material/Cancel';
 import AppHeader from '../components/AppHeader';
+import { useAuth } from '../hooks/useAuth';
 import { useJobQueue, useCancelJob } from '../hooks/useJobQueue';
 
 function formatRelativeTime(dateStr: string | null): string {
@@ -222,7 +225,9 @@ function JobDetailDialog({
 }
 
 export default function JobQueuePage() {
-  const { data, isLoading, error } = useJobQueue();
+  const { user } = useAuth();
+  const [showAll, setShowAll] = useState(false);
+  const { data, isLoading, error } = useJobQueue(showAll);
   const cancelJob = useCancelJob();
   const [selectedJob, setSelectedJob] = useState<JobDetail | null>(null);
 
@@ -256,10 +261,23 @@ export default function JobQueuePage() {
       <Container maxWidth="lg" sx={{ mt: 4 }}>
         {/* Header */}
         <Box sx={{ mb: 3 }}>
-          <Typography variant="h4" gutterBottom>
-            Job Queue
-          </Typography>
-          <Typography variant="body2" color="text.secondary">
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <Typography variant="h4" gutterBottom sx={{ mb: 0 }}>
+              Job Queue
+            </Typography>
+            {user?.isAdmin && (
+              <FormControlLabel
+                control={
+                  <Switch
+                    checked={showAll}
+                    onChange={(e) => setShowAll(e.target.checked)}
+                  />
+                }
+                label="Show all bots"
+              />
+            )}
+          </Box>
+          <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
             Last completed: {formatRelativeTime(data.lastCompletedAt)} | Next scheduled:{' '}
             {formatRelativeTime(data.nextScheduledAt)}
           </Typography>

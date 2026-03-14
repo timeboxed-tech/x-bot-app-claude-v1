@@ -26,6 +26,25 @@ export const postRepository = {
     });
   },
 
+  async findAll(options: { status?: string; page: number; pageSize: number }) {
+    const where: { status?: string } = {};
+    if (options.status) {
+      where.status = options.status;
+    }
+
+    const [posts, total] = await Promise.all([
+      prisma.post.findMany({
+        where,
+        skip: (options.page - 1) * options.pageSize,
+        take: options.pageSize,
+        orderBy: { createdAt: 'desc' },
+      }),
+      prisma.post.count({ where }),
+    ]);
+
+    return { posts, total };
+  },
+
   async findByBotIds(
     botIds: string[],
     options: { status?: string; page: number; pageSize: number },

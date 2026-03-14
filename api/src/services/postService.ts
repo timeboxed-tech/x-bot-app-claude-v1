@@ -10,7 +10,12 @@ type UpdatePostInput = {
 };
 
 export const postService = {
-  async listPosts(userId: string, options: { status?: string; page: number; pageSize: number }) {
+  async listPosts(userId: string | undefined, options: { status?: string; page: number; pageSize: number }) {
+    if (!userId) {
+      // Admin show-all: no bot scoping
+      return postRepository.findAll(options);
+    }
+
     const { bots } = await botRepository.findByUserId(userId, 1, 1000);
     const botIds = bots.map((b: { id: string }) => b.id);
 

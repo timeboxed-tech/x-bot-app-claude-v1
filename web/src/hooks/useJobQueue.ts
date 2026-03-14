@@ -48,11 +48,15 @@ type JobQueueStatsResponse = {
   data: JobQueueStats;
 };
 
-export function useJobQueue() {
+export function useJobQueue(showAll = false) {
   return useQuery({
-    queryKey: queryKeys.jobs.stats,
+    queryKey: queryKeys.jobs.stats(showAll),
     queryFn: async () => {
-      const response = await apiClient.get<JobQueueStatsResponse>('/jobs/stats');
+      const params: Record<string, string> = {};
+      if (showAll) {
+        params.showAll = 'true';
+      }
+      const response = await apiClient.get<JobQueueStatsResponse>('/jobs/stats', { params });
       return response.data.data;
     },
     refetchInterval: 30000,
@@ -66,7 +70,7 @@ export function useCancelJob() {
       await apiClient.post(`/jobs/${jobId}/cancel`);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.jobs.stats });
+      queryClient.invalidateQueries({ queryKey: ['jobs', 'stats'] });
     },
   });
 }

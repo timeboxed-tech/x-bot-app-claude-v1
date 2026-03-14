@@ -1,13 +1,37 @@
 import { Request, Response, NextFunction } from 'express';
 import { prisma } from '../utils/prisma.js';
 import { jobRepository } from '../repositories/jobRepository.js';
+import { userRepository } from '../repositories/userRepository.js';
 import { getEntries as getActivityLog } from '../worker/activityLog.js';
 import { log } from '../worker/activityLog.js';
 
 export const jobQueueController = {
   async cancelJob(req: Request<{ id: string }>, res: Response, next: NextFunction): Promise<void> {
     try {
+      const userId = req.userId!;
       const { id } = req.params;
+
+      // Verify the job belongs to a bot the user owns/shares, or user is admin
+      const job = await prisma.job.findUnique({
+        where: { id },
+        include: { bot: { include: { shares: true } } },
+      });
+
+      if (!job) {
+        res.status(404).json({ error: 'Job not found or not cancellable' });
+        return;
+      }
+
+      const user = await userRepository.findById(userId);
+      const isOwnerOrShared =
+        job.bot.userId === userId ||
+        job.bot.shares.some((s) => s.userId === userId);
+
+      if (!isOwnerOrShared && !user?.isAdmin) {
+        res.status(403).json({ error: 'You do not have access to this job' });
+        return;
+      }
+
       const result = await jobRepository.cancel(id);
 
       if (result.count === 0) {
@@ -24,6 +48,25 @@ export const jobQueueController = {
 
   async getStats(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
+      const userId = req.userId!;
+
+      // Determine if we should scope to user's bots
+      let botFilter: Record<string, unknown> | undefined;
+      const showAll = req.query.showAll === 'true';
+      if (showAll) {
+        const user = await userRepository.findById(userId);
+        if (!user?.isAdmin) {
+          // Non-admin: ignore showAll, scope to their bots
+          botFilter = { bot: { OR: [{ userId }, { shares: { some: { userId } } }] } };
+        }
+        // Admin with showAll: no filter
+      } else {
+        botFilter = { bot: { OR: [{ userId }, { shares: { some: { userId } } }] } };
+      }
+
+      const jobWhere = botFilter ?? {};
+      const postWhere = botFilter ?? {};
+
       const [
         jobCountsByStatus,
         postCountsByStatus,
@@ -36,36 +79,38 @@ export const jobQueueController = {
         prisma.job.groupBy({
           by: ['status'],
           _count: { status: true },
+          ...(botFilter ? { where: jobWhere } : {}),
         }),
         prisma.post.groupBy({
           by: ['status'],
           _count: { status: true },
+          ...(botFilter ? { where: postWhere } : {}),
         }),
         prisma.job.findMany({
-          where: { completedAt: { not: null } },
+          where: { completedAt: { not: null }, ...jobWhere },
           orderBy: { completedAt: 'desc' },
           take: 10,
           include: { bot: { select: { xAccountHandle: true } } },
         }),
         prisma.job.findMany({
-          where: { status: 'pending' },
+          where: { status: 'pending', ...jobWhere },
           orderBy: { scheduledAt: 'asc' },
           take: 10,
           include: { bot: { select: { xAccountHandle: true } } },
         }),
         prisma.job.findMany({
-          where: { status: 'failed' },
+          where: { status: 'failed', ...jobWhere },
           orderBy: { completedAt: 'desc' },
           take: 10,
           include: { bot: { select: { xAccountHandle: true } } },
         }),
         prisma.job.findFirst({
-          where: { completedAt: { not: null } },
+          where: { completedAt: { not: null }, ...jobWhere },
           orderBy: { completedAt: 'desc' },
           select: { completedAt: true },
         }),
         prisma.job.findFirst({
-          where: { status: 'pending' },
+          where: { status: 'pending', ...jobWhere },
           orderBy: { scheduledAt: 'asc' },
           select: { scheduledAt: true },
         }),

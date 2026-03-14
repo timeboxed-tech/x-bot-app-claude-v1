@@ -32,13 +32,16 @@ type UpdatePostInput = {
   rating?: number | null;
 };
 
-export function usePosts(status?: string, page = 1, pageSize = 10) {
+export function usePosts(status?: string, page = 1, pageSize = 10, showAll = false) {
   return useQuery({
-    queryKey: queryKeys.posts.list(status, page),
+    queryKey: queryKeys.posts.list(status, page, showAll),
     queryFn: async () => {
-      const params: Record<string, string | number> = { page, pageSize };
+      const params: Record<string, string | number | boolean> = { page, pageSize };
       if (status) {
         params.status = status;
+      }
+      if (showAll) {
+        params.showAll = 'true';
       }
       const response = await apiClient.get<PostListResponse>('/posts', {
         params,

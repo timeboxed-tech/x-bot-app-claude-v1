@@ -1,5 +1,7 @@
 import { useState } from 'react';
 import Container from '@mui/material/Container';
+import FormControlLabel from '@mui/material/FormControlLabel';
+import Switch from '@mui/material/Switch';
 import Typography from '@mui/material/Typography';
 import Tabs from '@mui/material/Tabs';
 import Tab from '@mui/material/Tab';
@@ -8,6 +10,7 @@ import Button from '@mui/material/Button';
 import Skeleton from '@mui/material/Skeleton';
 import AppHeader from '../components/AppHeader';
 import PostCard from '../components/PostCard';
+import { useAuth } from '../hooks/useAuth';
 import { usePosts } from '../hooks/usePosts';
 
 const TAB_CONFIG = [
@@ -31,11 +34,13 @@ const TAB_CONFIG = [
 ] as const;
 
 export default function PostsPage() {
+  const { user } = useAuth();
   const [tabIndex, setTabIndex] = useState(0);
   const [page, setPage] = useState(1);
+  const [showAll, setShowAll] = useState(false);
 
   const currentTab = TAB_CONFIG[tabIndex];
-  const { data, isLoading } = usePosts(currentTab.status, page);
+  const { data, isLoading } = usePosts(currentTab.status, page, 10, showAll);
 
   const posts = data?.data ?? [];
   const meta = data?.meta;
@@ -54,9 +59,25 @@ export default function PostsPage() {
     <>
       <AppHeader />
       <Container maxWidth="md" sx={{ mt: 4 }}>
-        <Typography variant="h4" gutterBottom>
-          Posts
-        </Typography>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
+          <Typography variant="h4" gutterBottom sx={{ mb: 0 }}>
+            Posts
+          </Typography>
+          {user?.isAdmin && (
+            <FormControlLabel
+              control={
+                <Switch
+                  checked={showAll}
+                  onChange={(e) => {
+                    setShowAll(e.target.checked);
+                    setPage(1);
+                  }}
+                />
+              }
+              label="Show all bots"
+            />
+          )}
+        </Box>
 
         <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 3 }}>
           <Tabs

@@ -1,10 +1,12 @@
 import { Request, Response, NextFunction } from 'express';
 import { z } from 'zod';
 import { postService } from '../services/postService.js';
+import { userRepository } from '../repositories/userRepository.js';
 import { paginationSchema, uuidSchema } from '../utils/validation.js';
 
 const postListQuerySchema = paginationSchema.extend({
   status: z.string().optional(),
+  showAll: z.string().optional(),
 });
 
 const postIdParamSchema = z.object({
@@ -22,12 +24,20 @@ export const postController = {
   async list(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const userId = req.userId!;
-      const { page, pageSize, status } = postListQuerySchema.parse(req.query);
-      const { posts, total } = await postService.listPosts(userId, {
-        status,
-        page,
-        pageSize,
-      });
+      const { page, pageSize, status, showAll } = postListQuerySchema.parse(req.query);
+
+      let scopeToUser = true;
+      if (showAll === 'true') {
+        const user = await userRepository.findById(userId);
+        if (user?.isAdmin) {
+          scopeToUser = false;
+        }
+      }
+
+      const { posts, total } = await postService.listPosts(
+        scopeToUser ? userId : undefined,
+        { status, page, pageSize },
+      );
 
       res.status(200).json({
         data: posts,

@@ -8,14 +8,14 @@ export const queryKeys = {
     shares: (botId: string) => ['bots', 'shares', botId] as const,
   },
   posts: {
-    list: (status?: string, page?: number) =>
-      ['posts', 'list', status ?? 'all', page ?? 1] as const,
+    list: (status?: string, page?: number, showAll?: boolean) =>
+      ['posts', 'list', status ?? 'all', page ?? 1, showAll ?? false] as const,
     all: ['posts'] as const,
   },
   stats: {
     forBot: (botId: string) => ['stats', 'bot', botId] as const,
   },
   jobs: {
-    stats: ['jobs', 'stats'] as const,
+    stats: (showAll?: boolean) => ['jobs', 'stats', showAll ?? false] as const,
   },
 } as const;
