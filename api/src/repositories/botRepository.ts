@@ -25,6 +25,7 @@ type UpdateBotInput = Partial<
 const botSelect = {
   id: true,
   userId: true,
+  platform: true,
   xAccountHandle: true,
   prompt: true,
   postMode: true,

@@ -288,6 +288,11 @@ export default function DashboardPage() {
                 <Typography variant="h5">@{bot.xAccountHandle || 'Not connected'}</Typography>
                 <Box sx={{ display: 'flex', gap: 1, mt: 1 }}>
                   <Chip
+                    label={bot.platform === 'x' ? 'X (Twitter)' : bot.platform}
+                    size="small"
+                    variant="outlined"
+                  />
+                  <Chip
                     label={bot.active ? 'Active' : 'Inactive'}
                     color={bot.active ? 'success' : 'default'}
                     size="small"

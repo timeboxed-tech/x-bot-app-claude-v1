@@ -7,6 +7,7 @@ import { NotFoundError, ForbiddenError } from '../utils/errors.js';
 
 type CreateBotInput = {
   userId: string;
+  platform?: string;
   prompt: string;
   postMode: string;
   postsPerDay: number;
@@ -39,6 +40,7 @@ export const botService = {
         select: {
           id: true,
           userId: true,
+          platform: true,
           xAccountHandle: true,
           prompt: true,
           postMode: true,
