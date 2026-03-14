@@ -16,7 +16,7 @@ const postIdParamSchema = z.object({
 const updatePostSchema = z.object({
   content: z.string().min(1, 'Content must not be empty').optional(),
   rating: z.number().int().min(1).max(5).nullable().optional(),
-  status: z.enum(['scheduled', 'discarded']).optional(),
+  status: z.enum(['draft', 'scheduled', 'discarded']).optional(),
   scheduledAt: z.string().datetime().nullable().optional(),
 });
 

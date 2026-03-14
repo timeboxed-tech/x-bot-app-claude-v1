@@ -299,15 +299,25 @@ export default function PostCard({ post }: PostCardProps) {
               </Button>
             )}
             {post.status === 'discarded' && (
-              <Button
-                size="small"
-                color="error"
-                variant="outlined"
-                onClick={() => setDeleteConfirmOpen(true)}
-                disabled={deletePost.isPending}
-              >
-                {deletePost.isPending ? <CircularProgress size={16} /> : 'Delete'}
-              </Button>
+              <>
+                <Button
+                  size="small"
+                  variant="outlined"
+                  onClick={() => updatePost.mutate({ id: post.id, status: 'draft' })}
+                  disabled={updatePost.isPending}
+                >
+                  Reinstate
+                </Button>
+                <Button
+                  size="small"
+                  color="error"
+                  variant="outlined"
+                  onClick={() => setDeleteConfirmOpen(true)}
+                  disabled={deletePost.isPending}
+                >
+                  {deletePost.isPending ? <CircularProgress size={16} /> : 'Delete'}
+                </Button>
+              </>
             )}
           </Box>
         </Box>

@@ -7,7 +7,7 @@ import { NotFoundError, ForbiddenError, ValidationError } from '../utils/errors.
 type UpdatePostInput = {
   content?: string;
   rating?: number | null;
-  status?: 'scheduled' | 'discarded';
+  status?: 'draft' | 'scheduled' | 'discarded';
   scheduledAt?: string | null;
 };
 
@@ -44,8 +44,8 @@ export const postService = {
     if (post.status === 'published') {
       throw new ForbiddenError('Cannot modify a published post');
     }
-    if (post.status === 'discarded') {
-      throw new ForbiddenError('Cannot modify a discarded post');
+    if (post.status === 'discarded' && input.status !== 'draft') {
+      throw new ForbiddenError('Discarded posts can only be reinstated to draft');
     }
 
     // Validate content changes: only allowed on drafts
@@ -89,6 +89,9 @@ export const postService = {
       updateData.scheduledAt = input.scheduledAt ? new Date(input.scheduledAt) : new Date();
     } else if (input.status === 'discarded') {
       updateData.status = 'discarded';
+    } else if (input.status === 'draft') {
+      updateData.status = 'draft';
+      updateData.scheduledAt = null;
     }
 
     return postRepository.update(postId, updateData);
@@ -197,6 +200,8 @@ function getAllowedTransitions(currentStatus: string): string[] {
       return ['scheduled', 'discarded'];
     case 'scheduled':
       return ['discarded'];
+    case 'discarded':
+      return ['draft'];
     default:
       return [];
   }
