@@ -13,6 +13,7 @@ import PostsPage from '../pages/PostsPage';
 import UsersPage from '../pages/UsersPage';
 import JobQueuePage from '../pages/JobQueuePage';
 import JudgesPage from '../pages/JudgesPage';
+import BotEditPage from '../pages/BotEditPage';
 
 async function checkAuth(): Promise<boolean> {
   try {
@@ -93,6 +94,18 @@ const judgesRoute = createRoute({
   component: JudgesPage,
 });
 
+const botEditRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/bots/$botId/edit',
+  beforeLoad: async () => {
+    const authenticated = await checkAuth();
+    if (!authenticated) {
+      throw redirect({ to: '/login' });
+    }
+  },
+  component: BotEditPage,
+});
+
 const indexRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/',
@@ -110,6 +123,7 @@ const routeTree = rootRoute.addChildren([
   indexRoute,
   loginRoute,
   dashboardRoute,
+  botEditRoute,
   postsRoute,
   jobsRoute,
   usersRoute,

@@ -109,11 +109,14 @@ export default function BotSetupForm({
       <TextField
         label="Bot Prompt"
         multiline
-        rows={4}
+        minRows={8}
         value={values.prompt}
         onChange={(e) => setValues((v) => ({ ...v, prompt: e.target.value }))}
         error={!!errors['prompt']}
-        helperText={errors['prompt']}
+        helperText={
+          errors['prompt'] ||
+          'Describe how your bot should write posts. This can be multiple paragraphs.'
+        }
         fullWidth
       />
 

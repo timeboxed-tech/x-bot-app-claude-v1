@@ -82,7 +82,6 @@ export default function DashboardPage() {
   const createBot = useCreateBot();
   const updateBot = useUpdateBot();
   const [selectedBotIndex, setSelectedBotIndex] = useState(0);
-  const [editOpen, setEditOpen] = useState(false);
   const [createOpen, setCreateOpen] = useState(false);
   const [shareOpen, setShareOpen] = useState(false);
   const [shareEmail, setShareEmail] = useState('');
@@ -168,29 +167,6 @@ export default function DashboardPage() {
     } catch {
       setConnectLoading(false);
     }
-  };
-
-  const handleConfigSave = (values: {
-    prompt: string;
-    postMode: 'auto' | 'manual';
-    postsPerDay: number;
-    minIntervalHours: number;
-    preferredHoursStart: number;
-    preferredHoursEnd: number;
-  }) => {
-    if (!bot) return;
-    updateBot.mutate(
-      { id: bot.id, ...values },
-      {
-        onSuccess: () => {
-          setEditOpen(false);
-          showSnackbar('Bot configuration updated', 'success');
-        },
-        onError: () => {
-          showSnackbar('Failed to update bot', 'error');
-        },
-      },
-    );
   };
 
   if (isLoading) {
@@ -341,8 +317,7 @@ export default function DashboardPage() {
               </Button>
               <Button
                 variant="outlined"
-                onClick={() => setEditOpen(true)}
-                disabled={updateBot.isPending}
+                onClick={() => void navigate({ to: `/bots/${bot.id}/edit` })}
               >
                 Edit Config
               </Button>
@@ -695,7 +670,7 @@ export default function DashboardPage() {
           <Button variant="outlined" onClick={() => void navigate({ to: '/posts' })}>
             View Post Queue
           </Button>
-          <Button variant="outlined" onClick={() => setEditOpen(true)}>
+          <Button variant="outlined" onClick={() => void navigate({ to: `/bots/${bot.id}/edit` })}>
             Edit Bot Config
           </Button>
         </Box>
@@ -843,33 +818,6 @@ export default function DashboardPage() {
               disabled={updateBot.isPending}
             >
               Confirm
-            </Button>
-          </DialogActions>
-        </Dialog>
-
-        {/* Edit config dialog */}
-        <Dialog open={editOpen} onClose={() => setEditOpen(false)} maxWidth="sm" fullWidth>
-          <DialogTitle>Edit Bot Configuration</DialogTitle>
-          <DialogContent>
-            <Box sx={{ pt: 1 }}>
-              <BotSetupForm
-                initialValues={{
-                  prompt: bot.prompt,
-                  postMode: bot.postMode as 'auto' | 'manual',
-                  postsPerDay: bot.postsPerDay,
-                  minIntervalHours: bot.minIntervalHours,
-                  preferredHoursStart: bot.preferredHoursStart,
-                  preferredHoursEnd: bot.preferredHoursEnd,
-                }}
-                onSubmit={handleConfigSave}
-                isLoading={updateBot.isPending}
-                submitLabel="Update"
-              />
-            </Box>
-          </DialogContent>
-          <DialogActions>
-            <Button onClick={() => setEditOpen(false)} disabled={updateBot.isPending}>
-              Cancel
             </Button>
           </DialogActions>
         </Dialog>
