@@ -148,6 +148,21 @@ export function usePostReviews(postId: string | undefined) {
   });
 }
 
+export function useDeleteReview() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ postId, reviewId }: { postId: string; reviewId: string }) => {
+      await apiClient.delete(`/posts/${postId}/reviews/${reviewId}`);
+    },
+    onSuccess: (_data, variables) => {
+      void queryClient.invalidateQueries({
+        queryKey: queryKeys.posts.reviews(variables.postId),
+      });
+    },
+  });
+}
+
 export function useRequestReview() {
   const queryClient = useQueryClient();
 
