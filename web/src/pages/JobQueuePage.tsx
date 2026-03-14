@@ -4,9 +4,11 @@ import Box from '@mui/material/Box';
 import Card from '@mui/material/Card';
 import CardContent from '@mui/material/CardContent';
 import Chip from '@mui/material/Chip';
-import Collapse from '@mui/material/Collapse';
-import Container from '@mui/material/Container';
 import CircularProgress from '@mui/material/CircularProgress';
+import Container from '@mui/material/Container';
+import Dialog from '@mui/material/Dialog';
+import DialogContent from '@mui/material/DialogContent';
+import DialogTitle from '@mui/material/DialogTitle';
 import Grid from '@mui/material/Grid';
 import IconButton from '@mui/material/IconButton';
 import Paper from '@mui/material/Paper';
@@ -17,8 +19,7 @@ import TableContainer from '@mui/material/TableContainer';
 import TableHead from '@mui/material/TableHead';
 import TableRow from '@mui/material/TableRow';
 import Typography from '@mui/material/Typography';
-import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
-import KeyboardArrowUpIcon from '@mui/icons-material/KeyboardArrowUp';
+import CloseIcon from '@mui/icons-material/Close';
 import Button from '@mui/material/Button';
 import CancelIcon from '@mui/icons-material/Cancel';
 import AppHeader from '../components/AppHeader';
@@ -110,197 +111,120 @@ const statusChipColors: Record<string, 'default' | 'info' | 'success' | 'error' 
   cancelled: 'warning',
 };
 
-function ExpandableErrorRow({ error, colSpan }: { error: string | null; colSpan: number }) {
-  const [open, setOpen] = useState(false);
-
-  if (!error) return null;
-
-  const hasDetails = error.includes('\n');
-
-  return (
-    <>
-      <TableCell
-        sx={{
-          maxWidth: 300,
-          overflow: 'hidden',
-          textOverflow: 'ellipsis',
-          whiteSpace: 'nowrap',
-          cursor: hasDetails ? 'pointer' : 'default',
-        }}
-        onClick={hasDetails ? () => setOpen(!open) : undefined}
-      >
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-          {hasDetails && (
-            <IconButton size="small" sx={{ p: 0 }}>
-              {open ? (
-                <KeyboardArrowUpIcon fontSize="small" />
-              ) : (
-                <KeyboardArrowDownIcon fontSize="small" />
-              )}
-            </IconButton>
-          )}
-          <Typography variant="body2" color="error" noWrap>
-            {getErrorFirstLine(error)}
-          </Typography>
-        </Box>
-      </TableCell>
-    </>
-  );
-}
-
-function ErrorDetailCollapse({
-  error,
-  open,
-  colSpan,
-}: {
+type JobDetail = {
+  id: string;
+  botId: string;
+  botHandle: string;
+  status: string;
+  scheduledAt: string;
+  startedAt?: string | null;
+  completedAt?: string | null;
   error: string | null;
-  open: boolean;
-  colSpan: number;
-}) {
-  if (!error || !error.includes('\n')) return null;
+  createdAt: string;
+};
 
-  return (
-    <TableRow>
-      <TableCell colSpan={colSpan} sx={{ py: 0, borderBottom: open ? undefined : 'none' }}>
-        <Collapse in={open}>
-          <Box
-            sx={{
-              whiteSpace: 'pre-wrap',
-              fontFamily: 'monospace',
-              fontSize: '0.75rem',
-              backgroundColor: 'rgba(211, 47, 47, 0.04)',
-              p: 2,
-              my: 1,
-              borderRadius: 1,
-              maxHeight: 300,
-              overflow: 'auto',
-            }}
-          >
-            {error}
-          </Box>
-        </Collapse>
-      </TableCell>
-    </TableRow>
-  );
-}
-
-function RecentJobRow({
+function JobDetailDialog({
   job,
+  onClose,
 }: {
-  job: {
-    id: string;
-    botHandle: string;
-    status: string;
-    startedAt: string | null;
-    completedAt: string | null;
-    error: string | null;
-  };
+  job: JobDetail | null;
+  onClose: () => void;
 }) {
-  const [open, setOpen] = useState(false);
-  const isFailed = job.status === 'failed';
-  const hasDetails = !!job.error && job.error.includes('\n');
+  if (!job) return null;
+
+  const rows: { label: string; value: string }[] = [
+    { label: 'Job ID', value: job.id },
+    { label: 'Bot', value: job.botHandle || job.botId },
+    { label: 'Status', value: job.status },
+    { label: 'Scheduled At', value: new Date(job.scheduledAt).toLocaleString() },
+    { label: 'Created At', value: new Date(job.createdAt).toLocaleString() },
+    {
+      label: 'Started At',
+      value: job.startedAt ? new Date(job.startedAt).toLocaleString() : '-',
+    },
+    {
+      label: 'Completed At',
+      value: job.completedAt ? new Date(job.completedAt).toLocaleString() : '-',
+    },
+    {
+      label: 'Duration',
+      value: computeDuration(job.startedAt ?? null, job.completedAt ?? null),
+    },
+  ];
 
   return (
-    <>
-      <TableRow sx={isFailed ? { bgcolor: 'rgba(211, 47, 47, 0.04)' } : undefined}>
-        <TableCell>{job.botHandle || '-'}</TableCell>
-        <TableCell>
-          <Chip label={job.status} color={statusChipColors[job.status] ?? 'default'} size="small" />
-        </TableCell>
-        <TableCell>{job.startedAt ? new Date(job.startedAt).toLocaleString() : '-'}</TableCell>
-        <TableCell>{job.completedAt ? new Date(job.completedAt).toLocaleString() : '-'}</TableCell>
-        <TableCell>{computeDuration(job.startedAt, job.completedAt)}</TableCell>
-        <TableCell
-          sx={{
-            maxWidth: 250,
-            cursor: hasDetails ? 'pointer' : 'default',
-          }}
-          onClick={hasDetails ? () => setOpen(!open) : undefined}
-        >
-          {job.error ? (
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-              {hasDetails && (
-                <IconButton size="small" sx={{ p: 0 }}>
-                  {open ? (
-                    <KeyboardArrowUpIcon fontSize="small" />
-                  ) : (
-                    <KeyboardArrowDownIcon fontSize="small" />
-                  )}
-                </IconButton>
-              )}
-              <Typography variant="body2" color="error" noWrap>
-                {getErrorFirstLine(job.error)}
-              </Typography>
-            </Box>
-          ) : (
-            '-'
-          )}
-        </TableCell>
-      </TableRow>
-      <ErrorDetailCollapse error={job.error} open={open} colSpan={6} />
-    </>
-  );
-}
+    <Dialog open onClose={onClose} maxWidth="md" fullWidth>
+      <DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          Job Details
+          <Chip
+            label={job.status}
+            color={statusChipColors[job.status] ?? 'default'}
+            size="small"
+          />
+        </Box>
+        <IconButton onClick={onClose} size="small">
+          <CloseIcon />
+        </IconButton>
+      </DialogTitle>
+      <DialogContent dividers>
+        <Table size="small" sx={{ mb: job.error ? 2 : 0 }}>
+          <TableBody>
+            {rows.map((row) => (
+              <TableRow key={row.label}>
+                <TableCell
+                  sx={{ fontWeight: 600, width: 140, borderBottom: 'none', py: 0.75 }}
+                >
+                  {row.label}
+                </TableCell>
+                <TableCell
+                  sx={{
+                    borderBottom: 'none',
+                    py: 0.75,
+                    fontFamily: row.label === 'Job ID' ? 'monospace' : undefined,
+                    fontSize: row.label === 'Job ID' ? '0.8rem' : undefined,
+                  }}
+                >
+                  {row.value}
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
 
-function ErrorJobRow({
-  job,
-}: {
-  job: {
-    id: string;
-    botHandle: string;
-    scheduledAt: string;
-    completedAt: string | null;
-    error: string | null;
-  };
-}) {
-  const [open, setOpen] = useState(false);
-  const hasDetails = !!job.error && job.error.includes('\n');
-
-  return (
-    <>
-      <TableRow sx={{ bgcolor: 'rgba(211, 47, 47, 0.04)' }}>
-        <TableCell>
-          <Chip label={job.botHandle || '-'} color="error" size="small" variant="outlined" />
-        </TableCell>
-        <TableCell>{new Date(job.scheduledAt).toLocaleString()}</TableCell>
-        <TableCell>{job.completedAt ? new Date(job.completedAt).toLocaleString() : '-'}</TableCell>
-        <TableCell
-          sx={{
-            maxWidth: 300,
-            cursor: hasDetails ? 'pointer' : 'default',
-          }}
-          onClick={hasDetails ? () => setOpen(!open) : undefined}
-        >
-          {job.error ? (
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-              {hasDetails && (
-                <IconButton size="small" sx={{ p: 0 }}>
-                  {open ? (
-                    <KeyboardArrowUpIcon fontSize="small" />
-                  ) : (
-                    <KeyboardArrowDownIcon fontSize="small" />
-                  )}
-                </IconButton>
-              )}
-              <Typography variant="body2" color="error" noWrap>
-                {getErrorFirstLine(job.error)}
-              </Typography>
-            </Box>
-          ) : (
-            <Typography variant="body2" color="text.secondary">
-              No error details
+        {job.error && (
+          <>
+            <Typography variant="subtitle2" color="error" sx={{ mt: 2, mb: 1 }}>
+              Error
             </Typography>
-          )}
-        </TableCell>
-      </TableRow>
-      <ErrorDetailCollapse error={job.error} open={open} colSpan={4} />
-    </>
+            <Box
+              sx={{
+                whiteSpace: 'pre-wrap',
+                fontFamily: 'monospace',
+                fontSize: '0.75rem',
+                backgroundColor: 'rgba(211, 47, 47, 0.04)',
+                border: '1px solid',
+                borderColor: 'error.light',
+                p: 2,
+                borderRadius: 1,
+                maxHeight: 400,
+                overflow: 'auto',
+                wordBreak: 'break-word',
+              }}
+            >
+              {job.error}
+            </Box>
+          </>
+        )}
+      </DialogContent>
+    </Dialog>
   );
 }
 
 export default function JobQueuePage() {
   const { data, isLoading, error } = useJobQueue();
   const cancelJob = useCancelJob();
+  const [selectedJob, setSelectedJob] = useState<JobDetail | null>(null);
 
   if (isLoading) {
     return (
@@ -457,7 +381,46 @@ export default function JobQueuePage() {
                   </TableCell>
                 </TableRow>
               ) : (
-                data.recentJobs.map((job) => <RecentJobRow key={job.id} job={job} />)
+                data.recentJobs.map((job) => (
+                  <TableRow
+                    key={job.id}
+                    hover
+                    sx={{
+                      cursor: 'pointer',
+                      ...(job.status === 'failed'
+                        ? { bgcolor: 'rgba(211, 47, 47, 0.04)' }
+                        : {}),
+                    }}
+                    onClick={() => setSelectedJob(job)}
+                  >
+                    <TableCell>{job.botHandle || '-'}</TableCell>
+                    <TableCell>
+                      <Chip
+                        label={job.status}
+                        color={statusChipColors[job.status] ?? 'default'}
+                        size="small"
+                      />
+                    </TableCell>
+                    <TableCell>
+                      {job.startedAt ? new Date(job.startedAt).toLocaleString() : '-'}
+                    </TableCell>
+                    <TableCell>
+                      {job.completedAt ? new Date(job.completedAt).toLocaleString() : '-'}
+                    </TableCell>
+                    <TableCell>
+                      {computeDuration(job.startedAt ?? null, job.completedAt ?? null)}
+                    </TableCell>
+                    <TableCell sx={{ maxWidth: 250 }}>
+                      {job.error ? (
+                        <Typography variant="body2" color="error" noWrap>
+                          {getErrorFirstLine(job.error)}
+                        </Typography>
+                      ) : (
+                        '-'
+                      )}
+                    </TableCell>
+                  </TableRow>
+                ))
               )}
             </TableBody>
           </Table>
@@ -481,7 +444,36 @@ export default function JobQueuePage() {
                 </TableHead>
                 <TableBody>
                   {data.recentErrors.map((job) => (
-                    <ErrorJobRow key={job.id} job={job} />
+                    <TableRow
+                      key={job.id}
+                      hover
+                      sx={{ cursor: 'pointer', bgcolor: 'rgba(211, 47, 47, 0.04)' }}
+                      onClick={() => setSelectedJob(job)}
+                    >
+                      <TableCell>
+                        <Chip
+                          label={job.botHandle || '-'}
+                          color="error"
+                          size="small"
+                          variant="outlined"
+                        />
+                      </TableCell>
+                      <TableCell>{new Date(job.scheduledAt).toLocaleString()}</TableCell>
+                      <TableCell>
+                        {job.completedAt ? new Date(job.completedAt).toLocaleString() : '-'}
+                      </TableCell>
+                      <TableCell sx={{ maxWidth: 300 }}>
+                        {job.error ? (
+                          <Typography variant="body2" color="error" noWrap>
+                            {getErrorFirstLine(job.error)}
+                          </Typography>
+                        ) : (
+                          <Typography variant="body2" color="text.secondary">
+                            No error details
+                          </Typography>
+                        )}
+                      </TableCell>
+                    </TableRow>
                   ))}
                 </TableBody>
               </Table>
@@ -562,6 +554,7 @@ export default function JobQueuePage() {
             </TableBody>
           </Table>
         </TableContainer>
+        <JobDetailDialog job={selectedJob} onClose={() => setSelectedJob(null)} />
       </Container>
     </>
   );
