@@ -6,6 +6,7 @@ import { computeNextScheduledAt } from '../services/scheduler.js';
 import { log } from './activityLog.js';
 
 const POLL_INTERVAL_MS = parseInt(process.env.WORKER_POLL_INTERVAL_MS || '30000', 10);
+const CATCHUP_MINUTES = 15;
 
 let intervalHandle: ReturnType<typeof setInterval> | null = null;
 let running = false;
@@ -51,18 +52,32 @@ async function reconcileBots(): Promise<void> {
 
     for (const bot of botsWithoutJobs) {
       try {
-        const lastCompleted = bot.jobs[0]?.completedAt ?? null;
-        const baseTime = lastCompleted ?? new Date();
+        const recentPostCount = await postRepository.countRecentByBot(bot.id, 24);
+        const isBehind = recentPostCount < bot.postsPerDay;
 
-        const nextScheduledAt = computeNextScheduledAt(
-          {
-            postsPerDay: bot.postsPerDay,
-            minIntervalHours: bot.minIntervalHours,
-            preferredHoursStart: bot.preferredHoursStart,
-            preferredHoursEnd: bot.preferredHoursEnd,
-          },
-          baseTime,
-        );
+        let nextScheduledAt: Date;
+
+        if (isBehind) {
+          // Behind on frequency — schedule catch-up within 15 minutes
+          const jitterMs = Math.floor(Math.random() * CATCHUP_MINUTES * 60 * 1000);
+          nextScheduledAt = new Date(Date.now() + jitterMs);
+          log(
+            'jobWorker',
+            `Reconciliation: bot ${bot.id} behind schedule (${recentPostCount}/${bot.postsPerDay} posts in 24h), catch-up in ${Math.round(jitterMs / 60000)}m`,
+          );
+        } else {
+          const lastCompleted = bot.jobs[0]?.completedAt ?? null;
+          const baseTime = lastCompleted ?? new Date();
+          nextScheduledAt = computeNextScheduledAt(
+            {
+              postsPerDay: bot.postsPerDay,
+              minIntervalHours: bot.minIntervalHours,
+              preferredHoursStart: bot.preferredHoursStart,
+              preferredHoursEnd: bot.preferredHoursEnd,
+            },
+            baseTime,
+          );
+        }
 
         await jobRepository.create({
           botId: bot.id,
