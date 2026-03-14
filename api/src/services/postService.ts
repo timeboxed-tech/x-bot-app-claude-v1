@@ -157,6 +157,38 @@ export const postService = {
 
     return { post: updatedPost, newTips };
   },
+
+  async deletePost(postId: string, userId: string) {
+    const post = await postRepository.findById(postId);
+    if (!post) {
+      throw new NotFoundError('Post not found');
+    }
+    if (post.bot.userId !== userId) {
+      throw new ForbiddenError('You do not have access to this post');
+    }
+    if (post.status !== 'discarded') {
+      throw new ValidationError('Only discarded posts can be deleted');
+    }
+    await postRepository.delete(postId);
+  },
+
+  async deleteAllDiscarded(userId: string | undefined) {
+    if (!userId) {
+      // Admin show-all: delete all discarded posts
+      const result = await postRepository.deleteAllDiscarded();
+      return result.count;
+    }
+
+    const { bots } = await botRepository.findByUserId(userId, 1, 1000);
+    const botIds = bots.map((b: { id: string }) => b.id);
+
+    if (botIds.length === 0) {
+      return 0;
+    }
+
+    const result = await postRepository.deleteDiscardedByBotIds(botIds);
+    return result.count;
+  },
 };
 
 function getAllowedTransitions(currentStatus: string): string[] {

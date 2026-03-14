@@ -13,9 +13,16 @@ import DialogContent from '@mui/material/DialogContent';
 import DialogActions from '@mui/material/DialogActions';
 import Alert from '@mui/material/Alert';
 import CircularProgress from '@mui/material/CircularProgress';
+import IconButton from '@mui/material/IconButton';
+import DeleteIcon from '@mui/icons-material/Delete';
 import type { Post, PostStatus } from '../hooks/usePosts';
-import { useUpdatePost, useTweakPost, useAcceptTweak } from '../hooks/usePosts';
-import { usePostReviews, useRequestReview, type PostReview } from '../hooks/useJudges';
+import { useUpdatePost, useTweakPost, useAcceptTweak, useDeletePost } from '../hooks/usePosts';
+import {
+  usePostReviews,
+  useRequestReview,
+  useDeleteReview,
+  type PostReview,
+} from '../hooks/useJudges';
 
 const statusColors: Record<PostStatus, 'default' | 'info' | 'success' | 'error'> = {
   draft: 'default',
@@ -53,7 +60,10 @@ export default function PostCard({ post }: PostCardProps) {
   const acceptTweak = useAcceptTweak();
   const { data: reviews } = usePostReviews(post.id);
   const requestReview = useRequestReview();
+  const deleteReview = useDeleteReview();
+  const deletePost = useDeletePost();
   const [showReviews, setShowReviews] = useState(false);
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
 
   useEffect(() => {
     if (conversationEndRef.current) {
@@ -288,6 +298,17 @@ export default function PostCard({ post }: PostCardProps) {
                 Discard
               </Button>
             )}
+            {post.status === 'discarded' && (
+              <Button
+                size="small"
+                color="error"
+                variant="outlined"
+                onClick={() => setDeleteConfirmOpen(true)}
+                disabled={deletePost.isPending}
+              >
+                {deletePost.isPending ? <CircularProgress size={16} /> : 'Delete'}
+              </Button>
+            )}
           </Box>
         </Box>
       </CardContent>
@@ -317,7 +338,19 @@ export default function PostCard({ post }: PostCardProps) {
                       mb: 0.5,
                     }}
                   >
-                    <Typography variant="subtitle2">{review.judge.name}</Typography>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                      <Typography variant="subtitle2">{review.judge.name}</Typography>
+                      <IconButton
+                        size="small"
+                        onClick={() =>
+                          deleteReview.mutate({ postId: post.id, reviewId: review.id })
+                        }
+                        disabled={deleteReview.isPending}
+                        sx={{ p: 0.25 }}
+                      >
+                        <DeleteIcon fontSize="small" />
+                      </IconButton>
+                    </Box>
                     <Rating value={review.rating} readOnly size="small" />
                   </Box>
                   <Typography variant="body2" sx={{ whiteSpace: 'pre-wrap' }}>
@@ -329,6 +362,31 @@ export default function PostCard({ post }: PostCardProps) {
           )}
         </CardContent>
       )}
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={deleteConfirmOpen} onClose={() => setDeleteConfirmOpen(false)}>
+        <DialogTitle>Delete Post</DialogTitle>
+        <DialogContent>
+          <Typography>Are you sure you want to permanently delete this post?</Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setDeleteConfirmOpen(false)} disabled={deletePost.isPending}>
+            Cancel
+          </Button>
+          <Button
+            color="error"
+            variant="contained"
+            onClick={() => {
+              deletePost.mutate(post.id, {
+                onSuccess: () => setDeleteConfirmOpen(false),
+              });
+            }}
+            disabled={deletePost.isPending}
+          >
+            {deletePost.isPending ? <CircularProgress size={20} /> : 'Delete'}
+          </Button>
+        </DialogActions>
+      </Dialog>
 
       {/* Tweak Dialog */}
       <Dialog open={tweakOpen} onClose={handleCloseTweak} maxWidth="sm" fullWidth>

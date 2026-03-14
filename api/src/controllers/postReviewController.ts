@@ -13,6 +13,11 @@ const postIdParamSchema = z.object({
   id: uuidSchema,
 });
 
+const reviewParamSchema = z.object({
+  id: uuidSchema,
+  reviewId: uuidSchema,
+});
+
 async function assertPostAccess(postId: string, userId: string) {
   const post = await postRepository.findById(postId);
   if (!post) {
@@ -85,6 +90,19 @@ export const postReviewController = {
       const reviews = await postReviewRepository.createMany(reviewResults);
 
       res.status(201).json({ data: reviews });
+    } catch (err) {
+      next(err);
+    }
+  },
+
+  async remove(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const userId = req.userId!;
+      const { id, reviewId } = reviewParamSchema.parse(req.params);
+      await assertPostAccess(id, userId);
+
+      await postReviewRepository.delete(reviewId);
+      res.status(204).send();
     } catch (err) {
       next(err);
     }

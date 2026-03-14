@@ -11,7 +11,12 @@ import Skeleton from '@mui/material/Skeleton';
 import AppHeader from '../components/AppHeader';
 import PostCard from '../components/PostCard';
 import { useAuth } from '../hooks/useAuth';
-import { usePosts } from '../hooks/usePosts';
+import Dialog from '@mui/material/Dialog';
+import DialogTitle from '@mui/material/DialogTitle';
+import DialogContent from '@mui/material/DialogContent';
+import DialogActions from '@mui/material/DialogActions';
+import CircularProgress from '@mui/material/CircularProgress';
+import { usePosts, useDeleteAllDiscarded } from '../hooks/usePosts';
 
 const TAB_CONFIG = [
   { label: 'All', status: undefined, emptyMessage: 'No posts yet' },
@@ -39,8 +44,12 @@ export default function PostsPage() {
   const [page, setPage] = useState(1);
   const [showAll, setShowAll] = useState(false);
 
+  const [deleteAllOpen, setDeleteAllOpen] = useState(false);
+  const deleteAllDiscarded = useDeleteAllDiscarded();
+
   const currentTab = TAB_CONFIG[tabIndex];
   const { data, isLoading } = usePosts(currentTab.status, page, 10, showAll);
+  const isDiscardedTab = currentTab.status === 'discarded';
 
   const posts = data?.data ?? [];
   const meta = data?.meta;
@@ -87,6 +96,21 @@ export default function PostsPage() {
             ))}
           </Tabs>
         </Box>
+
+        {isDiscardedTab && posts.length > 0 && (
+          <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 2 }}>
+            <Button
+              size="small"
+              color="error"
+              variant="outlined"
+              onClick={() => setDeleteAllOpen(true)}
+              disabled={deleteAllDiscarded.isPending}
+            >
+              {deleteAllDiscarded.isPending ? <CircularProgress size={16} sx={{ mr: 1 }} /> : null}
+              Delete All Discarded
+            </Button>
+          </Box>
+        )}
 
         {isLoading ? (
           <Box>
@@ -145,6 +169,33 @@ export default function PostsPage() {
             )}
           </>
         )}
+        <Dialog open={deleteAllOpen} onClose={() => setDeleteAllOpen(false)}>
+          <DialogTitle>Delete All Discarded Posts</DialogTitle>
+          <DialogContent>
+            Are you sure you want to permanently delete all discarded posts
+            {showAll && user?.isAdmin ? ' across all bots' : ''}?
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={() => setDeleteAllOpen(false)} disabled={deleteAllDiscarded.isPending}>
+              Cancel
+            </Button>
+            <Button
+              color="error"
+              variant="contained"
+              onClick={() => {
+                deleteAllDiscarded.mutate(showAll && !!user?.isAdmin, {
+                  onSuccess: () => {
+                    setDeleteAllOpen(false);
+                    setPage(1);
+                  },
+                });
+              }}
+              disabled={deleteAllDiscarded.isPending}
+            >
+              {deleteAllDiscarded.isPending ? <CircularProgress size={20} /> : 'Delete All'}
+            </Button>
+          </DialogActions>
+        </Dialog>
       </Container>
     </>
   );

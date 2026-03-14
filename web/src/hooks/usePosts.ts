@@ -120,3 +120,36 @@ export function useAcceptTweak() {
     },
   });
 }
+
+export function useDeletePost() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (postId: string) => {
+      await apiClient.delete(`/posts/${postId}`);
+    },
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: queryKeys.posts.all });
+    },
+  });
+}
+
+export function useDeleteAllDiscarded() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (showAll: boolean) => {
+      const params: Record<string, string> = {};
+      if (showAll) {
+        params.showAll = 'true';
+      }
+      const response = await apiClient.delete<{ data: { count: number } }>('/posts/discarded', {
+        params,
+      });
+      return response.data.data;
+    },
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: queryKeys.posts.all });
+    },
+  });
+}

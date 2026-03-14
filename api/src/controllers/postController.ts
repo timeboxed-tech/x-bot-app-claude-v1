@@ -115,4 +115,35 @@ export const postController = {
       next(err);
     }
   },
+
+  async remove(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const userId = req.userId!;
+      const { id } = postIdParamSchema.parse(req.params);
+      await postService.deletePost(id, userId);
+      res.status(204).send();
+    } catch (err) {
+      next(err);
+    }
+  },
+
+  async removeAllDiscarded(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const userId = req.userId!;
+      const { showAll } = postListQuerySchema.parse(req.query);
+
+      let scopeToUser = true;
+      if (showAll === 'true') {
+        const user = await userRepository.findById(userId);
+        if (user?.isAdmin) {
+          scopeToUser = false;
+        }
+      }
+
+      const count = await postService.deleteAllDiscarded(scopeToUser ? userId : undefined);
+      res.status(200).json({ data: { count } });
+    } catch (err) {
+      next(err);
+    }
+  },
 };

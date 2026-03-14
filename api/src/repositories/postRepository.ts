@@ -141,6 +141,39 @@ export const postRepository = {
     });
   },
 
+  async delete(id: string) {
+    return prisma.$transaction([
+      prisma.postReview.deleteMany({ where: { postId: id } }),
+      prisma.post.delete({ where: { id } }),
+    ]);
+  },
+
+  async deleteDiscardedByBotIds(botIds: string[]) {
+    const discardedPosts = await prisma.post.findMany({
+      where: { botId: { in: botIds }, status: 'discarded' },
+      select: { id: true },
+    });
+    const postIds = discardedPosts.map((p: { id: string }) => p.id);
+    if (postIds.length === 0) return { count: 0 };
+    return prisma.$transaction(async (tx) => {
+      await tx.postReview.deleteMany({ where: { postId: { in: postIds } } });
+      return tx.post.deleteMany({ where: { id: { in: postIds } } });
+    });
+  },
+
+  async deleteAllDiscarded() {
+    const discardedPosts = await prisma.post.findMany({
+      where: { status: 'discarded' },
+      select: { id: true },
+    });
+    const postIds = discardedPosts.map((p: { id: string }) => p.id);
+    if (postIds.length === 0) return { count: 0 };
+    return prisma.$transaction(async (tx) => {
+      await tx.postReview.deleteMany({ where: { postId: { in: postIds } } });
+      return tx.post.deleteMany({ where: { id: { in: postIds } } });
+    });
+  },
+
   async findRecentByBotId(botId: string, limit = 10) {
     return prisma.post.findMany({
       where: {

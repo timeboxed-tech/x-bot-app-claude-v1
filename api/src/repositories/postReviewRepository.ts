@@ -21,6 +21,12 @@ export const postReviewRepository = {
     });
   },
 
+  async delete(id: string) {
+    return prisma.postReview.delete({
+      where: { id },
+    });
+  },
+
   async createMany(
     reviews: Array<{ postId: string; judgeId: string; rating: number; opinion: string }>,
   ) {

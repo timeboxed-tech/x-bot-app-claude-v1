@@ -9,12 +9,15 @@ const router = Router();
 router.use(authMiddleware);
 
 router.get('/', postController.list);
+router.delete('/discarded', postController.removeAllDiscarded);
 router.patch('/:id', postController.update);
+router.delete('/:id', postController.remove);
 router.post('/:id/tweak', postController.tweak);
 router.post('/:id/accept-tweak', postController.acceptTweak);
 
 // Review routes
 router.post('/:id/review', postReviewController.review);
 router.get('/:id/reviews', postReviewController.list);
+router.delete('/:id/reviews/:reviewId', postReviewController.remove);
 
 export default router;
