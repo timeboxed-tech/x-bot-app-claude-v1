@@ -1,7 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import { z } from 'zod';
-import { postReviewRepository } from '../repositories/postReviewRepository.js';
 import { postRepository } from '../repositories/postRepository.js';
+import { postReviewRepository } from '../repositories/postReviewRepository.js';
 import { botJudgeRepository } from '../repositories/botJudgeRepository.js';
 import { botRepository } from '../repositories/botRepository.js';
 import { botShareRepository } from '../repositories/botShareRepository.js';
@@ -57,10 +57,21 @@ export const postReviewController = {
         throw new ValidationError('No judges assigned to this bot. Assign judges first.');
       }
 
+      // Fetch recent posts for repetition context
+      const recentPosts = await postRepository.findRecentByBotId(post.botId, 10);
+      const recentContents = recentPosts
+        .filter((rp: { content: string }) => rp.content !== post.content)
+        .map((rp: { content: string }) => rp.content);
+
       // Call AI for each judge in parallel
       const reviewPromises = botJudges.map(
         async (bj: { judgeId: string; judge: { name: string; prompt: string } }) => {
-          const result = await reviewPostWithJudge(bj.judge.name, bj.judge.prompt, post.content);
+          const result = await reviewPostWithJudge(
+            bj.judge.name,
+            bj.judge.prompt,
+            post.content,
+            recentContents,
+          );
           return {
             postId: id,
             judgeId: bj.judgeId,

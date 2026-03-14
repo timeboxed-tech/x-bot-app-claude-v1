@@ -108,7 +108,9 @@ export const botController = {
 
       const posts = [];
       for (let i = 0; i < count; i++) {
-        const result = await generateTweet(bot.prompt, tipContents);
+        const recentPosts = await postRepository.findRecentByBotId(bot.id, 10);
+        const recentContents = recentPosts.map((p: { content: string }) => p.content);
+        const result = await generateTweet(bot.prompt, tipContents, recentContents);
         if (result.success) {
           const post = await postRepository.create({
             botId: bot.id,
