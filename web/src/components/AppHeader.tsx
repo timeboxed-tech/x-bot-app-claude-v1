@@ -4,7 +4,11 @@ import Typography from '@mui/material/Typography';
 import Button from '@mui/material/Button';
 import Box from '@mui/material/Box';
 import { Link } from '@tanstack/react-router';
+import Tooltip from '@mui/material/Tooltip';
 import { useAuth, useLogoutMutation } from '../hooks/useAuth';
+
+declare const __GIT_SHA__: string;
+declare const __GIT_DATE__: string;
 
 export default function AppHeader() {
   const { user } = useAuth();
@@ -21,9 +25,17 @@ export default function AppHeader() {
   return (
     <AppBar position="static">
       <Toolbar>
-        <Typography variant="h6" component="div" sx={{ mr: 3 }}>
+        <Typography variant="h6" component="div" sx={{ mr: 1 }}>
           X Bot Platform
         </Typography>
+        <Tooltip title={`${__GIT_SHA__} (${__GIT_DATE__})`}>
+          <Typography
+            variant="caption"
+            sx={{ mr: 2, opacity: 0.5, cursor: 'default', userSelect: 'none' }}
+          >
+            {__GIT_SHA__}
+          </Typography>
+        </Tooltip>
         {user && (
           <>
             <Box sx={{ display: 'flex', gap: 1, flexGrow: 1 }}>
