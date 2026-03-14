@@ -74,7 +74,11 @@ async function callClaudeWithMessages(
   throw new Error('Unexpected response format from Claude API');
 }
 
-export async function generateTweet(prompt: string, tips?: string[]): Promise<GenerateTweetResult> {
+export async function generateTweet(
+  prompt: string,
+  tips?: string[],
+  recentPosts?: string[],
+): Promise<GenerateTweetResult> {
   const client = getClient();
 
   if (!client) {
@@ -88,6 +92,9 @@ export async function generateTweet(prompt: string, tips?: string[]): Promise<Ge
   let systemPrompt = SYSTEM_PROMPT;
   if (tips && tips.length > 0) {
     systemPrompt += `\n\nRemember these tips from past feedback:\n${tips.map((t) => `- ${t}`).join('\n')}`;
+  }
+  if (recentPosts && recentPosts.length > 0) {
+    systemPrompt += `\n\nHere are recent posts for this account — make sure your new tweet is fresh and different, not repetitive:\n${recentPosts.map((p) => `- ${p}`).join('\n')}`;
   }
 
   // First attempt

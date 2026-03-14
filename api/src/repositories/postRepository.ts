@@ -140,4 +140,16 @@ export const postRepository = {
       },
     });
   },
+
+  async findRecentByBotId(botId: string, limit = 10) {
+    return prisma.post.findMany({
+      where: {
+        botId,
+        status: { in: ['draft', 'scheduled', 'published'] },
+      },
+      select: { content: true },
+      orderBy: { createdAt: 'desc' },
+      take: limit,
+    });
+  },
 };
