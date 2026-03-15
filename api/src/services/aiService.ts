@@ -39,7 +39,7 @@ async function callClaude(
   systemPrompt?: string,
 ): Promise<string> {
   const response = await client.messages.create({
-    model: 'claude-sonnet-4-6-20250627',
+    model: 'claude-sonnet-4-20250514',
     max_tokens: 300,
     system: systemPrompt ?? SYSTEM_PROMPT,
     messages: [{ role: 'user', content: prompt }],
@@ -60,7 +60,7 @@ async function callClaudeWithMessages(
   maxTokens = 300,
 ): Promise<string> {
   const response = await client.messages.create({
-    model: 'claude-sonnet-4-6-20250627',
+    model: 'claude-sonnet-4-20250514',
     max_tokens: maxTokens,
     system: systemPrompt,
     messages,
