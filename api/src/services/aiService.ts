@@ -51,14 +51,17 @@ function extractText(content: Anthropic.ContentBlock[]): string {
 
 async function callClaude(
   client: Anthropic,
-  prompt: string,
+  promptOrMessages: string | Array<{ role: 'user' | 'assistant'; content: string }>,
   systemPrompt: string,
 ): Promise<string> {
+  const messages = Array.isArray(promptOrMessages)
+    ? promptOrMessages
+    : [{ role: 'user' as const, content: promptOrMessages }];
   const response = await client.messages.create({
     model: 'claude-sonnet-4-6',
     max_tokens: 300,
     system: systemPrompt,
-    messages: [{ role: 'user', content: prompt }],
+    messages,
   });
 
   const text = extractText(response.content);
@@ -69,14 +72,17 @@ async function callClaude(
 
 async function callClaudeWithWebSearch(
   client: Anthropic,
-  prompt: string,
+  promptOrMessages: string | Array<{ role: 'user' | 'assistant'; content: string }>,
   systemPrompt: string,
 ): Promise<string> {
+  const messages = Array.isArray(promptOrMessages)
+    ? promptOrMessages
+    : [{ role: 'user' as const, content: promptOrMessages }];
   const response = await client.messages.create({
     model: 'claude-sonnet-4-6',
     max_tokens: 1024,
     system: systemPrompt,
-    messages: [{ role: 'user', content: prompt }],
+    messages,
     tools: [
       {
         type: 'web_search_20250305',
@@ -129,19 +135,29 @@ export async function generateTweet(
   }
 
   let systemPrompt = await getCachedPrompt('tweet_generation', FALLBACK_SYSTEM_PROMPT);
+  // Append the bot's main prompt to the system prompt
+  systemPrompt += `\n\n${prompt}`;
   if (tips && tips.length > 0) {
     systemPrompt += `\n\nRemember these tips from past feedback:\n${tips.map((t) => `- ${t}`).join('\n')}`;
   }
   if (recentPosts && recentPosts.length > 0) {
     systemPrompt += `\n\nHere are recent posts for this account — make sure your new tweet is fresh and different, not repetitive:\n${recentPosts.map((p) => `- ${p}`).join('\n')}`;
   }
+
+  // Build user messages: behaviour prompt first (if provided), then the generation request
+  const messages: Array<{ role: 'user' | 'assistant'; content: string }> = [];
   if (stylePrompt) {
-    systemPrompt += `\n\nWrite in this style: ${stylePrompt}`;
+    messages.push({ role: 'user', content: `Write in this style: ${stylePrompt}` });
+    messages.push({
+      role: 'assistant',
+      content: 'Understood, I will write in that style.',
+    });
   }
+  messages.push({ role: 'user', content: 'Generate a tweet.' });
 
   const callFn = useWebSearch
-    ? () => callClaudeWithWebSearch(client, prompt, systemPrompt)
-    : () => callClaude(client, prompt, systemPrompt);
+    ? () => callClaudeWithWebSearch(client, messages, systemPrompt)
+    : () => callClaude(client, messages, systemPrompt);
 
   try {
     const content = await callFn();
