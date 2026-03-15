@@ -28,4 +28,7 @@ export const queryKeys = {
   systemPrompts: {
     list: ['systemPrompts', 'list'] as const,
   },
+  jobConfigs: {
+    list: ['jobConfigs', 'list'] as const,
+  },
 } as const;

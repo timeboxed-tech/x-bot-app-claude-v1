@@ -77,6 +77,9 @@ export default function AppHeader() {
                     <MenuItem onClick={() => handleAdminNavigate('/system-prompts')}>
                       System Prompts
                     </MenuItem>
+                    <MenuItem onClick={() => handleAdminNavigate('/job-config')}>
+                      Job Config
+                    </MenuItem>
                   </Menu>
                 </>
               )}

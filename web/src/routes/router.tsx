@@ -17,6 +17,7 @@ import JobQueuePage from '../pages/JobQueuePage';
 import JudgesPage from '../pages/JudgesPage';
 import BotEditPage from '../pages/BotEditPage';
 import SystemPromptsPage from '../pages/SystemPromptsPage';
+import JobConfigPage from '../pages/JobConfigPage';
 
 async function checkAuth(): Promise<boolean> {
   try {
@@ -120,6 +121,18 @@ const systemPromptsRoute = createRoute({
   component: SystemPromptsPage,
 });
 
+const jobConfigRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/job-config',
+  beforeLoad: async () => {
+    const authenticated = await checkAuth();
+    if (!authenticated) {
+      throw redirect({ to: '/login' });
+    }
+  },
+  component: JobConfigPage,
+});
+
 const botEditRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/bots/$botId/edit',
@@ -155,6 +168,7 @@ const routeTree = rootRoute.addChildren([
   usersRoute,
   judgesRoute,
   systemPromptsRoute,
+  jobConfigRoute,
 ]);
 
 export function createAppRouter(_queryClient?: QueryClient) {

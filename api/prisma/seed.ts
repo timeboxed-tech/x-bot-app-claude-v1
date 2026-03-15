@@ -197,6 +197,25 @@ The actual revised tweet text here`,
     },
   });
 
+  // Seed job configs (upsert to avoid duplicates)
+  await prisma.jobConfig.upsert({
+    where: { jobType: 'draft' },
+    update: {},
+    create: { jobType: 'draft', intervalMs: 120000, enabled: true },
+  });
+
+  await prisma.jobConfig.upsert({
+    where: { jobType: 'publish' },
+    update: {},
+    create: { jobType: 'publish', intervalMs: 60000, enabled: true },
+  });
+
+  await prisma.jobConfig.upsert({
+    where: { jobType: 'cleanup' },
+    update: {},
+    create: { jobType: 'cleanup', intervalMs: 10800000, enabled: true },
+  });
+
   console.log('Seed data created successfully:');
   console.log(`  Users: ${user1.email}, ${user2.email}`);
   console.log(`  Bots: ${bot1.xAccountHandle}, ${bot2.xAccountHandle}`);

@@ -17,6 +17,7 @@ import statsRoutes from './routes/statsRoutes.js';
 import jobQueueRoutes from './routes/jobQueueRoutes.js';
 import judgeRoutes from './routes/judgeRoutes.js';
 import systemPromptRoutes from './routes/systemPromptRoutes.js';
+import jobConfigRoutes from './routes/jobConfigRoutes.js';
 import * as jobDispatcher from './worker/jobDispatcher.js';
 import * as staleLockRecovery from './worker/staleLockRecovery.js';
 
@@ -46,6 +47,7 @@ app.use('/api/users', userRoutes);
 app.use('/api/jobs', jobQueueRoutes);
 app.use('/api/judges', judgeRoutes);
 app.use('/api/system-prompts', systemPromptRoutes);
+app.use('/api/job-configs', jobConfigRoutes);
 
 // 404 handler for unknown routes
 app.use(notFoundHandler);

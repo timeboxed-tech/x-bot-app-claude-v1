@@ -1,5 +1,6 @@
 import { v4 as uuidv4 } from 'uuid';
 import { jobRepository } from '../repositories/jobRepository.js';
+import { jobConfigRepository } from '../repositories/jobConfigRepository.js';
 import { handleDraftJob } from './draftHandler.js';
 import { handlePublishJob } from './publishHandler.js';
 import { handleCleanupJob } from './cleanupHandler.js';
@@ -7,7 +8,7 @@ import { log } from './activityLog.js';
 
 const POLL_INTERVAL_MS = parseInt(process.env.WORKER_POLL_INTERVAL_MS || '30000', 10);
 
-// Job type intervals (how often each job type runs)
+// Hardcoded fallback intervals (used when DB lookup fails)
 const DRAFT_INTERVAL_MS = parseInt(process.env.DRAFT_JOB_INTERVAL_MS || '120000', 10); // 2 min
 const PUBLISH_INTERVAL_MS = parseInt(process.env.PUBLISH_JOB_INTERVAL_MS || '60000', 10); // 1 min
 const CLEANUP_INTERVAL_MS = parseInt(
@@ -15,11 +16,44 @@ const CLEANUP_INTERVAL_MS = parseInt(
   10,
 ); // 3 hours
 
-const JOB_INTERVALS: Record<string, number> = {
+const FALLBACK_INTERVALS: Record<string, number> = {
   draft: DRAFT_INTERVAL_MS,
   publish: PUBLISH_INTERVAL_MS,
   cleanup: CLEANUP_INTERVAL_MS,
 };
+
+// Simple in-memory cache with 5-minute TTL
+const jobConfigCache = new Map<
+  string,
+  { intervalMs: number; enabled: boolean; expiresAt: number }
+>();
+const CACHE_TTL_MS = 5 * 60 * 1000;
+
+async function getCachedJobConfig(
+  jobType: string,
+): Promise<{ intervalMs: number; enabled: boolean }> {
+  const cached = jobConfigCache.get(jobType);
+  if (cached && cached.expiresAt > Date.now()) {
+    return { intervalMs: cached.intervalMs, enabled: cached.enabled };
+  }
+
+  try {
+    const config = await jobConfigRepository.findByJobType(jobType);
+    if (config) {
+      jobConfigCache.set(jobType, {
+        intervalMs: config.intervalMs,
+        enabled: config.enabled,
+        expiresAt: Date.now() + CACHE_TTL_MS,
+      });
+      return { intervalMs: config.intervalMs, enabled: config.enabled };
+    }
+  } catch {
+    // Fall back to hardcoded defaults on DB error
+  }
+
+  const fallbackInterval = FALLBACK_INTERVALS[jobType] ?? 60000;
+  return { intervalMs: fallbackInterval, enabled: true };
+}
 
 const JOB_HANDLERS: Record<string, (jobId: string) => Promise<void>> = {
   draft: handleDraftJob,
@@ -46,12 +80,17 @@ async function ensureInitialJobs(): Promise<void> {
 
 /**
  * Schedules the next job of the given type after completion.
+ * Fetches interval from DB (with cache), skips if job type is disabled.
  */
 async function scheduleNextJob(type: string): Promise<void> {
-  const interval = JOB_INTERVALS[type];
-  if (!interval) return;
+  const config = await getCachedJobConfig(type);
 
-  const nextScheduledAt = new Date(Date.now() + interval);
+  if (!config.enabled) {
+    log('dispatcher', `Job type ${type} is disabled, skipping scheduling`);
+    return;
+  }
+
+  const nextScheduledAt = new Date(Date.now() + config.intervalMs);
   await jobRepository.create({
     type,
     scheduledAt: nextScheduledAt,
