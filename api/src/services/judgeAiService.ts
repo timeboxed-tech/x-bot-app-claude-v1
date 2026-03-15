@@ -39,7 +39,7 @@ export async function reviewPostWithJudge(
   const systemPrompt = buildSystemPrompt(judgeName, judgePrompt);
 
   const response = await client.messages.create({
-    model: 'claude-sonnet-4-6',
+    model: 'claude-sonnet-4-5-20241022',
     max_tokens: 300,
     system: systemPrompt,
     messages: [
