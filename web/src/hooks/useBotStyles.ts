@@ -7,6 +7,7 @@ export type BotStyle = {
   botId: string;
   title: string;
   content: string;
+  knowledgeSource: string;
   active: boolean;
   createdAt: string;
 };
@@ -34,14 +35,17 @@ export function useCreateBotStyle() {
       botId,
       content,
       title,
+      knowledgeSource,
     }: {
       botId: string;
       content: string;
       title?: string;
+      knowledgeSource?: string;
     }) => {
       const response = await apiClient.post<{ data: BotStyle }>(`/bots/${botId}/styles`, {
         content,
         title,
+        knowledgeSource,
       });
       return response.data.data;
     },
@@ -62,15 +66,17 @@ export function useUpdateBotStyle() {
       styleId,
       content,
       title,
+      knowledgeSource,
     }: {
       botId: string;
       styleId: string;
       content: string;
       title?: string;
+      knowledgeSource?: string;
     }) => {
       const response = await apiClient.patch<{ data: BotStyle }>(
         `/bots/${botId}/styles/${styleId}`,
-        { content, title },
+        { content, title, knowledgeSource },
       );
       return response.data.data;
     },

@@ -16,6 +16,8 @@ const createBotSchema = z.object({
   minIntervalHours: z.number().int().min(1).max(15).default(2),
   preferredHoursStart: z.number().int().min(0).max(23).default(0),
   preferredHoursEnd: z.number().int().min(1).max(24).default(24),
+  knowledgeSource: z.enum(['ai', 'ai+web']).default('ai'),
+  judgeKnowledgeSource: z.enum(['ai', 'ai+web']).default('ai'),
 });
 
 const updateBotSchema = z.object({
@@ -25,6 +27,8 @@ const updateBotSchema = z.object({
   minIntervalHours: z.number().int().min(1).max(15).optional(),
   preferredHoursStart: z.number().int().min(0).max(23).optional(),
   preferredHoursEnd: z.number().int().min(1).max(24).optional(),
+  knowledgeSource: z.enum(['ai', 'ai+web']).optional(),
+  judgeKnowledgeSource: z.enum(['ai', 'ai+web']).optional(),
   active: z.boolean().optional(),
   xAccessToken: z.string().min(1).optional(),
   xAccessSecret: z.string().min(1).optional(),
@@ -115,11 +119,16 @@ export const botController = {
         const recentContents = recentPosts.map((p: { content: string }) => p.content);
         const selectedStyle =
           styles.length > 0 ? styles[Math.floor(Math.random() * styles.length)] : null;
+        const effectiveSource =
+          selectedStyle?.knowledgeSource && selectedStyle.knowledgeSource !== 'default'
+            ? selectedStyle.knowledgeSource
+            : bot.knowledgeSource;
         const result = await generateTweet(
           bot.prompt,
           tipContents,
           recentContents,
           selectedStyle?.content,
+          effectiveSource === 'ai+web',
         );
         if (result.success) {
           const post = await postRepository.create({

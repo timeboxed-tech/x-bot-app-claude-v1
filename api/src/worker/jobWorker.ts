@@ -144,11 +144,16 @@ async function processJobs(): Promise<void> {
         const selectedStyle =
           styles.length > 0 ? styles[Math.floor(Math.random() * styles.length)] : null;
 
+        const effectiveSource =
+          selectedStyle?.knowledgeSource && selectedStyle.knowledgeSource !== 'default'
+            ? selectedStyle.knowledgeSource
+            : bot.knowledgeSource;
         const result = await generateTweet(
           bot.prompt,
           tips.map((t: { content: string }) => t.content),
           recentPosts.map((p: { content: string }) => p.content),
           selectedStyle?.content,
+          effectiveSource === 'ai+web',
         );
 
         if (!result.success) {

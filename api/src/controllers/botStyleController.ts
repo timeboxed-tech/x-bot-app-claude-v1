@@ -15,11 +15,13 @@ const styleIdParamSchema = z.object({
 const createStyleSchema = z.object({
   content: z.string().min(1, 'Content must not be empty'),
   title: z.string().optional(),
+  knowledgeSource: z.enum(['default', 'ai', 'ai+web']).default('default'),
 });
 
 const updateStyleSchema = z.object({
   content: z.string().min(1, 'Content must not be empty'),
   title: z.string().optional(),
+  knowledgeSource: z.enum(['default', 'ai', 'ai+web']).optional(),
 });
 
 const toggleActiveSchema = z.object({
@@ -45,8 +47,8 @@ export const botStyleController = {
     try {
       const userId = req.userId!;
       const { id } = botIdParamSchema.parse(req.params);
-      const { content, title } = createStyleSchema.parse(req.body);
-      const style = await botStyleService.create(id, userId, content, title);
+      const { content, title, knowledgeSource } = createStyleSchema.parse(req.body);
+      const style = await botStyleService.create(id, userId, content, title, knowledgeSource);
 
       res.status(201).json({
         data: style,
@@ -60,8 +62,15 @@ export const botStyleController = {
     try {
       const userId = req.userId!;
       const { id, styleId } = styleIdParamSchema.parse(req.params);
-      const { content, title } = updateStyleSchema.parse(req.body);
-      const style = await botStyleService.update(id, styleId, userId, content, title);
+      const { content, title, knowledgeSource } = updateStyleSchema.parse(req.body);
+      const style = await botStyleService.update(
+        id,
+        styleId,
+        userId,
+        content,
+        title,
+        knowledgeSource,
+      );
 
       res.status(200).json({
         data: style,

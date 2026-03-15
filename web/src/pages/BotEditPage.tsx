@@ -14,6 +14,10 @@ import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import DeleteIcon from '@mui/icons-material/Delete';
 import SaveIcon from '@mui/icons-material/Save';
 import AddIcon from '@mui/icons-material/Add';
+import FormControl from '@mui/material/FormControl';
+import InputLabel from '@mui/material/InputLabel';
+import MenuItem from '@mui/material/MenuItem';
+import Select from '@mui/material/Select';
 import AppHeader from '../components/AppHeader';
 import BotSetupForm from '../components/BotSetupForm';
 import { useBot, useUpdateBot } from '../hooks/useBot';
@@ -40,6 +44,9 @@ export default function BotEditPage() {
   const [newStyleTitle, setNewStyleTitle] = useState('');
   const [editingStyles, setEditingStyles] = useState<Record<string, string>>({});
   const [editingTitles, setEditingTitles] = useState<Record<string, string>>({});
+  const [editingKnowledgeSources, setEditingKnowledgeSources] = useState<Record<string, string>>(
+    {},
+  );
   const [activeTab, setActiveTab] = useState(0);
 
   const bot = bots.find((b) => b.id === botId);
@@ -112,6 +119,8 @@ export default function BotEditPage() {
               minIntervalHours: bot.minIntervalHours,
               preferredHoursStart: bot.preferredHoursStart,
               preferredHoursEnd: bot.preferredHoursEnd,
+              knowledgeSource: (bot.knowledgeSource as 'ai' | 'ai+web') ?? 'ai',
+              judgeKnowledgeSource: (bot.judgeKnowledgeSource as 'ai' | 'ai+web') ?? 'ai',
             }}
             onSubmit={(values) => {
               updateBot.mutate(
@@ -184,7 +193,9 @@ export default function BotEditPage() {
                 {styles?.map((style, index) => {
                   if (index !== activeTab) return null;
                   const isEditing =
-                    editingStyles[style.id] !== undefined || editingTitles[style.id] !== undefined;
+                    editingStyles[style.id] !== undefined ||
+                    editingTitles[style.id] !== undefined ||
+                    editingKnowledgeSources[style.id] !== undefined;
                   return (
                     <Box key={style.id}>
                       <TextField
@@ -228,6 +239,27 @@ export default function BotEditPage() {
                         }}
                         sx={{ mb: 2 }}
                       />
+                      <FormControl fullWidth size="small" sx={{ mb: 2 }}>
+                        <InputLabel>Knowledge Source</InputLabel>
+                        <Select
+                          value={
+                            editingKnowledgeSources[style.id] !== undefined
+                              ? editingKnowledgeSources[style.id]
+                              : style.knowledgeSource
+                          }
+                          label="Knowledge Source"
+                          onChange={(e) =>
+                            setEditingKnowledgeSources((prev) => ({
+                              ...prev,
+                              [style.id]: e.target.value,
+                            }))
+                          }
+                        >
+                          <MenuItem value="default">Use Bot Default</MenuItem>
+                          <MenuItem value="ai">AI Only</MenuItem>
+                          <MenuItem value="ai+web">AI + Web Search</MenuItem>
+                        </Select>
+                      </FormControl>
                       <Box
                         sx={{
                           display: 'flex',
@@ -260,6 +292,8 @@ export default function BotEditPage() {
                               onClick={() => {
                                 const content = editingStyles[style.id] ?? style.content;
                                 const title = editingTitles[style.id] ?? style.title;
+                                const ks =
+                                  editingKnowledgeSources[style.id] ?? style.knowledgeSource;
                                 if (content && content.trim()) {
                                   updateStyle.mutate(
                                     {
@@ -267,6 +301,7 @@ export default function BotEditPage() {
                                       styleId: style.id,
                                       content: content.trim(),
                                       title: title?.trim(),
+                                      knowledgeSource: ks,
                                     },
                                     {
                                       onSuccess: () => {
@@ -276,6 +311,11 @@ export default function BotEditPage() {
                                           return next;
                                         });
                                         setEditingTitles((prev) => {
+                                          const next = { ...prev };
+                                          delete next[style.id];
+                                          return next;
+                                        });
+                                        setEditingKnowledgeSources((prev) => {
                                           const next = { ...prev };
                                           delete next[style.id];
                                           return next;

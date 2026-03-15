@@ -30,6 +30,8 @@ const botConfigSchema = z.object({
   minIntervalHours: z.number().int().min(1).max(15),
   preferredHoursStart: z.number().int().min(0).max(23),
   preferredHoursEnd: z.number().int().min(1).max(24),
+  knowledgeSource: z.enum(['ai', 'ai+web']),
+  judgeKnowledgeSource: z.enum(['ai', 'ai+web']),
 });
 
 type BotConfigValues = z.infer<typeof botConfigSchema>;
@@ -49,6 +51,8 @@ const defaultValues: BotConfigValues = {
   minIntervalHours: 2,
   preferredHoursStart: 9,
   preferredHoursEnd: 18,
+  knowledgeSource: 'ai',
+  judgeKnowledgeSource: 'ai',
 };
 
 export default function BotSetupForm({
@@ -205,6 +209,47 @@ export default function BotSetupForm({
             </MenuItem>
           ))}
         </Select>
+      </FormControl>
+
+      <FormControl fullWidth>
+        <InputLabel>Knowledge Source</InputLabel>
+        <Select
+          value={values.knowledgeSource}
+          label="Knowledge Source"
+          onChange={(e) =>
+            setValues((v) => ({
+              ...v,
+              knowledgeSource: e.target.value as 'ai' | 'ai+web',
+            }))
+          }
+        >
+          <MenuItem value="ai">AI Only</MenuItem>
+          <MenuItem value="ai+web">AI + Web Search</MenuItem>
+        </Select>
+        <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5 }}>
+          Web search allows the AI to look up current information. Additional cost applies.
+        </Typography>
+      </FormControl>
+
+      <FormControl fullWidth>
+        <InputLabel>Judge Knowledge Source</InputLabel>
+        <Select
+          value={values.judgeKnowledgeSource}
+          label="Judge Knowledge Source"
+          onChange={(e) =>
+            setValues((v) => ({
+              ...v,
+              judgeKnowledgeSource: e.target.value as 'ai' | 'ai+web',
+            }))
+          }
+        >
+          <MenuItem value="ai">AI Only</MenuItem>
+          <MenuItem value="ai+web">AI + Web Search</MenuItem>
+        </Select>
+        <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5 }}>
+          When enabled, judges can verify facts and timeliness via web search. Additional cost
+          applies.
+        </Typography>
       </FormControl>
 
       {Object.keys(errors).length > 0 && (

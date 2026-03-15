@@ -69,7 +69,13 @@ async function callClaudeWithWebSearch(
     max_tokens: 1024,
     system: systemPrompt,
     messages: [{ role: 'user', content: prompt }],
-    tools: [{ type: 'web_search_20250305', name: 'web_search', max_uses: 3 }],
+    tools: [
+      {
+        type: 'web_search_20250305',
+        name: 'web_search',
+        max_uses: 3,
+      } as Anthropic.Messages.WebSearchTool20250305,
+    ],
   });
 
   const text = extractText(response.content);
@@ -102,6 +108,7 @@ export async function generateTweet(
   tips?: string[],
   recentPosts?: string[],
   stylePrompt?: string,
+  useWebSearch: boolean = true,
 ): Promise<GenerateTweetResult> {
   const client = getClient();
 
@@ -124,14 +131,17 @@ export async function generateTweet(
     systemPrompt += `\n\nWrite in this style: ${stylePrompt}`;
   }
 
-  // Use web search so Claude can look up current information
+  const callFn = useWebSearch
+    ? () => callClaudeWithWebSearch(client, prompt, systemPrompt)
+    : () => callClaude(client, prompt, systemPrompt);
+
   try {
-    const content = await callClaudeWithWebSearch(client, prompt, systemPrompt);
+    const content = await callFn();
     return { content, success: true };
   } catch {
     // Retry once on failure
     try {
-      const content = await callClaudeWithWebSearch(client, prompt, systemPrompt);
+      const content = await callFn();
       return { content, success: true };
     } catch (retryErr: unknown) {
       const message = retryErr instanceof Error ? retryErr.message : String(retryErr);

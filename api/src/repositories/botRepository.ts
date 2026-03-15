@@ -11,6 +11,8 @@ type CreateBotInput = {
   minIntervalHours: number;
   preferredHoursStart: number;
   preferredHoursEnd: number;
+  knowledgeSource: string;
+  judgeKnowledgeSource: string;
   active: boolean;
 };
 
@@ -33,6 +35,8 @@ const botSelect = {
   minIntervalHours: true,
   preferredHoursStart: true,
   preferredHoursEnd: true,
+  knowledgeSource: true,
+  judgeKnowledgeSource: true,
   active: true,
   createdAt: true,
 };

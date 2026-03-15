@@ -68,6 +68,10 @@ export const postReviewController = {
         .filter((rp: { content: string }) => rp.content !== post.content)
         .map((rp: { content: string }) => rp.content);
 
+      // Resolve judge knowledge source from bot
+      const bot = await botRepository.findById(post.botId);
+      const judgeUseWebSearch = bot?.judgeKnowledgeSource === 'ai+web';
+
       // Call AI for each judge in parallel
       const reviewPromises = botJudges.map(
         async (bj: { judgeId: string; judge: { name: string; prompt: string } }) => {
@@ -76,6 +80,7 @@ export const postReviewController = {
             bj.judge.prompt,
             post.content,
             recentContents,
+            judgeUseWebSearch,
           );
           return {
             postId: id,

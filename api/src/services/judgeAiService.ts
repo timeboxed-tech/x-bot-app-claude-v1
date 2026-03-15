@@ -22,11 +22,20 @@ function parseRating(response: string): { opinion: string; rating: number } {
   return { opinion, rating: clampedRating };
 }
 
+function extractText(content: Anthropic.ContentBlock[]): string {
+  return content
+    .filter((block): block is Anthropic.TextBlock => block.type === 'text')
+    .map((block) => block.text)
+    .join('')
+    .trim();
+}
+
 export async function reviewPostWithJudge(
   judgeName: string,
   judgePrompt: string,
   postContent: string,
   recentPosts?: string[],
+  useWebSearch: boolean = false,
 ): Promise<{ opinion: string; rating: number }> {
   const client = getClient();
   if (!client) {
@@ -38,25 +47,33 @@ export async function reviewPostWithJudge(
 
   const systemPrompt = buildSystemPrompt(judgeName, judgePrompt);
 
+  const userContent =
+    recentPosts && recentPosts.length > 0
+      ? `Today's date: ${new Date().toISOString().split('T')[0]}\n\nTweet to review:\n${postContent}\n\nRecent posts from this account for context (consider repetition):\n${recentPosts.map((p) => '- ' + p).join('\n')}`
+      : `Today's date: ${new Date().toISOString().split('T')[0]}\n\nTweet to review:\n${postContent}`;
+
   const response = await client.messages.create({
     model: 'claude-sonnet-4-5',
-    max_tokens: 300,
+    max_tokens: useWebSearch ? 1024 : 300,
     system: systemPrompt,
-    messages: [
-      {
-        role: 'user',
-        content:
-          recentPosts && recentPosts.length > 0
-            ? `Today's date: ${new Date().toISOString().split('T')[0]}\n\nTweet to review:\n${postContent}\n\nRecent posts from this account for context (consider repetition):\n${recentPosts.map((p) => '- ' + p).join('\n')}`
-            : `Today's date: ${new Date().toISOString().split('T')[0]}\n\nTweet to review:\n${postContent}`,
-      },
-    ],
+    messages: [{ role: 'user', content: userContent }],
+    ...(useWebSearch
+      ? {
+          tools: [
+            {
+              type: 'web_search_20250305',
+              name: 'web_search',
+              max_uses: 3,
+            } as Anthropic.Messages.WebSearchTool20250305,
+          ],
+        }
+      : {}),
   });
 
-  const block = response.content[0];
-  if (block.type !== 'text') {
+  const text = extractText(response.content);
+  if (!text) {
     throw new Error('Unexpected response format from Claude API');
   }
 
-  return parseRating(block.text.trim());
+  return parseRating(text);
 }

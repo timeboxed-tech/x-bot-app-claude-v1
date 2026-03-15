@@ -33,6 +33,8 @@ model Bot {
   minIntervalHours    Int      @default(2)
   preferredHoursStart Int      @default(0)
   preferredHoursEnd   Int      @default(24)
+  knowledgeSource      String   @default("ai")
+  judgeKnowledgeSource String   @default("ai")
   active              Boolean  @default(true)
   createdAt           DateTime @default(now())
 
@@ -94,9 +96,10 @@ model BotStyle {
   id        String   @id @default(uuid()) @db.Uuid
   botId     String   @db.Uuid
   title     String   @default("")
-  content   String   @db.Text
-  active    Boolean  @default(true)
-  createdAt DateTime @default(now())
+  content         String   @db.Text
+  knowledgeSource String   @default("default")
+  active          Boolean  @default(true)
+  createdAt       DateTime @default(now())
 
   bot Bot @relation(fields: [botId], references: [id])
 }

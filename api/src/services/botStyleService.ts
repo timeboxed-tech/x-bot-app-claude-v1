@@ -24,7 +24,13 @@ export const botStyleService = {
     return botStyleRepository.findByBotId(botId);
   },
 
-  async create(botId: string, userId: string, content: string, title?: string) {
+  async create(
+    botId: string,
+    userId: string,
+    content: string,
+    title?: string,
+    knowledgeSource?: string,
+  ) {
     await assertBotAccess(botId, userId);
 
     const count = await botStyleRepository.countByBotId(botId);
@@ -32,10 +38,17 @@ export const botStyleService = {
       throw new ValidationError(`Maximum of ${MAX_STYLES_PER_BOT} styles per bot`);
     }
 
-    return botStyleRepository.create(botId, content, undefined, title);
+    return botStyleRepository.create(botId, content, undefined, title, knowledgeSource);
   },
 
-  async update(botId: string, styleId: string, userId: string, content: string, title?: string) {
+  async update(
+    botId: string,
+    styleId: string,
+    userId: string,
+    content: string,
+    title?: string,
+    knowledgeSource?: string,
+  ) {
     await assertBotAccess(botId, userId);
 
     const style = await botStyleRepository.findById(styleId);
@@ -43,7 +56,7 @@ export const botStyleService = {
       throw new NotFoundError('Style not found');
     }
 
-    return botStyleRepository.update(styleId, content, title);
+    return botStyleRepository.update(styleId, content, title, knowledgeSource);
   },
 
   async remove(botId: string, styleId: string, userId: string) {
