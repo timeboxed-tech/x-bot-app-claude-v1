@@ -3,7 +3,7 @@ import { postRepository } from '../repositories/postRepository.js';
 import { botTipRepository } from '../repositories/botTipRepository.js';
 import { botBehaviourRepository } from '../repositories/botBehaviourRepository.js';
 import { selectWeightedBehaviour } from '../controllers/botController.js';
-import { generateTweet } from '../services/aiService.js';
+import { generateTweet, OUTCOME_PROMPT_KEY_MAP } from '../services/aiService.js';
 import { checkAndFlagPost } from '../services/urlValidationService.js';
 import { log } from './activityLog.js';
 
@@ -43,12 +43,17 @@ export async function handleDraftJob(jobId: string): Promise<void> {
           ? selectedBehaviour.knowledgeSource
           : bot.knowledgeSource;
 
+      const outcomePromptKey = selectedBehaviour?.outcome
+        ? (OUTCOME_PROMPT_KEY_MAP[selectedBehaviour.outcome] ?? 'tweet_generation')
+        : 'tweet_generation';
+
       const result = await generateTweet(
         bot.prompt,
         tips.map((t: { content: string }) => t.content),
         recentPosts.map((p: { content: string }) => p.content),
         selectedBehaviour?.content,
         effectiveSource === 'ai+web',
+        outcomePromptKey,
       );
 
       if (!result.success) {
@@ -68,7 +73,13 @@ export async function handleDraftJob(jobId: string): Promise<void> {
         scheduledAt: null,
         behaviourPrompt: selectedBehaviour?.content ?? null,
         behaviourTitle: selectedBehaviour?.title || null,
-        generationPrompt: result.prompt ? JSON.stringify(result.prompt) : null,
+        generationPrompt: result.prompt
+          ? JSON.stringify({
+              outcome: selectedBehaviour?.outcome ?? 'write_post',
+              systemPromptKey: outcomePromptKey,
+              messages: result.prompt,
+            })
+          : null,
       });
 
       await checkAndFlagPost(post.id);

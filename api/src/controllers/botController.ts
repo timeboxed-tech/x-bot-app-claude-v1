@@ -1,7 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import { z } from 'zod';
 import { botService } from '../services/botService.js';
-import { generateTweet } from '../services/aiService.js';
+import { generateTweet, OUTCOME_PROMPT_KEY_MAP } from '../services/aiService.js';
 import { postRepository } from '../repositories/postRepository.js';
 import { botTipRepository } from '../repositories/botTipRepository.js';
 import { botBehaviourRepository } from '../repositories/botBehaviourRepository.js';
@@ -136,12 +136,16 @@ export const botController = {
           selectedBehaviour?.knowledgeSource && selectedBehaviour.knowledgeSource !== 'default'
             ? selectedBehaviour.knowledgeSource
             : bot.knowledgeSource;
+        const outcomePromptKey = selectedBehaviour?.outcome
+          ? (OUTCOME_PROMPT_KEY_MAP[selectedBehaviour.outcome] ?? 'tweet_generation')
+          : 'tweet_generation';
         const result = await generateTweet(
           bot.prompt,
           tipContents,
           recentContents,
           selectedBehaviour?.content,
           effectiveSource === 'ai+web',
+          outcomePromptKey,
         );
         if (result.success) {
           const post = await postRepository.create({
@@ -150,7 +154,13 @@ export const botController = {
             status: 'draft',
             behaviourPrompt: selectedBehaviour?.content ?? null,
             behaviourTitle: selectedBehaviour?.title || null,
-            generationPrompt: result.prompt ? JSON.stringify(result.prompt) : null,
+            generationPrompt: result.prompt
+              ? JSON.stringify({
+                  outcome: selectedBehaviour?.outcome ?? 'write_post',
+                  systemPromptKey: outcomePromptKey,
+                  messages: result.prompt,
+                })
+              : null,
           });
           // Fire-and-forget URL validation — don't block the response
           checkAndFlagPost(post.id).catch(console.error);

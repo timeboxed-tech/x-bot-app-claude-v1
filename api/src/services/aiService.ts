@@ -123,12 +123,21 @@ async function callClaudeWithMessages(
   throw new Error('Unexpected response format from Claude API');
 }
 
+/** Maps behaviour outcomes to the corresponding system prompt key in the DB. */
+export const OUTCOME_PROMPT_KEY_MAP: Record<string, string> = {
+  write_post: 'tweet_generation',
+  reply_to_post: 'reply_generation',
+  like_post: 'like_evaluation',
+  follow_account: 'follow_evaluation',
+};
+
 export async function generateTweet(
   prompt: string,
   tips?: string[],
   recentPosts?: string[],
   stylePrompt?: string,
   useWebSearch: boolean = true,
+  systemPromptKey: string = 'tweet_generation',
 ): Promise<GenerateTweetResult> {
   const client = getClient();
 
@@ -140,7 +149,8 @@ export async function generateTweet(
     };
   }
 
-  let systemPrompt = await getCachedPrompt('tweet_generation', FALLBACK_SYSTEM_PROMPT);
+  const fallback = DEFAULT_SYSTEM_PROMPTS[systemPromptKey] ?? FALLBACK_SYSTEM_PROMPT;
+  let systemPrompt = await getCachedPrompt(systemPromptKey, fallback);
   // Append the bot's main prompt to the system prompt
   systemPrompt += `\n\n${prompt}`;
   if (tips && tips.length > 0) {
