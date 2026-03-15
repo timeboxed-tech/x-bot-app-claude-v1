@@ -25,4 +25,7 @@ export const queryKeys = {
   judges: {
     list: ['judges', 'list'] as const,
   },
+  systemPrompts: {
+    list: ['systemPrompts', 'list'] as const,
+  },
 } as const;

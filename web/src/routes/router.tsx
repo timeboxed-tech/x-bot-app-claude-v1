@@ -16,6 +16,7 @@ import UsersPage from '../pages/UsersPage';
 import JobQueuePage from '../pages/JobQueuePage';
 import JudgesPage from '../pages/JudgesPage';
 import BotEditPage from '../pages/BotEditPage';
+import SystemPromptsPage from '../pages/SystemPromptsPage';
 
 async function checkAuth(): Promise<boolean> {
   try {
@@ -107,6 +108,18 @@ const judgesRoute = createRoute({
   component: JudgesPage,
 });
 
+const systemPromptsRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/system-prompts',
+  beforeLoad: async () => {
+    const authenticated = await checkAuth();
+    if (!authenticated) {
+      throw redirect({ to: '/login' });
+    }
+  },
+  component: SystemPromptsPage,
+});
+
 const botEditRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/bots/$botId/edit',
@@ -141,6 +154,7 @@ const routeTree = rootRoute.addChildren([
   jobsRoute,
   usersRoute,
   judgesRoute,
+  systemPromptsRoute,
 ]);
 
 export function createAppRouter(_queryClient?: QueryClient) {

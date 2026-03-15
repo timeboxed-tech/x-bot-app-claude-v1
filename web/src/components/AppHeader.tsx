@@ -1,14 +1,21 @@
+import { useState } from 'react';
 import AppBar from '@mui/material/AppBar';
 import Toolbar from '@mui/material/Toolbar';
 import Typography from '@mui/material/Typography';
 import Button from '@mui/material/Button';
 import Box from '@mui/material/Box';
-import { Link } from '@tanstack/react-router';
+import Menu from '@mui/material/Menu';
+import MenuItem from '@mui/material/MenuItem';
+import { Link, useNavigate } from '@tanstack/react-router';
 import { useAuth, useLogoutMutation } from '../hooks/useAuth';
 
 export default function AppHeader() {
   const { user } = useAuth();
   const logoutMutation = useLogoutMutation();
+  const navigate = useNavigate();
+
+  const [adminAnchorEl, setAdminAnchorEl] = useState<null | HTMLElement>(null);
+  const adminMenuOpen = Boolean(adminAnchorEl);
 
   const handleLogout = () => {
     logoutMutation.mutate(undefined, {
@@ -16,6 +23,19 @@ export default function AppHeader() {
         window.location.href = '/login';
       },
     });
+  };
+
+  const handleAdminMenuOpen = (event: React.MouseEvent<HTMLButtonElement>) => {
+    setAdminAnchorEl(event.currentTarget);
+  };
+
+  const handleAdminMenuClose = () => {
+    setAdminAnchorEl(null);
+  };
+
+  const handleAdminNavigate = (path: string) => {
+    handleAdminMenuClose();
+    void navigate({ to: path });
   };
 
   return (
@@ -36,13 +56,23 @@ export default function AppHeader() {
               <Button color="inherit" component={Link} to="/jobs">
                 Jobs
               </Button>
-              <Button color="inherit" component={Link} to="/users">
-                Users
-              </Button>
               {user.isAdmin && (
-                <Button color="inherit" component={Link} to="/judges">
-                  Judges
-                </Button>
+                <>
+                  <Button color="inherit" onClick={handleAdminMenuOpen}>
+                    Admin
+                  </Button>
+                  <Menu
+                    anchorEl={adminAnchorEl}
+                    open={adminMenuOpen}
+                    onClose={handleAdminMenuClose}
+                  >
+                    <MenuItem onClick={() => handleAdminNavigate('/users')}>Users</MenuItem>
+                    <MenuItem onClick={() => handleAdminNavigate('/judges')}>Judges</MenuItem>
+                    <MenuItem onClick={() => handleAdminNavigate('/system-prompts')}>
+                      System Prompts
+                    </MenuItem>
+                  </Menu>
+                </>
               )}
             </Box>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>

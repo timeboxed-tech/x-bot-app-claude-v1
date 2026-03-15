@@ -24,6 +24,7 @@ import Switch from '@mui/material/Switch';
 import TextField from '@mui/material/TextField';
 import Typography from '@mui/material/Typography';
 import CircularProgress from '@mui/material/CircularProgress';
+import Grid from '@mui/material/Grid';
 import DeleteIcon from '@mui/icons-material/Delete';
 import EditIcon from '@mui/icons-material/Edit';
 import CheckIcon from '@mui/icons-material/Check';
@@ -45,6 +46,7 @@ import {
 import { useJudges, useBotJudges, useAssignJudge, useRemoveJudge } from '../hooks/useJudges';
 import { useAuth } from '../hooks/useAuth';
 import { usePosts } from '../hooks/usePosts';
+import { useStats } from '../hooks/useStats';
 import { apiClient } from '../lib/apiClient';
 import { useNavigate } from '@tanstack/react-router';
 
@@ -93,6 +95,8 @@ export default function DashboardPage() {
   const { data: botJudges } = useBotJudges(bot?.id);
   const assignJudge = useAssignJudge();
   const removeJudge = useRemoveJudge();
+
+  const { data: statsData } = useStats(bot?.id);
 
   const { data: recentPostsData, isLoading: recentPostsLoading } = usePosts('published', 1, 10);
   const recentPosts = recentPostsData?.data ?? [];
@@ -307,6 +311,142 @@ export default function DashboardPage() {
           </CardContent>
         </Card>
 
+        {/* Quick Actions */}
+        <Typography variant="h6" gutterBottom>
+          Quick Actions
+        </Typography>
+        <Box sx={{ display: 'flex', gap: 2, mb: 4 }}>
+          <Button
+            variant="contained"
+            disabled={generateDrafts.isPending}
+            onClick={() => {
+              if (!bot) return;
+              generateDrafts.mutate(
+                { botId: bot.id, count: 3 },
+                {
+                  onSuccess: (posts) => {
+                    showSnackbar(
+                      `Generated ${posts.length} practice draft(s)`,
+                      'success',
+                      <Button
+                        color="inherit"
+                        size="small"
+                        onClick={() => void navigate({ to: '/posts' })}
+                      >
+                        View Drafts
+                      </Button>,
+                    );
+                  },
+                  onError: () => {
+                    showSnackbar('Failed to generate drafts', 'error');
+                  },
+                },
+              );
+            }}
+          >
+            {generateDrafts.isPending ? (
+              <>
+                <CircularProgress size={18} sx={{ mr: 1 }} />
+                Generating...
+              </>
+            ) : (
+              'Generate Practice Drafts'
+            )}
+          </Button>
+          <Button variant="outlined" onClick={() => void navigate({ to: '/posts' })}>
+            View Post Queue
+          </Button>
+          <Button variant="outlined" onClick={() => void navigate({ to: `/bots/${bot.id}/edit` })}>
+            Edit Bot Config
+          </Button>
+        </Box>
+
+        {/* Judges Section */}
+        <Typography variant="h6" gutterBottom>
+          Judges {botJudges && `(${botJudges.length}/5)`}
+        </Typography>
+        <Card sx={{ mb: 3 }}>
+          <CardContent>
+            {botJudges && botJudges.length > 0 ? (
+              <List dense disablePadding>
+                {botJudges.map((bj, index) => (
+                  <div key={bj.id}>
+                    {index > 0 && <Divider />}
+                    <ListItem
+                      secondaryAction={
+                        <IconButton
+                          edge="end"
+                          size="small"
+                          onClick={() => {
+                            if (!bot) return;
+                            removeJudge.mutate(
+                              { botId: bot.id, judgeId: bj.judgeId },
+                              {
+                                onSuccess: () =>
+                                  showSnackbar(`Removed judge "${bj.judge.name}"`, 'success'),
+                                onError: () => showSnackbar('Failed to remove judge', 'error'),
+                              },
+                            );
+                          }}
+                          disabled={removeJudge.isPending}
+                        >
+                          <DeleteIcon fontSize="small" />
+                        </IconButton>
+                      }
+                    >
+                      <ListItemText
+                        primary={bj.judge.name}
+                        secondary={
+                          bj.judge.prompt.length > 100
+                            ? bj.judge.prompt.substring(0, 100) + '...'
+                            : bj.judge.prompt
+                        }
+                      />
+                    </ListItem>
+                  </div>
+                ))}
+              </List>
+            ) : (
+              <Typography variant="body2" color="text.secondary">
+                No judges assigned. Assign judges to get AI-powered reviews on your posts.
+              </Typography>
+            )}
+            {allJudges && botJudges && botJudges.length < 5 && (
+              <Box sx={{ mt: 2 }}>
+                <Select
+                  size="small"
+                  displayEmpty
+                  value=""
+                  onChange={(e) => {
+                    const judgeId = e.target.value as string;
+                    if (!judgeId || !bot) return;
+                    assignJudge.mutate(
+                      { botId: bot.id, judgeId },
+                      {
+                        onSuccess: () => showSnackbar('Judge assigned', 'success'),
+                        onError: () => showSnackbar('Failed to assign judge', 'error'),
+                      },
+                    );
+                  }}
+                  sx={{ minWidth: 200 }}
+                  disabled={assignJudge.isPending}
+                >
+                  <MenuItem value="" disabled>
+                    Add a judge...
+                  </MenuItem>
+                  {allJudges
+                    .filter((j) => !botJudges.some((bj) => bj.judgeId === j.id))
+                    .map((j) => (
+                      <MenuItem key={j.id} value={j.id}>
+                        {j.name}
+                      </MenuItem>
+                    ))}
+                </Select>
+              </Box>
+            )}
+          </CardContent>
+        </Card>
+
         {/* Memory Tips */}
         <Typography variant="h6" gutterBottom>
           Memory Tips {tips && `(${tips.length}/10)`}
@@ -433,142 +573,6 @@ export default function DashboardPage() {
           </DialogActions>
         </Dialog>
 
-        {/* Judges Section */}
-        <Typography variant="h6" gutterBottom>
-          Judges {botJudges && `(${botJudges.length}/5)`}
-        </Typography>
-        <Card sx={{ mb: 3 }}>
-          <CardContent>
-            {botJudges && botJudges.length > 0 ? (
-              <List dense disablePadding>
-                {botJudges.map((bj, index) => (
-                  <div key={bj.id}>
-                    {index > 0 && <Divider />}
-                    <ListItem
-                      secondaryAction={
-                        <IconButton
-                          edge="end"
-                          size="small"
-                          onClick={() => {
-                            if (!bot) return;
-                            removeJudge.mutate(
-                              { botId: bot.id, judgeId: bj.judgeId },
-                              {
-                                onSuccess: () =>
-                                  showSnackbar(`Removed judge "${bj.judge.name}"`, 'success'),
-                                onError: () => showSnackbar('Failed to remove judge', 'error'),
-                              },
-                            );
-                          }}
-                          disabled={removeJudge.isPending}
-                        >
-                          <DeleteIcon fontSize="small" />
-                        </IconButton>
-                      }
-                    >
-                      <ListItemText
-                        primary={bj.judge.name}
-                        secondary={
-                          bj.judge.prompt.length > 100
-                            ? bj.judge.prompt.substring(0, 100) + '...'
-                            : bj.judge.prompt
-                        }
-                      />
-                    </ListItem>
-                  </div>
-                ))}
-              </List>
-            ) : (
-              <Typography variant="body2" color="text.secondary">
-                No judges assigned. Assign judges to get AI-powered reviews on your posts.
-              </Typography>
-            )}
-            {allJudges && botJudges && botJudges.length < 5 && (
-              <Box sx={{ mt: 2 }}>
-                <Select
-                  size="small"
-                  displayEmpty
-                  value=""
-                  onChange={(e) => {
-                    const judgeId = e.target.value as string;
-                    if (!judgeId || !bot) return;
-                    assignJudge.mutate(
-                      { botId: bot.id, judgeId },
-                      {
-                        onSuccess: () => showSnackbar('Judge assigned', 'success'),
-                        onError: () => showSnackbar('Failed to assign judge', 'error'),
-                      },
-                    );
-                  }}
-                  sx={{ minWidth: 200 }}
-                  disabled={assignJudge.isPending}
-                >
-                  <MenuItem value="" disabled>
-                    Add a judge...
-                  </MenuItem>
-                  {allJudges
-                    .filter((j) => !botJudges.some((bj) => bj.judgeId === j.id))
-                    .map((j) => (
-                      <MenuItem key={j.id} value={j.id}>
-                        {j.name}
-                      </MenuItem>
-                    ))}
-                </Select>
-              </Box>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Quick Actions */}
-        <Typography variant="h6" gutterBottom>
-          Quick Actions
-        </Typography>
-        <Box sx={{ display: 'flex', gap: 2, mb: 4 }}>
-          <Button
-            variant="contained"
-            disabled={generateDrafts.isPending}
-            onClick={() => {
-              if (!bot) return;
-              generateDrafts.mutate(
-                { botId: bot.id, count: 3 },
-                {
-                  onSuccess: (posts) => {
-                    showSnackbar(
-                      `Generated ${posts.length} practice draft(s)`,
-                      'success',
-                      <Button
-                        color="inherit"
-                        size="small"
-                        onClick={() => void navigate({ to: '/posts' })}
-                      >
-                        View Drafts
-                      </Button>,
-                    );
-                  },
-                  onError: () => {
-                    showSnackbar('Failed to generate drafts', 'error');
-                  },
-                },
-              );
-            }}
-          >
-            {generateDrafts.isPending ? (
-              <>
-                <CircularProgress size={18} sx={{ mr: 1 }} />
-                Generating...
-              </>
-            ) : (
-              'Generate Practice Drafts'
-            )}
-          </Button>
-          <Button variant="outlined" onClick={() => void navigate({ to: '/posts' })}>
-            View Post Queue
-          </Button>
-          <Button variant="outlined" onClick={() => void navigate({ to: `/bots/${bot.id}/edit` })}>
-            Edit Bot Config
-          </Button>
-        </Box>
-
         {/* Sharing Section (owner only) */}
         {isOwner && (
           <>
@@ -633,6 +637,37 @@ export default function DashboardPage() {
               </CardContent>
             </Card>
           </>
+        )}
+
+        {/* Stats Section */}
+        <Typography variant="h6" gutterBottom>
+          Stats
+        </Typography>
+        {statsData ? (
+          <Grid container spacing={2} sx={{ mb: 3 }}>
+            {(
+              [
+                { label: 'Draft', value: statsData.postsByStatus.draft },
+                { label: 'Scheduled', value: statsData.postsByStatus.scheduled },
+                { label: 'Approved', value: statsData.postsByStatus.approved },
+                { label: 'Published', value: statsData.postsByStatus.published },
+                { label: 'Discarded', value: statsData.postsByStatus.discarded },
+              ] as const
+            ).map((stat) => (
+              <Grid item xs={6} sm={4} md key={stat.label}>
+                <Card>
+                  <CardContent sx={{ textAlign: 'center', py: 1.5, '&:last-child': { pb: 1.5 } }}>
+                    <Typography variant="h5">{stat.value}</Typography>
+                    <Typography variant="caption" color="text.secondary">
+                      {stat.label}
+                    </Typography>
+                  </CardContent>
+                </Card>
+              </Grid>
+            ))}
+          </Grid>
+        ) : (
+          <Skeleton variant="rectangular" height={80} sx={{ mb: 3, borderRadius: 1 }} />
         )}
 
         {/* Recent Published Posts */}

@@ -1,4 +1,5 @@
 import Anthropic from '@anthropic-ai/sdk';
+import { systemPromptRepository } from '../repositories/systemPromptRepository.js';
 
 type GenerateTweetResult = {
   content: string;
@@ -6,7 +7,7 @@ type GenerateTweetResult = {
   error?: string;
 };
 
-const SYSTEM_PROMPT = `You are a social media expert and skilled copywriter. Given a user's prompt, research and consider relevant topics, trends, and context, then draft a single tweet.
+const FALLBACK_SYSTEM_PROMPT = `You are a social media expert and skilled copywriter. Given a user's prompt, research and consider relevant topics, trends, and context, then draft a single tweet.
 
 Rules:
 - The tweet MUST be under 280 characters
@@ -15,7 +16,7 @@ Rules:
 - Do not include quotation marks around the tweet
 - Output ONLY the tweet text, nothing else`;
 
-const TWEAK_SYSTEM_PROMPT = `You are a collaborative social media editor helping refine a tweet. Have a natural conversation with the user — explain your changes, ask clarifying questions, suggest alternatives, and be a helpful creative partner.
+const FALLBACK_TWEAK_SYSTEM_PROMPT = `You are a collaborative social media editor helping refine a tweet. Have a natural conversation with the user — explain your changes, ask clarifying questions, suggest alternatives, and be a helpful creative partner.
 
 IMPORTANT: Always end your response with the revised tweet on its own line after the marker "---TWEET---". The tweet must be under 280 characters.
 
@@ -25,7 +26,30 @@ Great idea to make it punchier! I shortened the opening and added a hook questio
 ---TWEET---
 The actual revised tweet text here`;
 
-const TIPS_SYSTEM_PROMPT = `Analyze this conversation where a user refined a tweet draft. Extract 1-3 concise tips/preferences that should guide future tweet generation for this account. Each tip should be a single sentence. Output only the tips, one per line.`;
+const FALLBACK_TIPS_SYSTEM_PROMPT = `Analyze this conversation where a user refined a tweet draft. Extract 1-3 concise tips/preferences that should guide future tweet generation for this account. Each tip should be a single sentence. Output only the tips, one per line.`;
+
+// Simple in-memory cache with 5-minute TTL
+const promptCache = new Map<string, { content: string; expiresAt: number }>();
+const CACHE_TTL_MS = 5 * 60 * 1000;
+
+async function getCachedPrompt(key: string, fallback: string): Promise<string> {
+  const cached = promptCache.get(key);
+  if (cached && cached.expiresAt > Date.now()) {
+    return cached.content;
+  }
+
+  try {
+    const prompt = await systemPromptRepository.findByKey(key);
+    if (prompt) {
+      promptCache.set(key, { content: prompt.content, expiresAt: Date.now() + CACHE_TTL_MS });
+      return prompt.content;
+    }
+  } catch {
+    // Fall back to hardcoded prompt on DB error
+  }
+
+  return fallback;
+}
 
 function getClient(): Anthropic | null {
   const apiKey = process.env.ANTHROPIC_API_KEY;
@@ -44,12 +68,12 @@ function extractText(content: Anthropic.ContentBlock[]): string {
 async function callClaude(
   client: Anthropic,
   prompt: string,
-  systemPrompt?: string,
+  systemPrompt: string,
 ): Promise<string> {
   const response = await client.messages.create({
     model: 'claude-sonnet-4-6',
     max_tokens: 300,
-    system: systemPrompt ?? SYSTEM_PROMPT,
+    system: systemPrompt,
     messages: [{ role: 'user', content: prompt }],
   });
 
@@ -114,13 +138,13 @@ export async function generateTweet(
 
   if (!client) {
     return {
-      content: 'AI service not configured \u2014 set ANTHROPIC_API_KEY',
+      content: 'AI service not configured — set ANTHROPIC_API_KEY',
       success: false,
       error: 'ANTHROPIC_API_KEY not set',
     };
   }
 
-  let systemPrompt = SYSTEM_PROMPT;
+  let systemPrompt = await getCachedPrompt('tweet_generation', FALLBACK_SYSTEM_PROMPT);
   if (tips && tips.length > 0) {
     systemPrompt += `\n\nRemember these tips from past feedback:\n${tips.map((t) => `- ${t}`).join('\n')}`;
   }
@@ -157,8 +181,10 @@ export async function tweakPost(
 ): Promise<{ message: string; content: string }> {
   const client = getClient();
   if (!client) {
-    throw new Error('AI service not configured \u2014 set ANTHROPIC_API_KEY');
+    throw new Error('AI service not configured — set ANTHROPIC_API_KEY');
   }
+
+  const tweakSystemPrompt = await getCachedPrompt('tweet_tweak', FALLBACK_TWEAK_SYSTEM_PROMPT);
 
   const messages: Array<{ role: 'user' | 'assistant'; content: string }> = [];
 
@@ -170,7 +196,7 @@ export async function tweakPost(
 
   messages.push({ role: 'user', content: feedback });
 
-  const response = await callClaudeWithMessages(client, TWEAK_SYSTEM_PROMPT, messages, 600);
+  const response = await callClaudeWithMessages(client, tweakSystemPrompt, messages, 600);
 
   const tweetMarker = '---TWEET---';
   const markerIndex = response.indexOf(tweetMarker);
@@ -189,8 +215,10 @@ export async function generateTips(
 ): Promise<string[]> {
   const client = getClient();
   if (!client) {
-    throw new Error('AI service not configured \u2014 set ANTHROPIC_API_KEY');
+    throw new Error('AI service not configured — set ANTHROPIC_API_KEY');
   }
+
+  const tipsSystemPrompt = await getCachedPrompt('tip_extraction', FALLBACK_TIPS_SYSTEM_PROMPT);
 
   const formattedConversation = conversation
     .map((msg) => `${msg.role}: ${msg.content}`)
@@ -199,7 +227,7 @@ export async function generateTips(
   const result = await callClaude(
     client,
     `Here is the conversation:\n\n${formattedConversation}`,
-    TIPS_SYSTEM_PROMPT,
+    tipsSystemPrompt,
   );
 
   const tips = result
