@@ -80,10 +80,10 @@ export default function LoginPage() {
         }}
       >
         <Typography variant="h3" component="h1" fontWeight={700}>
-          X Bot Platform
+          EHE Signal
         </Typography>
         <Typography variant="body1" color="text.secondary">
-          {isRegister ? 'Create an account' : 'Sign in to manage your bots'}
+          {isRegister ? 'Create an account' : 'Sign in to your account'}
         </Typography>
 
         <Paper sx={{ p: 4, width: '100%' }}>

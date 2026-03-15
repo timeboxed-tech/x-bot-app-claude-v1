@@ -42,7 +42,7 @@ export default function AppHeader() {
     <AppBar position="static">
       <Toolbar>
         <Typography variant="h6" component="div" sx={{ mr: 2 }}>
-          X Bot Platform
+          EHE Signal
         </Typography>
         {user && (
           <>
