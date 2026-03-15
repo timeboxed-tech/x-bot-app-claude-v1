@@ -7,6 +7,7 @@ import Switch from '@mui/material/Switch';
 import Tab from '@mui/material/Tab';
 import Tabs from '@mui/material/Tabs';
 import TextField from '@mui/material/TextField';
+import Tooltip from '@mui/material/Tooltip';
 import Typography from '@mui/material/Typography';
 import FormControlLabel from '@mui/material/FormControlLabel';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
@@ -145,8 +146,23 @@ export default function BotEditPage() {
                 {styles?.map((style, index) => (
                   <Tab
                     key={style.id}
-                    label={getTabLabel(style, index)}
+                    label={
+                      <Tooltip title={getTabLabel(style, index)} enterDelay={400}>
+                        <span
+                          style={{
+                            display: 'block',
+                            maxWidth: 160,
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            whiteSpace: 'nowrap',
+                          }}
+                        >
+                          {getTabLabel(style, index)}
+                        </span>
+                      </Tooltip>
+                    }
                     sx={{
+                      maxWidth: 200,
                       opacity: style.active ? 1 : 0.5,
                       textTransform: 'none',
                     }}
