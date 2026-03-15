@@ -16,6 +16,8 @@ import CircularProgress from '@mui/material/CircularProgress';
 import Tooltip from '@mui/material/Tooltip';
 import IconButton from '@mui/material/IconButton';
 import DeleteIcon from '@mui/icons-material/Delete';
+import ContentCopyIcon from '@mui/icons-material/ContentCopy';
+import CheckIcon from '@mui/icons-material/Check';
 import FlagIcon from '@mui/icons-material/Flag';
 import OutlinedFlagIcon from '@mui/icons-material/OutlinedFlag';
 import type { Post, PostStatus } from '../hooks/usePosts';
@@ -86,6 +88,7 @@ export default function PostCard({ post }: PostCardProps) {
   const [tweakCurrent, setTweakCurrent] = useState(post.content);
   const [conversation, setConversation] = useState<ConversationMessage[]>([]);
   const [successMessage, setSuccessMessage] = useState('');
+  const [promptCopied, setPromptCopied] = useState(false);
   const conversationEndRef = useRef<HTMLDivElement>(null);
 
   const updatePost = useUpdatePost();
@@ -142,6 +145,14 @@ export default function PostCard({ post }: PostCardProps) {
 
   const handleToggleFlag = () => {
     updatePost.mutate({ id: post.id, flagged: !post.flagged });
+  };
+
+  const handleCopyPrompt = () => {
+    if (!post.generationPrompt) return;
+    navigator.clipboard.writeText(post.generationPrompt).then(() => {
+      setPromptCopied(true);
+      setTimeout(() => setPromptCopied(false), 1500);
+    });
   };
 
   const handleOpenTweak = () => {
@@ -303,52 +314,70 @@ export default function PostCard({ post }: PostCardProps) {
           </Typography>
         )}
 
-        {(post.behaviourTitle || post.behaviourPrompt) && (
-          <Tooltip
-            title={
-              post.generationPrompt ? (
-                <PromptTooltipContent generationPrompt={post.generationPrompt} />
-              ) : (
-                ''
-              )
-            }
-            arrow
-            slotProps={{
-              tooltip: {
-                sx: { maxWidth: 500, maxHeight: 400, overflow: 'auto' },
-              },
-            }}
-          >
-            <Chip
-              label={`Behaviour: ${post.behaviourTitle || post.behaviourPrompt}`}
-              size="small"
-              variant="outlined"
-              sx={{
-                mb: 1,
-                maxWidth: '100%',
-                cursor: post.generationPrompt ? 'pointer' : 'default',
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, flexWrap: 'wrap' }}>
+          {(post.behaviourTitle || post.behaviourPrompt) && (
+            <Tooltip
+              title={
+                post.generationPrompt ? (
+                  <PromptTooltipContent generationPrompt={post.generationPrompt} />
+                ) : (
+                  ''
+                )
+              }
+              arrow
+              slotProps={{
+                tooltip: {
+                  sx: { maxWidth: 500, maxHeight: 400, overflow: 'auto' },
+                },
               }}
-            />
-          </Tooltip>
-        )}
-        {!post.behaviourTitle && !post.behaviourPrompt && post.generationPrompt && (
-          <Tooltip
-            title={<PromptTooltipContent generationPrompt={post.generationPrompt} />}
-            arrow
-            slotProps={{
-              tooltip: {
-                sx: { maxWidth: 500, maxHeight: 400, overflow: 'auto' },
-              },
-            }}
-          >
-            <Chip
-              label="Prompt"
-              size="small"
-              variant="outlined"
-              sx={{ mb: 1, cursor: 'pointer' }}
-            />
-          </Tooltip>
-        )}
+            >
+              <Chip
+                label={`Behaviour: ${post.behaviourTitle || post.behaviourPrompt}`}
+                size="small"
+                variant="outlined"
+                sx={{
+                  mb: 1,
+                  maxWidth: '100%',
+                  cursor: post.generationPrompt ? 'pointer' : 'default',
+                }}
+              />
+            </Tooltip>
+          )}
+          {!post.behaviourTitle && !post.behaviourPrompt && post.generationPrompt && (
+            <Tooltip
+              title={<PromptTooltipContent generationPrompt={post.generationPrompt} />}
+              arrow
+              slotProps={{
+                tooltip: {
+                  sx: { maxWidth: 500, maxHeight: 400, overflow: 'auto' },
+                },
+              }}
+            >
+              <Chip
+                label="Prompt"
+                size="small"
+                variant="outlined"
+                sx={{ mb: 1, cursor: 'pointer' }}
+              />
+            </Tooltip>
+          )}
+          {post.generationPrompt && (
+            <Tooltip title={promptCopied ? 'Copied!' : 'Copy prompt'}>
+              <IconButton
+                size="small"
+                onClick={handleCopyPrompt}
+                sx={{ mb: 1, p: 0.25 }}
+                color={promptCopied ? 'success' : 'default'}
+              >
+                {promptCopied ? (
+                  <CheckIcon fontSize="small" />
+                ) : (
+                  <ContentCopyIcon fontSize="small" />
+                )}
+              </IconButton>
+            </Tooltip>
+          )}
+        </Box>
 
         {post.scheduledAt && (
           <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 0.5 }}>
