@@ -6,6 +6,7 @@ import { postRepository } from '../repositories/postRepository.js';
 import { botTipRepository } from '../repositories/botTipRepository.js';
 import { botStyleRepository } from '../repositories/botStyleRepository.js';
 import { paginationSchema, uuidSchema } from '../utils/validation.js';
+import { checkAndFlagPost } from '../services/urlValidationService.js';
 
 const createBotSchema = z.object({
   platform: z.enum(['x']).default('x'),
@@ -128,6 +129,8 @@ export const botController = {
             stylePrompt: selectedStyle?.content ?? null,
             styleTitle: selectedStyle?.title || null,
           });
+          // Fire-and-forget URL validation — don't block the response
+          checkAndFlagPost(post.id).catch(console.error);
           posts.push(post);
         }
       }

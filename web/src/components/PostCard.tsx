@@ -13,6 +13,7 @@ import DialogContent from '@mui/material/DialogContent';
 import DialogActions from '@mui/material/DialogActions';
 import Alert from '@mui/material/Alert';
 import CircularProgress from '@mui/material/CircularProgress';
+import Tooltip from '@mui/material/Tooltip';
 import IconButton from '@mui/material/IconButton';
 import DeleteIcon from '@mui/icons-material/Delete';
 import type { Post, PostStatus } from '../hooks/usePosts';
@@ -188,7 +189,14 @@ export default function PostCard({ post }: PostCardProps) {
         <Box
           sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1 }}
         >
-          <Chip label={post.status} color={statusColors[post.status]} size="small" />
+          <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+            <Chip label={post.status} color={statusColors[post.status]} size="small" />
+            {post.flagged && (
+              <Tooltip title={post.flagReasons.join('\n')}>
+                <Chip label="Flagged" color="warning" size="small" />
+              </Tooltip>
+            )}
+          </Box>
           <Typography variant="caption" color="text.secondary">
             {formatDate(post.createdAt)}
           </Typography>

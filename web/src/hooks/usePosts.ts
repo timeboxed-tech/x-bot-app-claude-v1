@@ -10,6 +10,8 @@ export type Post = {
   content: string;
   status: PostStatus;
   rating: number | null;
+  flagged: boolean;
+  flagReasons: string[];
   stylePrompt: string | null;
   styleTitle: string | null;
   scheduledAt: string | null;

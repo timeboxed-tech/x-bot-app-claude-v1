@@ -181,6 +181,16 @@ export const postRepository = {
     });
   },
 
+  async flagPost(id: string, reasons: string[]) {
+    return prisma.post.update({
+      where: { id },
+      data: {
+        flagged: true,
+        flagReasons: { push: reasons },
+      },
+    });
+  },
+
   async findRecentByBotId(botId: string, limit = 10) {
     return prisma.post.findMany({
       where: {

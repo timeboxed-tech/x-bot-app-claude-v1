@@ -64,6 +64,8 @@ model Post {
   content     String    @db.Text
   status      String    @default("draft")
   rating      Int?
+  flagged     Boolean   @default(false)
+  flagReasons String[]
   scheduledAt DateTime?
   publishedAt DateTime?
   createdAt   DateTime  @default(now())

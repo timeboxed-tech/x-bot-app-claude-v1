@@ -5,6 +5,7 @@ import { botTipRepository } from '../repositories/botTipRepository.js';
 import { botStyleRepository } from '../repositories/botStyleRepository.js';
 import { generateTweet } from '../services/aiService.js';
 import { computeNextScheduledAt } from '../services/scheduler.js';
+import { checkAndFlagPost } from '../services/urlValidationService.js';
 import { log } from './activityLog.js';
 
 const POLL_INTERVAL_MS = parseInt(process.env.WORKER_POLL_INTERVAL_MS || '30000', 10);
@@ -158,21 +159,37 @@ async function processJobs(): Promise<void> {
           continue;
         }
 
-        const postStatus = bot.postMode === 'auto' ? 'scheduled' : 'draft';
-        const scheduledAt = bot.postMode === 'auto' ? new Date() : null;
-
-        await postRepository.create({
+        const post = await postRepository.create({
           botId: bot.id,
           jobId: job.id,
           content: result.content,
-          status: postStatus,
-          scheduledAt,
+          status: 'draft',
+          scheduledAt: null,
           stylePrompt: selectedStyle?.content ?? null,
           styleTitle: selectedStyle?.title || null,
         });
 
+        // Await URL validation before deciding publish status
+        await checkAndFlagPost(post.id);
+
+        // Re-fetch post to check if it was flagged
+        const checkedPost = await postRepository.findById(post.id);
+        const isFlagged = checkedPost?.flagged ?? false;
+
+        // Only auto-schedule if not flagged and bot is in auto mode
+        if (bot.postMode === 'auto' && !isFlagged) {
+          await postRepository.update(post.id, {
+            status: 'scheduled',
+            scheduledAt: new Date(),
+          });
+        }
+
+        const finalStatus = bot.postMode === 'auto' && !isFlagged ? 'scheduled' : 'draft';
         await jobRepository.markCompleted(job.id);
-        log('jobWorker', `Job ${job.id} completed — created ${postStatus} post`);
+        log(
+          'jobWorker',
+          `Job ${job.id} completed — created ${finalStatus} post${isFlagged ? ' (flagged)' : ''}`,
+        );
         console.log(`[jobWorker] Job ${job.id} completed successfully`);
       } catch (err) {
         const errorMsg = err instanceof Error ? `${err.message}\n${err.stack}` : String(err);
