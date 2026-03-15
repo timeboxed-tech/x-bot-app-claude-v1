@@ -2,6 +2,7 @@
   "name": "@x-bot/api",
   "version": "0.1.0",
   "private": true,
+  "type": "module",
   "scripts": {
     "build": "tsc",
     "dev": "nodemon --exec tsx src/index.ts",
