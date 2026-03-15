@@ -647,11 +647,29 @@ export default function DashboardPage() {
           <Grid container spacing={2} sx={{ mb: 3 }}>
             {(
               [
-                { label: 'Draft', value: statsData.postsByStatus.draft },
-                { label: 'Scheduled', value: statsData.postsByStatus.scheduled },
-                { label: 'Approved', value: statsData.postsByStatus.approved },
-                { label: 'Published', value: statsData.postsByStatus.published },
-                { label: 'Discarded', value: statsData.postsByStatus.discarded },
+                { label: 'Draft', value: String(statsData.postsByStatus.draft) },
+                { label: 'Scheduled', value: String(statsData.postsByStatus.scheduled) },
+                { label: 'Approved', value: String(statsData.postsByStatus.approved) },
+                { label: 'Published', value: String(statsData.postsByStatus.published) },
+                { label: 'Discarded', value: String(statsData.postsByStatus.discarded) },
+                {
+                  label: 'Avg Post Rating',
+                  value: statsData.avgPostRating != null ? statsData.avgPostRating.toFixed(1) : '-',
+                },
+                {
+                  label: 'Avg Judge Rating (Draft+Published)',
+                  value:
+                    statsData.avgJudgeRatingDraftPublished != null
+                      ? statsData.avgJudgeRatingDraftPublished.toFixed(1)
+                      : '-',
+                },
+                {
+                  label: 'Avg Judge Rating (All)',
+                  value:
+                    statsData.avgJudgeRatingAll != null
+                      ? statsData.avgJudgeRatingAll.toFixed(1)
+                      : '-',
+                },
               ] as const
             ).map((stat) => (
               <Grid item xs={6} sm={4} md key={stat.label}>

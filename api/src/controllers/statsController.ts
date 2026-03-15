@@ -29,6 +29,9 @@ export const statsController = {
         scheduledCount,
         publishedCount,
         discardedCount,
+        avgPostRatingAgg,
+        avgJudgeRatingDraftPublishedAgg,
+        avgJudgeRatingAllAgg,
       ] = await Promise.all([
         prisma.post.count({ where: { botId } }),
         prisma.post.count({
@@ -43,6 +46,18 @@ export const statsController = {
         prisma.post.count({ where: { botId, status: 'scheduled' } }),
         prisma.post.count({ where: { botId, status: 'published' } }),
         prisma.post.count({ where: { botId, status: 'discarded' } }),
+        prisma.post.aggregate({
+          where: { botId, status: { in: ['draft', 'published'] }, rating: { not: null } },
+          _avg: { rating: true },
+        }),
+        prisma.postReview.aggregate({
+          where: { post: { botId, status: { in: ['draft', 'published'] } } },
+          _avg: { rating: true },
+        }),
+        prisma.postReview.aggregate({
+          where: { post: { botId } },
+          _avg: { rating: true },
+        }),
       ]);
 
       res.status(200).json({
@@ -50,6 +65,9 @@ export const statsController = {
           totalPosts,
           postsToday,
           averageRating: ratingAgg._avg.rating ?? null,
+          avgPostRating: avgPostRatingAgg._avg.rating ?? null,
+          avgJudgeRatingDraftPublished: avgJudgeRatingDraftPublishedAgg._avg.rating ?? null,
+          avgJudgeRatingAll: avgJudgeRatingAllAgg._avg.rating ?? null,
           postsByStatus: {
             draft: draftCount,
             approved: approvedCount,

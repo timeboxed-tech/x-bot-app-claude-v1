@@ -6,6 +6,9 @@ export type BotStats = {
   totalPosts: number;
   postsToday: number;
   averageRating: number | null;
+  avgPostRating: number | null;
+  avgJudgeRatingDraftPublished: number | null;
+  avgJudgeRatingAll: number | null;
   postsByStatus: {
     draft: number;
     approved: number;
