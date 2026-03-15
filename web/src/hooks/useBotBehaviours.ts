@@ -2,32 +2,33 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiClient } from '../lib/apiClient';
 import { queryKeys } from '../lib/queryKeys';
 
-export type BotStyle = {
+export type BotBehaviour = {
   id: string;
   botId: string;
   title: string;
   content: string;
   knowledgeSource: string;
+  weight: number;
   active: boolean;
   createdAt: string;
 };
 
-type BotStyleListResponse = {
-  data: BotStyle[];
+type BotBehaviourListResponse = {
+  data: BotBehaviour[];
 };
 
-export function useBotStyles(botId: string | undefined) {
+export function useBotBehaviours(botId: string | undefined) {
   return useQuery({
-    queryKey: queryKeys.bots.styles(botId ?? ''),
+    queryKey: queryKeys.bots.behaviours(botId ?? ''),
     queryFn: async () => {
-      const response = await apiClient.get<BotStyleListResponse>(`/bots/${botId}/styles`);
+      const response = await apiClient.get<BotBehaviourListResponse>(`/bots/${botId}/behaviours`);
       return response.data.data;
     },
     enabled: !!botId,
   });
 }
 
-export function useCreateBotStyle() {
+export function useCreateBotBehaviour() {
   const queryClient = useQueryClient();
 
   return useMutation({
@@ -36,95 +37,100 @@ export function useCreateBotStyle() {
       content,
       title,
       knowledgeSource,
+      weight,
     }: {
       botId: string;
       content: string;
       title?: string;
       knowledgeSource?: string;
+      weight?: number;
     }) => {
-      const response = await apiClient.post<{ data: BotStyle }>(`/bots/${botId}/styles`, {
+      const response = await apiClient.post<{ data: BotBehaviour }>(`/bots/${botId}/behaviours`, {
         content,
         title,
         knowledgeSource,
+        weight,
       });
       return response.data.data;
     },
     onSuccess: (_data, variables) => {
       void queryClient.invalidateQueries({
-        queryKey: queryKeys.bots.styles(variables.botId),
+        queryKey: queryKeys.bots.behaviours(variables.botId),
       });
     },
   });
 }
 
-export function useUpdateBotStyle() {
+export function useUpdateBotBehaviour() {
   const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: async ({
       botId,
-      styleId,
+      behaviourId,
       content,
       title,
       knowledgeSource,
+      weight,
     }: {
       botId: string;
-      styleId: string;
+      behaviourId: string;
       content: string;
       title?: string;
       knowledgeSource?: string;
+      weight?: number;
     }) => {
-      const response = await apiClient.patch<{ data: BotStyle }>(
-        `/bots/${botId}/styles/${styleId}`,
-        { content, title, knowledgeSource },
+      const response = await apiClient.patch<{ data: BotBehaviour }>(
+        `/bots/${botId}/behaviours/${behaviourId}`,
+        { content, title, knowledgeSource, weight },
       );
       return response.data.data;
     },
     onSuccess: (_data, variables) => {
       void queryClient.invalidateQueries({
-        queryKey: queryKeys.bots.styles(variables.botId),
+        queryKey: queryKeys.bots.behaviours(variables.botId),
       });
     },
   });
 }
 
-export function useDeleteBotStyle() {
+export function useDeleteBotBehaviour() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ botId, styleId }: { botId: string; styleId: string }) => {
-      await apiClient.delete(`/bots/${botId}/styles/${styleId}`);
+    mutationFn: async ({ botId, behaviourId }: { botId: string; behaviourId: string }) => {
+      await apiClient.delete(`/bots/${botId}/behaviours/${behaviourId}`);
     },
     onSuccess: (_data, variables) => {
       void queryClient.invalidateQueries({
-        queryKey: queryKeys.bots.styles(variables.botId),
+        queryKey: queryKeys.bots.behaviours(variables.botId),
       });
     },
   });
 }
 
-export function useToggleBotStyle() {
+export function useToggleBotBehaviour() {
   const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: async ({
       botId,
-      styleId,
+      behaviourId,
       active,
     }: {
       botId: string;
-      styleId: string;
+      behaviourId: string;
       active: boolean;
     }) => {
-      const response = await apiClient.patch<{ data: BotStyle }>(
-        `/bots/${botId}/styles/${styleId}/toggle`,
+      const response = await apiClient.patch<{ data: BotBehaviour }>(
+        `/bots/${botId}/behaviours/${behaviourId}/toggle`,
         { active },
       );
       return response.data.data;
     },
     onSuccess: (_data, variables) => {
       void queryClient.invalidateQueries({
-        queryKey: queryKeys.bots.styles(variables.botId),
+        queryKey: queryKeys.bots.behaviours(variables.botId),
       });
     },
   });

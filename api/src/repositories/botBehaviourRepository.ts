@@ -1,22 +1,22 @@
 import { prisma } from '../utils/prisma.js';
 
-export const botStyleRepository = {
+export const botBehaviourRepository = {
   async findByBotId(botId: string) {
-    return prisma.botStyle.findMany({
+    return prisma.botBehaviour.findMany({
       where: { botId },
       orderBy: { createdAt: 'desc' },
     });
   },
 
   async findActiveByBotId(botId: string) {
-    return prisma.botStyle.findMany({
+    return prisma.botBehaviour.findMany({
       where: { botId, active: true },
       orderBy: { createdAt: 'desc' },
     });
   },
 
   async findById(id: string) {
-    return prisma.botStyle.findUnique({
+    return prisma.botBehaviour.findUnique({
       where: { id },
     });
   },
@@ -27,41 +27,50 @@ export const botStyleRepository = {
     active?: boolean,
     title?: string,
     knowledgeSource?: string,
+    weight?: number,
   ) {
-    return prisma.botStyle.create({
+    return prisma.botBehaviour.create({
       data: {
         botId,
         content,
         title: title ?? '',
         ...(active !== undefined ? { active } : {}),
         ...(knowledgeSource !== undefined ? { knowledgeSource } : {}),
+        ...(weight !== undefined ? { weight } : {}),
       },
     });
   },
 
-  async update(id: string, content: string, title?: string, knowledgeSource?: string) {
-    return prisma.botStyle.update({
+  async update(
+    id: string,
+    content: string,
+    title?: string,
+    knowledgeSource?: string,
+    weight?: number,
+  ) {
+    return prisma.botBehaviour.update({
       where: { id },
       data: {
         content,
         ...(title !== undefined ? { title } : {}),
         ...(knowledgeSource !== undefined ? { knowledgeSource } : {}),
+        ...(weight !== undefined ? { weight } : {}),
       },
     });
   },
 
   async delete(id: string) {
-    return prisma.botStyle.delete({
+    return prisma.botBehaviour.delete({
       where: { id },
     });
   },
 
   async countByBotId(botId: string) {
-    return prisma.botStyle.count({ where: { botId } });
+    return prisma.botBehaviour.count({ where: { botId } });
   },
 
   async toggleActive(id: string, active: boolean) {
-    return prisma.botStyle.update({
+    return prisma.botBehaviour.update({
       where: { id },
       data: { active },
     });

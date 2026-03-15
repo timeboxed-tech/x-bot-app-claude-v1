@@ -238,9 +238,9 @@ export default function PostCard({ post }: PostCardProps) {
           </Typography>
         )}
 
-        {(post.styleTitle || post.stylePrompt) && (
+        {(post.behaviourTitle || post.behaviourPrompt) && (
           <Chip
-            label={`Style: ${post.styleTitle || post.stylePrompt}`}
+            label={`Behaviour: ${post.behaviourTitle || post.behaviourPrompt}`}
             size="small"
             variant="outlined"
             sx={{

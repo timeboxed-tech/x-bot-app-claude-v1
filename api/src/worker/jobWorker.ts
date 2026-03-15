@@ -2,7 +2,8 @@ import { v4 as uuidv4 } from 'uuid';
 import { jobRepository } from '../repositories/jobRepository.js';
 import { postRepository } from '../repositories/postRepository.js';
 import { botTipRepository } from '../repositories/botTipRepository.js';
-import { botStyleRepository } from '../repositories/botStyleRepository.js';
+import { botBehaviourRepository } from '../repositories/botBehaviourRepository.js';
+import { selectWeightedBehaviour } from '../controllers/botController.js';
 import { generateTweet } from '../services/aiService.js';
 import { computeNextScheduledAt } from '../services/scheduler.js';
 import { checkAndFlagPost } from '../services/urlValidationService.js';
@@ -140,19 +141,19 @@ async function processJobs(): Promise<void> {
 
         const tips = await botTipRepository.findByBotId(bot.id);
         const recentPosts = await postRepository.findRecentByBotId(bot.id, 10);
-        const styles = await botStyleRepository.findActiveByBotId(bot.id);
-        const selectedStyle =
-          styles.length > 0 ? styles[Math.floor(Math.random() * styles.length)] : null;
+        const behaviours = await botBehaviourRepository.findActiveByBotId(bot.id);
+        const selectedBehaviour =
+          behaviours.length > 0 ? selectWeightedBehaviour(behaviours) : null;
 
         const effectiveSource =
-          selectedStyle?.knowledgeSource && selectedStyle.knowledgeSource !== 'default'
-            ? selectedStyle.knowledgeSource
+          selectedBehaviour?.knowledgeSource && selectedBehaviour.knowledgeSource !== 'default'
+            ? selectedBehaviour.knowledgeSource
             : bot.knowledgeSource;
         const result = await generateTweet(
           bot.prompt,
           tips.map((t: { content: string }) => t.content),
           recentPosts.map((p: { content: string }) => p.content),
-          selectedStyle?.content,
+          selectedBehaviour?.content,
           effectiveSource === 'ai+web',
         );
 
@@ -170,8 +171,8 @@ async function processJobs(): Promise<void> {
           content: result.content,
           status: 'draft',
           scheduledAt: null,
-          stylePrompt: selectedStyle?.content ?? null,
-          styleTitle: selectedStyle?.title || null,
+          behaviourPrompt: selectedBehaviour?.content ?? null,
+          behaviourTitle: selectedBehaviour?.title || null,
         });
 
         // Await URL validation before deciding publish status

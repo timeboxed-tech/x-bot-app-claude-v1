@@ -22,12 +22,12 @@ import AppHeader from '../components/AppHeader';
 import BotSetupForm from '../components/BotSetupForm';
 import { useBot, useUpdateBot } from '../hooks/useBot';
 import {
-  useBotStyles,
-  useCreateBotStyle,
-  useUpdateBotStyle,
-  useDeleteBotStyle,
-  useToggleBotStyle,
-} from '../hooks/useBotStyles';
+  useBotBehaviours,
+  useCreateBotBehaviour,
+  useUpdateBotBehaviour,
+  useDeleteBotBehaviour,
+  useToggleBotBehaviour,
+} from '../hooks/useBotBehaviours';
 import { useNavigate, useParams } from '@tanstack/react-router';
 
 export default function BotEditPage() {
@@ -35,18 +35,19 @@ export default function BotEditPage() {
   const { bots, isLoading } = useBot();
   const updateBot = useUpdateBot();
   const navigate = useNavigate();
-  const { data: styles, isLoading: stylesLoading } = useBotStyles(botId);
-  const createStyle = useCreateBotStyle();
-  const updateStyle = useUpdateBotStyle();
-  const deleteStyle = useDeleteBotStyle();
-  const toggleStyle = useToggleBotStyle();
-  const [newStyleContent, setNewStyleContent] = useState('');
-  const [newStyleTitle, setNewStyleTitle] = useState('');
-  const [editingStyles, setEditingStyles] = useState<Record<string, string>>({});
+  const { data: behaviours, isLoading: behavioursLoading } = useBotBehaviours(botId);
+  const createBehaviour = useCreateBotBehaviour();
+  const updateBehaviour = useUpdateBotBehaviour();
+  const deleteBehaviour = useDeleteBotBehaviour();
+  const toggleBehaviour = useToggleBotBehaviour();
+  const [newBehaviourContent, setNewBehaviourContent] = useState('');
+  const [newBehaviourTitle, setNewBehaviourTitle] = useState('');
+  const [editingBehaviours, setEditingBehaviours] = useState<Record<string, string>>({});
   const [editingTitles, setEditingTitles] = useState<Record<string, string>>({});
   const [editingKnowledgeSources, setEditingKnowledgeSources] = useState<Record<string, string>>(
     {},
   );
+  const [editingWeights, setEditingWeights] = useState<Record<string, number>>({});
   const [activeTab, setActiveTab] = useState(0);
 
   const bot = bots.find((b) => b.id === botId);
@@ -80,18 +81,45 @@ export default function BotEditPage() {
     );
   }
 
-  const styleCount = styles?.length ?? 0;
-  const canAddStyle = styleCount < 5;
-  // The "add new" tab is at index === styleCount (after all style tabs)
-  const isAddTab = activeTab === styleCount;
+  const behaviourCount = behaviours?.length ?? 0;
+  const canAddBehaviour = behaviourCount < 5;
+  // The "add new" tab is at index === behaviourCount (after all behaviour tabs)
+  const isAddTab = activeTab === behaviourCount;
 
-  function getTabLabel(style: { title: string; content: string; active: boolean }, index: number) {
-    const prefix = `Style ${index + 1}`;
+  const activeBehaviours = behaviours?.filter((b) => b.active) ?? [];
+  const totalWeight = activeBehaviours.reduce((sum, b) => {
+    const editedWeight = editingWeights[b.id];
+    return sum + (editedWeight !== undefined ? editedWeight : b.weight);
+  }, 0);
+
+  function distributeEqually() {
+    if (activeBehaviours.length === 0) return;
+    const equalWeight = Math.floor(100 / activeBehaviours.length);
+    const remainder = 100 - equalWeight * activeBehaviours.length;
+    const newWeights: Record<string, number> = {};
+    activeBehaviours.forEach((b, i) => {
+      newWeights[b.id] = equalWeight + (i < remainder ? 1 : 0);
+    });
+    setEditingWeights((prev) => ({ ...prev, ...newWeights }));
+  }
+
+  function getTabLabel(
+    behaviour: { title: string; content: string; active: boolean; weight: number },
+    index: number,
+  ) {
+    const prefix = `Behaviour ${index + 1}`;
     const label =
-      style.title ||
-      (style.content.length > 20 ? style.content.slice(0, 20) + '...' : style.content) ||
+      behaviour.title ||
+      (behaviour.content.length > 20
+        ? behaviour.content.slice(0, 20) + '...'
+        : behaviour.content) ||
       prefix;
-    return style.active ? label : `(off) ${label}`;
+    const weight =
+      editingWeights[behaviours?.[index]?.id ?? ''] !== undefined
+        ? editingWeights[behaviours![index].id]
+        : behaviour.weight;
+    const weightSuffix = behaviour.active ? ` (${weight}%)` : '';
+    return behaviour.active ? `${label}${weightSuffix}` : `(off) ${label}`;
   }
 
   return (
@@ -139,27 +167,52 @@ export default function BotEditPage() {
 
         <Box sx={{ mt: 4 }}>
           <Typography variant="h6" gutterBottom>
-            Style Prompts ({styleCount}/5)
+            Behaviours ({behaviourCount}/5)
           </Typography>
           <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-            Add style prompts to vary how posts are generated. A random active style will be applied
-            to each new post.
+            Add behaviours to vary how posts are generated. Active behaviours are selected using
+            weighted random distribution.
           </Typography>
 
-          {stylesLoading ? (
+          {behavioursLoading ? (
             <CircularProgress size={24} />
           ) : (
             <Box sx={{ border: 1, borderColor: 'divider', borderRadius: 1 }}>
+              {activeBehaviours.length > 0 && (
+                <Box
+                  sx={{
+                    px: 2,
+                    pt: 2,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                  }}
+                >
+                  <Typography
+                    variant="body2"
+                    sx={{
+                      color: totalWeight === 100 ? 'success.main' : 'error.main',
+                      fontWeight: 'bold',
+                    }}
+                  >
+                    Total weight: {totalWeight}%{totalWeight !== 100 ? ' (should be 100%)' : ''}
+                  </Typography>
+                  <Button size="small" variant="outlined" onClick={distributeEqually}>
+                    Distribute Equally
+                  </Button>
+                </Box>
+              )}
+
               <Tabs
                 value={activeTab}
                 onChange={(_e, newValue: number) => setActiveTab(newValue)}
                 variant="fullWidth"
               >
-                {styles?.map((style, index) => (
+                {behaviours?.map((behaviour, index) => (
                   <Tab
-                    key={style.id}
+                    key={behaviour.id}
                     label={
-                      <Tooltip title={getTabLabel(style, index)} enterDelay={400}>
+                      <Tooltip title={getTabLabel(behaviour, index)} enterDelay={400}>
                         <span
                           style={{
                             display: 'block',
@@ -168,18 +221,18 @@ export default function BotEditPage() {
                             whiteSpace: 'nowrap',
                           }}
                         >
-                          {getTabLabel(style, index)}
+                          {getTabLabel(behaviour, index)}
                         </span>
                       </Tooltip>
                     }
                     sx={{
                       minWidth: 0,
-                      opacity: style.active ? 1 : 0.5,
+                      opacity: behaviour.active ? 1 : 0.5,
                       textTransform: 'none',
                     }}
                   />
                 ))}
-                {canAddStyle && (
+                {canAddBehaviour && (
                   <Tab
                     icon={<AddIcon />}
                     iconPosition="start"
@@ -190,30 +243,37 @@ export default function BotEditPage() {
               </Tabs>
 
               <Box sx={{ p: 2 }}>
-                {styles?.map((style, index) => {
+                {behaviours?.map((behaviour, index) => {
                   if (index !== activeTab) return null;
                   const isEditing =
-                    editingStyles[style.id] !== undefined ||
-                    editingTitles[style.id] !== undefined ||
-                    editingKnowledgeSources[style.id] !== undefined;
+                    editingBehaviours[behaviour.id] !== undefined ||
+                    editingTitles[behaviour.id] !== undefined ||
+                    editingKnowledgeSources[behaviour.id] !== undefined ||
+                    editingWeights[behaviour.id] !== undefined;
                   return (
-                    <Box key={style.id}>
+                    <Box key={behaviour.id}>
                       <TextField
                         fullWidth
                         size="small"
                         label="Title"
                         placeholder="e.g., Witty & Sarcastic"
                         value={
-                          editingTitles[style.id] !== undefined
-                            ? editingTitles[style.id]
-                            : style.title
+                          editingTitles[behaviour.id] !== undefined
+                            ? editingTitles[behaviour.id]
+                            : behaviour.title
                         }
                         onChange={(e) =>
-                          setEditingTitles((prev) => ({ ...prev, [style.id]: e.target.value }))
+                          setEditingTitles((prev) => ({
+                            ...prev,
+                            [behaviour.id]: e.target.value,
+                          }))
                         }
                         onFocus={() => {
-                          if (editingTitles[style.id] === undefined) {
-                            setEditingTitles((prev) => ({ ...prev, [style.id]: style.title }));
+                          if (editingTitles[behaviour.id] === undefined) {
+                            setEditingTitles((prev) => ({
+                              ...prev,
+                              [behaviour.id]: behaviour.title,
+                            }));
                           }
                         }}
                         sx={{ mb: 1 }}
@@ -225,16 +285,22 @@ export default function BotEditPage() {
                         size="small"
                         label="Prompt"
                         value={
-                          editingStyles[style.id] !== undefined
-                            ? editingStyles[style.id]
-                            : style.content
+                          editingBehaviours[behaviour.id] !== undefined
+                            ? editingBehaviours[behaviour.id]
+                            : behaviour.content
                         }
                         onChange={(e) =>
-                          setEditingStyles((prev) => ({ ...prev, [style.id]: e.target.value }))
+                          setEditingBehaviours((prev) => ({
+                            ...prev,
+                            [behaviour.id]: e.target.value,
+                          }))
                         }
                         onFocus={() => {
-                          if (editingStyles[style.id] === undefined) {
-                            setEditingStyles((prev) => ({ ...prev, [style.id]: style.content }));
+                          if (editingBehaviours[behaviour.id] === undefined) {
+                            setEditingBehaviours((prev) => ({
+                              ...prev,
+                              [behaviour.id]: behaviour.content,
+                            }));
                           }
                         }}
                         sx={{ mb: 2 }}
@@ -243,15 +309,15 @@ export default function BotEditPage() {
                         <InputLabel>Knowledge Source</InputLabel>
                         <Select
                           value={
-                            editingKnowledgeSources[style.id] !== undefined
-                              ? editingKnowledgeSources[style.id]
-                              : style.knowledgeSource
+                            editingKnowledgeSources[behaviour.id] !== undefined
+                              ? editingKnowledgeSources[behaviour.id]
+                              : behaviour.knowledgeSource
                           }
                           label="Knowledge Source"
                           onChange={(e) =>
                             setEditingKnowledgeSources((prev) => ({
                               ...prev,
-                              [style.id]: e.target.value,
+                              [behaviour.id]: e.target.value,
                             }))
                           }
                         >
@@ -260,6 +326,31 @@ export default function BotEditPage() {
                           <MenuItem value="ai+web">AI + Web Search</MenuItem>
                         </Select>
                       </FormControl>
+                      <TextField
+                        fullWidth
+                        size="small"
+                        type="number"
+                        label="Weight (%)"
+                        InputProps={{
+                          inputProps: { min: 0, max: 100 },
+                        }}
+                        value={
+                          editingWeights[behaviour.id] !== undefined
+                            ? editingWeights[behaviour.id]
+                            : behaviour.weight
+                        }
+                        onChange={(e) => {
+                          const val = parseInt(e.target.value, 10);
+                          if (!isNaN(val) && val >= 0 && val <= 100) {
+                            setEditingWeights((prev) => ({
+                              ...prev,
+                              [behaviour.id]: val,
+                            }));
+                          }
+                        }}
+                        disabled={!behaviour.active}
+                        sx={{ mb: 2 }}
+                      />
                       <Box
                         sx={{
                           display: 'flex',
@@ -270,18 +361,18 @@ export default function BotEditPage() {
                         <FormControlLabel
                           control={
                             <Switch
-                              checked={style.active}
+                              checked={behaviour.active}
                               onChange={(e) =>
-                                toggleStyle.mutate({
+                                toggleBehaviour.mutate({
                                   botId: bot.id,
-                                  styleId: style.id,
+                                  behaviourId: behaviour.id,
                                   active: e.target.checked,
                                 })
                               }
-                              disabled={toggleStyle.isPending}
+                              disabled={toggleBehaviour.isPending}
                             />
                           }
-                          label={style.active ? 'Active' : 'Inactive'}
+                          label={behaviour.active ? 'Active' : 'Inactive'}
                         />
                         <Box sx={{ display: 'flex', gap: 1 }}>
                           {isEditing && (
@@ -290,34 +381,43 @@ export default function BotEditPage() {
                               size="small"
                               startIcon={<SaveIcon />}
                               onClick={() => {
-                                const content = editingStyles[style.id] ?? style.content;
-                                const title = editingTitles[style.id] ?? style.title;
+                                const content =
+                                  editingBehaviours[behaviour.id] ?? behaviour.content;
+                                const title = editingTitles[behaviour.id] ?? behaviour.title;
                                 const ks =
-                                  editingKnowledgeSources[style.id] ?? style.knowledgeSource;
+                                  editingKnowledgeSources[behaviour.id] ??
+                                  behaviour.knowledgeSource;
+                                const weight = editingWeights[behaviour.id] ?? behaviour.weight;
                                 if (content && content.trim()) {
-                                  updateStyle.mutate(
+                                  updateBehaviour.mutate(
                                     {
                                       botId: bot.id,
-                                      styleId: style.id,
+                                      behaviourId: behaviour.id,
                                       content: content.trim(),
                                       title: title?.trim(),
                                       knowledgeSource: ks,
+                                      weight,
                                     },
                                     {
                                       onSuccess: () => {
-                                        setEditingStyles((prev) => {
+                                        setEditingBehaviours((prev) => {
                                           const next = { ...prev };
-                                          delete next[style.id];
+                                          delete next[behaviour.id];
                                           return next;
                                         });
                                         setEditingTitles((prev) => {
                                           const next = { ...prev };
-                                          delete next[style.id];
+                                          delete next[behaviour.id];
                                           return next;
                                         });
                                         setEditingKnowledgeSources((prev) => {
                                           const next = { ...prev };
-                                          delete next[style.id];
+                                          delete next[behaviour.id];
+                                          return next;
+                                        });
+                                        setEditingWeights((prev) => {
+                                          const next = { ...prev };
+                                          delete next[behaviour.id];
                                           return next;
                                         });
                                       },
@@ -325,7 +425,7 @@ export default function BotEditPage() {
                                   );
                                 }
                               }}
-                              disabled={updateStyle.isPending}
+                              disabled={updateBehaviour.isPending}
                             >
                               Save
                             </Button>
@@ -336,8 +436,8 @@ export default function BotEditPage() {
                             color="error"
                             startIcon={<DeleteIcon />}
                             onClick={() => {
-                              deleteStyle.mutate(
-                                { botId: bot.id, styleId: style.id },
+                              deleteBehaviour.mutate(
+                                { botId: bot.id, behaviourId: behaviour.id },
                                 {
                                   onSuccess: () => {
                                     setActiveTab((prev) => Math.max(0, prev - 1));
@@ -345,7 +445,7 @@ export default function BotEditPage() {
                                 },
                               );
                             }}
-                            disabled={deleteStyle.isPending}
+                            disabled={deleteBehaviour.isPending}
                           >
                             Delete
                           </Button>
@@ -355,15 +455,15 @@ export default function BotEditPage() {
                   );
                 })}
 
-                {canAddStyle && isAddTab && (
+                {canAddBehaviour && isAddTab && (
                   <Box>
                     <TextField
                       fullWidth
                       size="small"
                       label="Title"
                       placeholder="e.g., Witty & Sarcastic"
-                      value={newStyleTitle}
-                      onChange={(e) => setNewStyleTitle(e.target.value)}
+                      value={newBehaviourTitle}
+                      onChange={(e) => setNewBehaviourTitle(e.target.value)}
                       sx={{ mb: 1 }}
                     />
                     <TextField
@@ -373,8 +473,8 @@ export default function BotEditPage() {
                       size="small"
                       label="Prompt"
                       placeholder="e.g., Write in a witty, sarcastic tone with pop culture references"
-                      value={newStyleContent}
-                      onChange={(e) => setNewStyleContent(e.target.value)}
+                      value={newBehaviourContent}
+                      onChange={(e) => setNewBehaviourContent(e.target.value)}
                       sx={{ mb: 2 }}
                     />
                     <Button
@@ -382,39 +482,43 @@ export default function BotEditPage() {
                       size="small"
                       startIcon={<AddIcon />}
                       onClick={() => {
-                        if (newStyleContent.trim()) {
-                          createStyle.mutate(
+                        if (newBehaviourContent.trim()) {
+                          // Auto-distribute weights equally when adding a new behaviour
+                          const newCount = activeBehaviours.length + 1;
+                          const equalWeight = Math.floor(100 / newCount);
+                          createBehaviour.mutate(
                             {
                               botId: bot.id,
-                              content: newStyleContent.trim(),
-                              title: newStyleTitle.trim() || undefined,
+                              content: newBehaviourContent.trim(),
+                              title: newBehaviourTitle.trim() || undefined,
+                              weight: equalWeight,
                             },
                             {
                               onSuccess: () => {
-                                setNewStyleContent('');
-                                setNewStyleTitle('');
-                                setActiveTab(styleCount);
+                                setNewBehaviourContent('');
+                                setNewBehaviourTitle('');
+                                setActiveTab(behaviourCount);
                               },
                             },
                           );
                         }
                       }}
-                      disabled={!newStyleContent.trim() || createStyle.isPending}
+                      disabled={!newBehaviourContent.trim() || createBehaviour.isPending}
                     >
-                      Add Style
+                      Add Behaviour
                     </Button>
                   </Box>
                 )}
 
-                {styleCount === 0 && !canAddStyle && (
+                {behaviourCount === 0 && !canAddBehaviour && (
                   <Typography variant="body2" color="text.secondary">
-                    No styles configured.
+                    No behaviours configured.
                   </Typography>
                 )}
 
-                {styleCount === 0 && canAddStyle && !isAddTab && (
+                {behaviourCount === 0 && canAddBehaviour && !isAddTab && (
                   <Typography variant="body2" color="text.secondary">
-                    No styles yet. Click the + tab to add one.
+                    No behaviours yet. Click the + tab to add one.
                   </Typography>
                 )}
               </Box>

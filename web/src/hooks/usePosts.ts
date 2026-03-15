@@ -12,8 +12,8 @@ export type Post = {
   rating: number | null;
   flagged: boolean;
   flagReasons: string[];
-  stylePrompt: string | null;
-  styleTitle: string | null;
+  behaviourPrompt: string | null;
+  behaviourTitle: string | null;
   scheduledAt: string | null;
   publishedAt: string | null;
   createdAt: string;

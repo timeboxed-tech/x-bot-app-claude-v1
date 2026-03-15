@@ -4,7 +4,7 @@ import { botService } from '../services/botService.js';
 import { generateTweet } from '../services/aiService.js';
 import { postRepository } from '../repositories/postRepository.js';
 import { botTipRepository } from '../repositories/botTipRepository.js';
-import { botStyleRepository } from '../repositories/botStyleRepository.js';
+import { botBehaviourRepository } from '../repositories/botBehaviourRepository.js';
 import { paginationSchema, uuidSchema } from '../utils/validation.js';
 import { checkAndFlagPost } from '../services/urlValidationService.js';
 
@@ -38,6 +38,19 @@ const updateBotSchema = z.object({
 const botIdParamSchema = z.object({
   id: uuidSchema,
 });
+
+export function selectWeightedBehaviour(
+  behaviours: Array<{ weight: number; [key: string]: any }>,
+): any {
+  const totalWeight = behaviours.reduce((sum, b) => sum + b.weight, 0);
+  if (totalWeight === 0) return behaviours[Math.floor(Math.random() * behaviours.length)];
+  let random = Math.random() * totalWeight;
+  for (const b of behaviours) {
+    random -= b.weight;
+    if (random <= 0) return b;
+  }
+  return behaviours[behaviours.length - 1];
+}
 
 export const botController = {
   async create(req: Request, res: Response, next: NextFunction): Promise<void> {
@@ -111,23 +124,23 @@ export const botController = {
 
       const tips = await botTipRepository.findByBotId(bot.id);
       const tipContents = tips.map((t: { content: string }) => t.content);
-      const styles = await botStyleRepository.findActiveByBotId(bot.id);
+      const behaviours = await botBehaviourRepository.findActiveByBotId(bot.id);
 
       const posts = [];
       for (let i = 0; i < count; i++) {
         const recentPosts = await postRepository.findRecentByBotId(bot.id, 10);
         const recentContents = recentPosts.map((p: { content: string }) => p.content);
-        const selectedStyle =
-          styles.length > 0 ? styles[Math.floor(Math.random() * styles.length)] : null;
+        const selectedBehaviour =
+          behaviours.length > 0 ? selectWeightedBehaviour(behaviours) : null;
         const effectiveSource =
-          selectedStyle?.knowledgeSource && selectedStyle.knowledgeSource !== 'default'
-            ? selectedStyle.knowledgeSource
+          selectedBehaviour?.knowledgeSource && selectedBehaviour.knowledgeSource !== 'default'
+            ? selectedBehaviour.knowledgeSource
             : bot.knowledgeSource;
         const result = await generateTweet(
           bot.prompt,
           tipContents,
           recentContents,
-          selectedStyle?.content,
+          selectedBehaviour?.content,
           effectiveSource === 'ai+web',
         );
         if (result.success) {
@@ -135,8 +148,8 @@ export const botController = {
             botId: bot.id,
             content: result.content,
             status: 'draft',
-            stylePrompt: selectedStyle?.content ?? null,
-            styleTitle: selectedStyle?.title || null,
+            behaviourPrompt: selectedBehaviour?.content ?? null,
+            behaviourTitle: selectedBehaviour?.title || null,
           });
           // Fire-and-forget URL validation — don't block the response
           checkAndFlagPost(post.id).catch(console.error);

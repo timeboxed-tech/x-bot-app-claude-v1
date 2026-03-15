@@ -1,42 +1,44 @@
 import { Request, Response, NextFunction } from 'express';
 import { z } from 'zod';
-import { botStyleService } from '../services/botStyleService.js';
+import { botBehaviourService } from '../services/botBehaviourService.js';
 import { uuidSchema } from '../utils/validation.js';
 
 const botIdParamSchema = z.object({
   id: uuidSchema,
 });
 
-const styleIdParamSchema = z.object({
+const behaviourIdParamSchema = z.object({
   id: uuidSchema,
-  styleId: uuidSchema,
+  behaviourId: uuidSchema,
 });
 
-const createStyleSchema = z.object({
+const createBehaviourSchema = z.object({
   content: z.string().min(1, 'Content must not be empty'),
   title: z.string().optional(),
   knowledgeSource: z.enum(['default', 'ai', 'ai+web']).default('default'),
+  weight: z.number().int().min(0).max(100).optional(),
 });
 
-const updateStyleSchema = z.object({
+const updateBehaviourSchema = z.object({
   content: z.string().min(1, 'Content must not be empty'),
   title: z.string().optional(),
   knowledgeSource: z.enum(['default', 'ai', 'ai+web']).optional(),
+  weight: z.number().int().min(0).max(100).optional(),
 });
 
 const toggleActiveSchema = z.object({
   active: z.boolean(),
 });
 
-export const botStyleController = {
+export const botBehaviourController = {
   async list(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const userId = req.userId!;
       const { id } = botIdParamSchema.parse(req.params);
-      const styles = await botStyleService.list(id, userId);
+      const behaviours = await botBehaviourService.list(id, userId);
 
       res.status(200).json({
-        data: styles,
+        data: behaviours,
       });
     } catch (err) {
       next(err);
@@ -47,11 +49,18 @@ export const botStyleController = {
     try {
       const userId = req.userId!;
       const { id } = botIdParamSchema.parse(req.params);
-      const { content, title, knowledgeSource } = createStyleSchema.parse(req.body);
-      const style = await botStyleService.create(id, userId, content, title, knowledgeSource);
+      const { content, title, knowledgeSource, weight } = createBehaviourSchema.parse(req.body);
+      const behaviour = await botBehaviourService.create(
+        id,
+        userId,
+        content,
+        title,
+        knowledgeSource,
+        weight,
+      );
 
       res.status(201).json({
-        data: style,
+        data: behaviour,
       });
     } catch (err) {
       next(err);
@@ -61,19 +70,20 @@ export const botStyleController = {
   async update(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const userId = req.userId!;
-      const { id, styleId } = styleIdParamSchema.parse(req.params);
-      const { content, title, knowledgeSource } = updateStyleSchema.parse(req.body);
-      const style = await botStyleService.update(
+      const { id, behaviourId } = behaviourIdParamSchema.parse(req.params);
+      const { content, title, knowledgeSource, weight } = updateBehaviourSchema.parse(req.body);
+      const behaviour = await botBehaviourService.update(
         id,
-        styleId,
+        behaviourId,
         userId,
         content,
         title,
         knowledgeSource,
+        weight,
       );
 
       res.status(200).json({
-        data: style,
+        data: behaviour,
       });
     } catch (err) {
       next(err);
@@ -83,8 +93,8 @@ export const botStyleController = {
   async remove(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const userId = req.userId!;
-      const { id, styleId } = styleIdParamSchema.parse(req.params);
-      await botStyleService.remove(id, styleId, userId);
+      const { id, behaviourId } = behaviourIdParamSchema.parse(req.params);
+      await botBehaviourService.remove(id, behaviourId, userId);
 
       res.status(204).send();
     } catch (err) {
@@ -95,12 +105,12 @@ export const botStyleController = {
   async toggleActive(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const userId = req.userId!;
-      const { id, styleId } = styleIdParamSchema.parse(req.params);
+      const { id, behaviourId } = behaviourIdParamSchema.parse(req.params);
       const { active } = toggleActiveSchema.parse(req.body);
-      const style = await botStyleService.toggleActive(id, styleId, userId, active);
+      const behaviour = await botBehaviourService.toggleActive(id, behaviourId, userId, active);
 
       res.status(200).json({
-        data: style,
+        data: behaviour,
       });
     } catch (err) {
       next(err);

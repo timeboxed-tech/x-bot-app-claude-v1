@@ -43,7 +43,7 @@ model Bot {
   jobs      Job[]
   shares    BotShare[]
   tips      BotTip[]
-  styles    BotStyle[]
+  behaviours BotBehaviour[]
   botJudges BotJudge[]
 }
 
@@ -72,8 +72,8 @@ model Post {
   publishedAt DateTime?
   createdAt   DateTime  @default(now())
 
-  stylePrompt String?  @db.Text
-  styleTitle  String?
+  behaviourPrompt String?  @db.Text
+  behaviourTitle  String?
 
   bot     Bot          @relation(fields: [botId], references: [id])
   job     Job?         @relation(fields: [jobId], references: [id])
@@ -92,16 +92,19 @@ model BotTip {
   bot Bot @relation(fields: [botId], references: [id])
 }
 
-model BotStyle {
+model BotBehaviour {
   id        String   @id @default(uuid()) @db.Uuid
   botId     String   @db.Uuid
   title     String   @default("")
   content         String   @db.Text
   knowledgeSource String   @default("default")
+  weight          Int      @default(0)
   active          Boolean  @default(true)
   createdAt       DateTime @default(now())
 
   bot Bot @relation(fields: [botId], references: [id])
+
+  @@map("BotBehaviour")
 }
 
 model Job {

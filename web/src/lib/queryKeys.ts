@@ -7,7 +7,7 @@ export const queryKeys = {
     detail: (id: string) => ['bots', 'detail', id] as const,
     shares: (botId: string) => ['bots', 'shares', botId] as const,
     tips: (botId: string) => ['bots', 'tips', botId] as const,
-    styles: (botId: string) => ['bots', 'styles', botId] as const,
+    behaviours: (botId: string) => ['bots', 'behaviours', botId] as const,
     judges: (botId: string) => ['bots', 'judges', botId] as const,
   },
   posts: {

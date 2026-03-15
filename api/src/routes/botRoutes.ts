@@ -2,7 +2,7 @@ import { Router } from 'express';
 import { botController } from '../controllers/botController.js';
 import { botShareController } from '../controllers/botShareController.js';
 import { botTipController } from '../controllers/botTipController.js';
-import { botStyleController } from '../controllers/botStyleController.js';
+import { botBehaviourController } from '../controllers/botBehaviourController.js';
 import { botJudgeController } from '../controllers/botJudgeController.js';
 import { authMiddleware } from '../middleware/auth.js';
 
@@ -29,12 +29,12 @@ router.get('/:id/tips', botTipController.list);
 router.patch('/:id/tips/:tipId', botTipController.update);
 router.delete('/:id/tips/:tipId', botTipController.remove);
 
-// Style routes
-router.get('/:id/styles', botStyleController.list);
-router.post('/:id/styles', botStyleController.create);
-router.patch('/:id/styles/:styleId', botStyleController.update);
-router.delete('/:id/styles/:styleId', botStyleController.remove);
-router.patch('/:id/styles/:styleId/toggle', botStyleController.toggleActive);
+// Behaviour routes
+router.get('/:id/behaviours', botBehaviourController.list);
+router.post('/:id/behaviours', botBehaviourController.create);
+router.patch('/:id/behaviours/:behaviourId', botBehaviourController.update);
+router.delete('/:id/behaviours/:behaviourId', botBehaviourController.remove);
+router.patch('/:id/behaviours/:behaviourId/toggle', botBehaviourController.toggleActive);
 
 // Judge assignment routes
 router.get('/:id/judges', botJudgeController.list);
