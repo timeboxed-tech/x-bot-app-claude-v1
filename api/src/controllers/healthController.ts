@@ -6,6 +6,7 @@ export const healthController = {
     res.status(200).json({
       status: 'ok',
       version: config.app.version,
+      gitSha: config.app.gitSha,
       timestamp: new Date().toISOString(),
     });
   },
