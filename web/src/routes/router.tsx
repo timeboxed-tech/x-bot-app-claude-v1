@@ -5,8 +5,10 @@ import {
   redirect,
   Outlet,
 } from '@tanstack/react-router';
+import Box from '@mui/material/Box';
 import { QueryClient } from '@tanstack/react-query';
 import { apiClient } from '../lib/apiClient';
+import AppFooter from '../components/AppFooter';
 import LoginPage from '../pages/LoginPage';
 import DashboardPage from '../pages/DashboardPage';
 import PostsPage from '../pages/PostsPage';
@@ -24,8 +26,19 @@ async function checkAuth(): Promise<boolean> {
   }
 }
 
+function RootLayout() {
+  return (
+    <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
+      <Box sx={{ flex: 1 }}>
+        <Outlet />
+      </Box>
+      <AppFooter />
+    </Box>
+  );
+}
+
 const rootRoute = createRootRoute({
-  component: Outlet,
+  component: RootLayout,
 });
 
 const loginRoute = createRoute({

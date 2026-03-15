@@ -125,7 +125,7 @@ export default function BotEditPage() {
                     <TextField
                       fullWidth
                       multiline
-                      minRows={1}
+                      minRows={3}
                       size="small"
                       value={isEditing ? editingStyles[style.id] : style.content}
                       onChange={(e) =>
@@ -180,7 +180,7 @@ export default function BotEditPage() {
                   <TextField
                     fullWidth
                     multiline
-                    minRows={1}
+                    minRows={3}
                     size="small"
                     placeholder="e.g., Write in a witty, sarcastic tone with pop culture references"
                     value={newStyleContent}
