@@ -4,14 +4,14 @@ export const botBehaviourRepository = {
   async findByBotId(botId: string) {
     return prisma.botBehaviour.findMany({
       where: { botId },
-      orderBy: { createdAt: 'desc' },
+      orderBy: { title: 'asc' },
     });
   },
 
   async findActiveByBotId(botId: string) {
     return prisma.botBehaviour.findMany({
       where: { botId, active: true },
-      orderBy: { createdAt: 'desc' },
+      orderBy: { title: 'asc' },
     });
   },
 
