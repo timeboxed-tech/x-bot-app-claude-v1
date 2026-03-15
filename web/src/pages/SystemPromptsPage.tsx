@@ -21,8 +21,15 @@ import Alert from '@mui/material/Alert';
 import CircularProgress from '@mui/material/CircularProgress';
 import IconButton from '@mui/material/IconButton';
 import EditIcon from '@mui/icons-material/Edit';
+import RestoreIcon from '@mui/icons-material/Restore';
+import DialogContentText from '@mui/material/DialogContentText';
+import Tooltip from '@mui/material/Tooltip';
 import AppHeader from '../components/AppHeader';
-import { useSystemPrompts, useUpdateSystemPrompt } from '../hooks/useSystemPrompts';
+import {
+  useSystemPrompts,
+  useUpdateSystemPrompt,
+  useResetSystemPrompt,
+} from '../hooks/useSystemPrompts';
 import type { SystemPrompt } from '../hooks/useSystemPrompts';
 import { useAuth } from '../hooks/useAuth';
 import { AxiosError } from 'axios';
@@ -33,11 +40,15 @@ export default function SystemPromptsPage() {
 
   const { data: prompts, isLoading, error } = useSystemPrompts();
   const updatePrompt = useUpdateSystemPrompt();
+  const resetPrompt = useResetSystemPrompt();
 
   const [editOpen, setEditOpen] = useState(false);
   const [editing, setEditing] = useState<SystemPrompt | null>(null);
   const [editName, setEditName] = useState('');
   const [editContent, setEditContent] = useState('');
+
+  const [resetConfirmOpen, setResetConfirmOpen] = useState(false);
+  const [resettingPrompt, setResettingPrompt] = useState<SystemPrompt | null>(null);
 
   const [snackbar, setSnackbar] = useState<{
     open: boolean;
@@ -78,6 +89,34 @@ export default function SystemPromptsPage() {
         },
       },
     );
+  };
+
+  const handleOpenResetConfirm = (prompt: SystemPrompt) => {
+    setResettingPrompt(prompt);
+    setResetConfirmOpen(true);
+  };
+
+  const handleCloseResetConfirm = () => {
+    setResetConfirmOpen(false);
+    setResettingPrompt(null);
+  };
+
+  const handleReset = () => {
+    if (!resettingPrompt) return;
+
+    resetPrompt.mutate(resettingPrompt.id, {
+      onSuccess: () => {
+        setSnackbar({ open: true, message: 'System prompt reset to default', severity: 'success' });
+        handleCloseResetConfirm();
+      },
+      onError: (err) => {
+        let message = 'Failed to reset system prompt';
+        if (err instanceof AxiosError && err.response?.data?.error) {
+          message = err.response.data.error;
+        }
+        setSnackbar({ open: true, message, severity: 'error' });
+      },
+    });
   };
 
   if (!isAdmin) {
@@ -144,9 +183,16 @@ export default function SystemPromptsPage() {
                     </TableCell>
                     <TableCell>{new Date(prompt.updatedAt).toLocaleDateString()}</TableCell>
                     <TableCell align="right">
-                      <IconButton size="small" onClick={() => handleOpenEdit(prompt)}>
-                        <EditIcon fontSize="small" />
-                      </IconButton>
+                      <Tooltip title="Edit">
+                        <IconButton size="small" onClick={() => handleOpenEdit(prompt)}>
+                          <EditIcon fontSize="small" />
+                        </IconButton>
+                      </Tooltip>
+                      <Tooltip title="Reset to Default">
+                        <IconButton size="small" onClick={() => handleOpenResetConfirm(prompt)}>
+                          <RestoreIcon fontSize="small" />
+                        </IconButton>
+                      </Tooltip>
                     </TableCell>
                   </TableRow>
                 ))}
@@ -192,6 +238,28 @@ export default function SystemPromptsPage() {
               disabled={!editName.trim() || !editContent.trim() || updatePrompt.isPending}
             >
               {updatePrompt.isPending ? 'Saving...' : 'Save'}
+            </Button>
+          </DialogActions>
+        </Dialog>
+
+        {/* Reset Confirmation Dialog */}
+        <Dialog open={resetConfirmOpen} onClose={handleCloseResetConfirm}>
+          <DialogTitle>Reset to Default</DialogTitle>
+          <DialogContent>
+            <DialogContentText>
+              Are you sure you want to reset &quot;{resettingPrompt?.name}&quot; to its default
+              content? This will overwrite any custom changes.
+            </DialogContentText>
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={handleCloseResetConfirm}>Cancel</Button>
+            <Button
+              onClick={handleReset}
+              variant="contained"
+              color="warning"
+              disabled={resetPrompt.isPending}
+            >
+              {resetPrompt.isPending ? 'Resetting...' : 'Reset'}
             </Button>
           </DialogActions>
         </Dialog>

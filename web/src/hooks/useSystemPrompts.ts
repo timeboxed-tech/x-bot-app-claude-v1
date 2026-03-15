@@ -41,3 +41,17 @@ export function useUpdateSystemPrompt() {
     },
   });
 }
+
+export function useResetSystemPrompt() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const response = await apiClient.post<{ data: SystemPrompt }>(`/system-prompts/${id}/reset`);
+      return response.data.data;
+    },
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: queryKeys.systemPrompts.list });
+    },
+  });
+}

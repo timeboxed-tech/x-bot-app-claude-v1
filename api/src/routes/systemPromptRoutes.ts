@@ -8,5 +8,6 @@ router.use(authMiddleware);
 
 router.get('/', systemPromptController.list);
 router.patch('/:id', systemPromptController.update);
+router.post('/:id/reset', systemPromptController.reset);
 
 export default router;

@@ -1,5 +1,6 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { systemPromptRepository } from '../repositories/systemPromptRepository.js';
+import { DEFAULT_SYSTEM_PROMPTS } from '../constants/defaultSystemPrompts.js';
 
 function getClient(): Anthropic | null {
   const apiKey = process.env.ANTHROPIC_API_KEY;
@@ -7,7 +8,7 @@ function getClient(): Anthropic | null {
   return new Anthropic({ apiKey });
 }
 
-const FALLBACK_JUDGE_TEMPLATE = `You are {name}. {personalityPrompt}. \nReview the following tweet draft. Evaluate it on the following criteria:\n1. Originality — does it feel repetitive compared to recent posts?\n2. Timeliness & Relevance — does the post reference current events, recent news, or up-to-date facts? Flag any references to outdated news, old events, deprecated technologies, or information that is no longer accurate. A post that presents stale information as if it were new should be scored lower.\n3. AI Transparency — if any sentence describes the research process, explains why the topic was chosen, or reveals how the post was generated (e.g. "I found this interesting because...", "After researching...", "This caught my attention..."), heavily mark down the post. This is a clear sign of AI generation and should result in a very low score.\nIf timeliness is a concern, explicitly mention it in your opinion (e.g. "This references news from [date/period] which is no longer timely").\nProvide a concise opinion (2-3 sentences max) and rate it 1-5.\nFormat your response as: your opinion text, then on a new line exactly "Rating: X/5"`;
+const FALLBACK_JUDGE_TEMPLATE = DEFAULT_SYSTEM_PROMPTS['judge_review'];
 
 // Simple in-memory cache with 5-minute TTL
 const promptCache = new Map<string, { content: string; expiresAt: number }>();

@@ -4,6 +4,7 @@ import { systemPromptRepository } from '../repositories/systemPromptRepository.j
 import { userRepository } from '../repositories/userRepository.js';
 import { uuidSchema } from '../utils/validation.js';
 import { ForbiddenError, NotFoundError } from '../utils/errors.js';
+import { DEFAULT_SYSTEM_PROMPTS } from '../constants/defaultSystemPrompts.js';
 
 const idParamSchema = z.object({
   id: uuidSchema,
@@ -49,6 +50,31 @@ export const systemPromptController = {
       }
 
       const prompt = await systemPromptRepository.update(id, body);
+      res.status(200).json({ data: prompt });
+    } catch (err) {
+      next(err);
+    }
+  },
+
+  async reset(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const userId = req.userId!;
+      await assertAdmin(userId);
+
+      const { id } = idParamSchema.parse(req.params);
+
+      const existing = await systemPromptRepository.findAll();
+      const found = existing.find((p) => p.id === id);
+      if (!found) {
+        throw new NotFoundError('System prompt not found');
+      }
+
+      const defaultContent = DEFAULT_SYSTEM_PROMPTS[found.key];
+      if (!defaultContent) {
+        throw new NotFoundError('No default content available for this prompt key');
+      }
+
+      const prompt = await systemPromptRepository.update(id, { content: defaultContent });
       res.status(200).json({ data: prompt });
     } catch (err) {
       next(err);

@@ -1,5 +1,6 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { systemPromptRepository } from '../repositories/systemPromptRepository.js';
+import { DEFAULT_SYSTEM_PROMPTS } from '../constants/defaultSystemPrompts.js';
 
 type GenerateTweetResult = {
   content: string;
@@ -7,26 +8,9 @@ type GenerateTweetResult = {
   error?: string;
 };
 
-const FALLBACK_SYSTEM_PROMPT = `You are a social media expert and skilled copywriter. Given a user's prompt, research and consider relevant topics, trends, and context, then draft a single tweet.
-
-Rules:
-- The tweet MUST be under 280 characters
-- Make it engaging, authentic-sounding, and conversational
-- Do not use hashtags excessively — one or two at most
-- Do not include quotation marks around the tweet
-- Output ONLY the tweet text, nothing else`;
-
-const FALLBACK_TWEAK_SYSTEM_PROMPT = `You are a collaborative social media editor helping refine a tweet. Have a natural conversation with the user — explain your changes, ask clarifying questions, suggest alternatives, and be a helpful creative partner.
-
-IMPORTANT: Always end your response with the revised tweet on its own line after the marker "---TWEET---". The tweet must be under 280 characters.
-
-Example format:
-Great idea to make it punchier! I shortened the opening and added a hook question at the end. Want me to try a different angle?
-
----TWEET---
-The actual revised tweet text here`;
-
-const FALLBACK_TIPS_SYSTEM_PROMPT = `Analyze this conversation where a user refined a tweet draft. Extract 1-3 concise tips/preferences that should guide future tweet generation for this account. Each tip should be a single sentence. Output only the tips, one per line.`;
+const FALLBACK_SYSTEM_PROMPT = DEFAULT_SYSTEM_PROMPTS['tweet_generation'];
+const FALLBACK_TWEAK_SYSTEM_PROMPT = DEFAULT_SYSTEM_PROMPTS['tweet_tweak'];
+const FALLBACK_TIPS_SYSTEM_PROMPT = DEFAULT_SYSTEM_PROMPTS['tip_extraction'];
 
 // Simple in-memory cache with 5-minute TTL
 const promptCache = new Map<string, { content: string; expiresAt: number }>();
