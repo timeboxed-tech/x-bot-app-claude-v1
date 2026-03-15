@@ -9,6 +9,7 @@ export const config = {
   },
   app: {
     version: process.env.APP_VERSION || '0.1.0',
+    gitSha: process.env.GIT_SHA || 'dev',
     baseUrl: process.env.API_BASE_URL || 'http://localhost:3001',
     frontendUrl: process.env.FRONTEND_URL || 'http://localhost:3000',
   },
