@@ -52,7 +52,7 @@ export const userRepository = {
       prisma.user.findMany({
         where,
         select: userSelect,
-        orderBy: { createdAt: 'desc' },
+        orderBy: { name: 'asc' },
         skip: (page - 1) * pageSize,
         take: pageSize,
       }),

@@ -6,7 +6,7 @@ type TxClient = Prisma.TransactionClient;
 export const judgeRepository = {
   async findAll() {
     return prisma.judge.findMany({
-      orderBy: { createdAt: 'asc' },
+      orderBy: { name: 'asc' },
     });
   },
 

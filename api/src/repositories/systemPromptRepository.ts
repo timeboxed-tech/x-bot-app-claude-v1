@@ -3,7 +3,7 @@ import { prisma } from '../utils/prisma.js';
 export const systemPromptRepository = {
   async findAll() {
     return prisma.systemPrompt.findMany({
-      orderBy: { createdAt: 'asc' },
+      orderBy: { name: 'asc' },
     });
   },
 
