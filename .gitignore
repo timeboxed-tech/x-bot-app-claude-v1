@@ -11,3 +11,4 @@ coverage/
 api/src/generated/
 web/playwright-report/
 web/test-results/
+api/GIT_SHA
