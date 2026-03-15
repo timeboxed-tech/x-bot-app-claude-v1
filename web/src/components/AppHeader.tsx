@@ -8,6 +8,7 @@ import Menu from '@mui/material/Menu';
 import MenuItem from '@mui/material/MenuItem';
 import { Link, useNavigate } from '@tanstack/react-router';
 import { useAuth, useLogoutMutation } from '../hooks/useAuth';
+import { tokens } from '../../../shared/theme/tokens';
 
 export default function AppHeader() {
   const { user } = useAuth();
@@ -39,9 +40,14 @@ export default function AppHeader() {
   };
 
   return (
-    <AppBar position="static">
+    <AppBar
+      position="static"
+      sx={{
+        background: `linear-gradient(90deg, ${tokens.colors.primary}, ${tokens.colors.secondary})`,
+      }}
+    >
       <Toolbar>
-        <Typography variant="h6" component="div" sx={{ mr: 2 }}>
+        <Typography variant="h6" component="div" sx={{ mr: 2, color: 'white' }}>
           EHE Signal
         </Typography>
         {user && (
@@ -76,7 +82,9 @@ export default function AppHeader() {
               )}
             </Box>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-              <Typography variant="body2">{user.email}</Typography>
+              <Typography variant="body2" sx={{ color: 'white' }}>
+                {user.email}
+              </Typography>
               <Button color="inherit" onClick={handleLogout} disabled={logoutMutation.isPending}>
                 Logout
               </Button>
