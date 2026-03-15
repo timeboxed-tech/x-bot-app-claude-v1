@@ -106,7 +106,7 @@ export const botController = {
 
       const tips = await botTipRepository.findByBotId(bot.id);
       const tipContents = tips.map((t: { content: string }) => t.content);
-      const styles = await botStyleRepository.findByBotId(bot.id);
+      const styles = await botStyleRepository.findActiveByBotId(bot.id);
 
       const posts = [];
       for (let i = 0; i < count; i++) {

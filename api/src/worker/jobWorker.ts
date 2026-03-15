@@ -139,7 +139,7 @@ async function processJobs(): Promise<void> {
 
         const tips = await botTipRepository.findByBotId(bot.id);
         const recentPosts = await postRepository.findRecentByBotId(bot.id, 10);
-        const styles = await botStyleRepository.findByBotId(bot.id);
+        const styles = await botStyleRepository.findActiveByBotId(bot.id);
         const selectedStyle =
           styles.length > 0 ? styles[Math.floor(Math.random() * styles.length)] : null;
 

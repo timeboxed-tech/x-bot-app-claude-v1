@@ -20,6 +20,10 @@ const updateStyleSchema = z.object({
   content: z.string().min(1, 'Content must not be empty'),
 });
 
+const toggleActiveSchema = z.object({
+  active: z.boolean(),
+});
+
 export const botStyleController = {
   async list(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
@@ -72,6 +76,21 @@ export const botStyleController = {
       await botStyleService.remove(id, styleId, userId);
 
       res.status(204).send();
+    } catch (err) {
+      next(err);
+    }
+  },
+
+  async toggleActive(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const userId = req.userId!;
+      const { id, styleId } = styleIdParamSchema.parse(req.params);
+      const { active } = toggleActiveSchema.parse(req.body);
+      const style = await botStyleService.toggleActive(id, styleId, userId, active);
+
+      res.status(200).json({
+        data: style,
+      });
     } catch (err) {
       next(err);
     }

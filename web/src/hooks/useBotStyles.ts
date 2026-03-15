@@ -6,6 +6,7 @@ export type BotStyle = {
   id: string;
   botId: string;
   content: string;
+  active: boolean;
   createdAt: string;
 };
 
@@ -75,6 +76,33 @@ export function useDeleteBotStyle() {
   return useMutation({
     mutationFn: async ({ botId, styleId }: { botId: string; styleId: string }) => {
       await apiClient.delete(`/bots/${botId}/styles/${styleId}`);
+    },
+    onSuccess: (_data, variables) => {
+      void queryClient.invalidateQueries({
+        queryKey: queryKeys.bots.styles(variables.botId),
+      });
+    },
+  });
+}
+
+export function useToggleBotStyle() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({
+      botId,
+      styleId,
+      active,
+    }: {
+      botId: string;
+      styleId: string;
+      active: boolean;
+    }) => {
+      const response = await apiClient.patch<{ data: BotStyle }>(
+        `/bots/${botId}/styles/${styleId}/toggle`,
+        { active },
+      );
+      return response.data.data;
     },
     onSuccess: (_data, variables) => {
       void queryClient.invalidateQueries({

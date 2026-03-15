@@ -8,15 +8,22 @@ export const botStyleRepository = {
     });
   },
 
+  async findActiveByBotId(botId: string) {
+    return prisma.botStyle.findMany({
+      where: { botId, active: true },
+      orderBy: { createdAt: 'desc' },
+    });
+  },
+
   async findById(id: string) {
     return prisma.botStyle.findUnique({
       where: { id },
     });
   },
 
-  async create(botId: string, content: string) {
+  async create(botId: string, content: string, active?: boolean) {
     return prisma.botStyle.create({
-      data: { botId, content },
+      data: { botId, content, ...(active !== undefined ? { active } : {}) },
     });
   },
 
@@ -35,5 +42,12 @@ export const botStyleRepository = {
 
   async countByBotId(botId: string) {
     return prisma.botStyle.count({ where: { botId } });
+  },
+
+  async toggleActive(id: string, active: boolean) {
+    return prisma.botStyle.update({
+      where: { id },
+      data: { active },
+    });
   },
 };

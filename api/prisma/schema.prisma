@@ -91,6 +91,7 @@ model BotStyle {
   id        String   @id @default(uuid()) @db.Uuid
   botId     String   @db.Uuid
   content   String   @db.Text
+  active    Boolean  @default(true)
   createdAt DateTime @default(now())
 
   bot Bot @relation(fields: [botId], references: [id])

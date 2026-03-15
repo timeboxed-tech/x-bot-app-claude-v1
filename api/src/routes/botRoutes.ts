@@ -34,6 +34,7 @@ router.get('/:id/styles', botStyleController.list);
 router.post('/:id/styles', botStyleController.create);
 router.patch('/:id/styles/:styleId', botStyleController.update);
 router.delete('/:id/styles/:styleId', botStyleController.remove);
+router.patch('/:id/styles/:styleId/toggle', botStyleController.toggleActive);
 
 // Judge assignment routes
 router.get('/:id/judges', botJudgeController.list);

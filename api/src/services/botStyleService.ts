@@ -56,4 +56,15 @@ export const botStyleService = {
 
     await botStyleRepository.delete(styleId);
   },
+
+  async toggleActive(botId: string, styleId: string, userId: string, active: boolean) {
+    await assertBotAccess(botId, userId);
+
+    const style = await botStyleRepository.findById(styleId);
+    if (!style || style.botId !== botId) {
+      throw new NotFoundError('Style not found');
+    }
+
+    return botStyleRepository.toggleActive(styleId, active);
+  },
 };

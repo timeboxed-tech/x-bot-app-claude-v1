@@ -3,9 +3,12 @@ import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
 import CircularProgress from '@mui/material/CircularProgress';
 import Container from '@mui/material/Container';
-import IconButton from '@mui/material/IconButton';
+import Switch from '@mui/material/Switch';
+import Tab from '@mui/material/Tab';
+import Tabs from '@mui/material/Tabs';
 import TextField from '@mui/material/TextField';
 import Typography from '@mui/material/Typography';
+import FormControlLabel from '@mui/material/FormControlLabel';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import DeleteIcon from '@mui/icons-material/Delete';
 import SaveIcon from '@mui/icons-material/Save';
@@ -18,6 +21,7 @@ import {
   useCreateBotStyle,
   useUpdateBotStyle,
   useDeleteBotStyle,
+  useToggleBotStyle,
 } from '../hooks/useBotStyles';
 import { useNavigate, useParams } from '@tanstack/react-router';
 
@@ -30,8 +34,10 @@ export default function BotEditPage() {
   const createStyle = useCreateBotStyle();
   const updateStyle = useUpdateBotStyle();
   const deleteStyle = useDeleteBotStyle();
+  const toggleStyle = useToggleBotStyle();
   const [newStyleContent, setNewStyleContent] = useState('');
   const [editingStyles, setEditingStyles] = useState<Record<string, string>>({});
+  const [activeTab, setActiveTab] = useState(0);
 
   const bot = bots.find((b) => b.id === botId);
 
@@ -62,6 +68,18 @@ export default function BotEditPage() {
         </Container>
       </>
     );
+  }
+
+  const styleCount = styles?.length ?? 0;
+  const canAddStyle = styleCount < 5;
+  // The "add new" tab is at index === styleCount (after all style tabs)
+  const isAddTab = activeTab === styleCount;
+
+  function getTabLabel(style: { content: string; active: boolean }, index: number) {
+    const prefix = `Style ${index + 1}`;
+    const preview = style.content.length > 20 ? style.content.slice(0, 20) + '...' : style.content;
+    const label = preview || prefix;
+    return style.active ? label : `(off) ${label}`;
   }
 
   return (
@@ -107,107 +125,190 @@ export default function BotEditPage() {
 
         <Box sx={{ mt: 4 }}>
           <Typography variant="h6" gutterBottom>
-            Style Prompts ({styles?.length ?? 0}/5)
+            Style Prompts ({styleCount}/5)
           </Typography>
           <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-            Add style prompts to vary how posts are generated. A random style will be applied to
-            each new post.
+            Add style prompts to vary how posts are generated. A random active style will be applied
+            to each new post.
           </Typography>
 
           {stylesLoading ? (
             <CircularProgress size={24} />
           ) : (
-            <>
-              {styles?.map((style) => {
-                const isEditing = editingStyles[style.id] !== undefined;
-                return (
-                  <Box key={style.id} sx={{ display: 'flex', gap: 1, mb: 1, alignItems: 'start' }}>
+            <Box sx={{ border: 1, borderColor: 'divider', borderRadius: 1 }}>
+              <Tabs
+                value={activeTab}
+                onChange={(_e, newValue: number) => setActiveTab(newValue)}
+                variant="scrollable"
+                scrollButtons="auto"
+              >
+                {styles?.map((style, index) => (
+                  <Tab
+                    key={style.id}
+                    label={getTabLabel(style, index)}
+                    sx={{
+                      opacity: style.active ? 1 : 0.5,
+                      textTransform: 'none',
+                    }}
+                  />
+                ))}
+                {canAddStyle && (
+                  <Tab
+                    icon={<AddIcon />}
+                    iconPosition="start"
+                    label="Add"
+                    sx={{ textTransform: 'none' }}
+                  />
+                )}
+              </Tabs>
+
+              <Box sx={{ p: 2 }}>
+                {styles?.map((style, index) => {
+                  if (index !== activeTab) return null;
+                  const isEditing = editingStyles[style.id] !== undefined;
+                  return (
+                    <Box key={style.id}>
+                      <TextField
+                        fullWidth
+                        multiline
+                        minRows={3}
+                        size="small"
+                        value={isEditing ? editingStyles[style.id] : style.content}
+                        onChange={(e) =>
+                          setEditingStyles((prev) => ({ ...prev, [style.id]: e.target.value }))
+                        }
+                        onFocus={() => {
+                          if (!isEditing) {
+                            setEditingStyles((prev) => ({ ...prev, [style.id]: style.content }));
+                          }
+                        }}
+                        sx={{ mb: 2 }}
+                      />
+                      <Box
+                        sx={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                        }}
+                      >
+                        <FormControlLabel
+                          control={
+                            <Switch
+                              checked={style.active}
+                              onChange={(e) =>
+                                toggleStyle.mutate({
+                                  botId: bot.id,
+                                  styleId: style.id,
+                                  active: e.target.checked,
+                                })
+                              }
+                              disabled={toggleStyle.isPending}
+                            />
+                          }
+                          label={style.active ? 'Active' : 'Inactive'}
+                        />
+                        <Box sx={{ display: 'flex', gap: 1 }}>
+                          {isEditing && (
+                            <Button
+                              variant="contained"
+                              size="small"
+                              startIcon={<SaveIcon />}
+                              onClick={() => {
+                                const content = editingStyles[style.id];
+                                if (content && content.trim()) {
+                                  updateStyle.mutate(
+                                    { botId: bot.id, styleId: style.id, content: content.trim() },
+                                    {
+                                      onSuccess: () => {
+                                        setEditingStyles((prev) => {
+                                          const next = { ...prev };
+                                          delete next[style.id];
+                                          return next;
+                                        });
+                                      },
+                                    },
+                                  );
+                                }
+                              }}
+                              disabled={updateStyle.isPending}
+                            >
+                              Save
+                            </Button>
+                          )}
+                          <Button
+                            variant="outlined"
+                            size="small"
+                            color="error"
+                            startIcon={<DeleteIcon />}
+                            onClick={() => {
+                              deleteStyle.mutate(
+                                { botId: bot.id, styleId: style.id },
+                                {
+                                  onSuccess: () => {
+                                    setActiveTab((prev) => Math.max(0, prev - 1));
+                                  },
+                                },
+                              );
+                            }}
+                            disabled={deleteStyle.isPending}
+                          >
+                            Delete
+                          </Button>
+                        </Box>
+                      </Box>
+                    </Box>
+                  );
+                })}
+
+                {canAddStyle && isAddTab && (
+                  <Box>
                     <TextField
                       fullWidth
                       multiline
                       minRows={3}
                       size="small"
-                      value={isEditing ? editingStyles[style.id] : style.content}
-                      onChange={(e) =>
-                        setEditingStyles((prev) => ({ ...prev, [style.id]: e.target.value }))
-                      }
-                      onFocus={() => {
-                        if (!isEditing) {
-                          setEditingStyles((prev) => ({ ...prev, [style.id]: style.content }));
+                      placeholder="e.g., Write in a witty, sarcastic tone with pop culture references"
+                      value={newStyleContent}
+                      onChange={(e) => setNewStyleContent(e.target.value)}
+                      sx={{ mb: 2 }}
+                    />
+                    <Button
+                      variant="contained"
+                      size="small"
+                      startIcon={<AddIcon />}
+                      onClick={() => {
+                        if (newStyleContent.trim()) {
+                          createStyle.mutate(
+                            { botId: bot.id, content: newStyleContent.trim() },
+                            {
+                              onSuccess: () => {
+                                setNewStyleContent('');
+                                setActiveTab(styleCount);
+                              },
+                            },
+                          );
                         }
                       }}
-                    />
-                    {isEditing && (
-                      <IconButton
-                        size="small"
-                        color="primary"
-                        onClick={() => {
-                          const content = editingStyles[style.id];
-                          if (content && content.trim()) {
-                            updateStyle.mutate(
-                              { botId: bot.id, styleId: style.id, content: content.trim() },
-                              {
-                                onSuccess: () => {
-                                  setEditingStyles((prev) => {
-                                    const next = { ...prev };
-                                    delete next[style.id];
-                                    return next;
-                                  });
-                                },
-                              },
-                            );
-                          }
-                        }}
-                        disabled={updateStyle.isPending}
-                      >
-                        <SaveIcon fontSize="small" />
-                      </IconButton>
-                    )}
-                    <IconButton
-                      size="small"
-                      color="error"
-                      onClick={() => deleteStyle.mutate({ botId: bot.id, styleId: style.id })}
-                      disabled={deleteStyle.isPending}
+                      disabled={!newStyleContent.trim() || createStyle.isPending}
                     >
-                      <DeleteIcon fontSize="small" />
-                    </IconButton>
+                      Add Style
+                    </Button>
                   </Box>
-                );
-              })}
+                )}
 
-              {(styles?.length ?? 0) < 5 && (
-                <Box sx={{ display: 'flex', gap: 1, mt: 1 }}>
-                  <TextField
-                    fullWidth
-                    multiline
-                    minRows={3}
-                    size="small"
-                    placeholder="e.g., Write in a witty, sarcastic tone with pop culture references"
-                    value={newStyleContent}
-                    onChange={(e) => setNewStyleContent(e.target.value)}
-                  />
-                  <Button
-                    variant="outlined"
-                    size="small"
-                    startIcon={<AddIcon />}
-                    onClick={() => {
-                      if (newStyleContent.trim()) {
-                        createStyle.mutate(
-                          { botId: bot.id, content: newStyleContent.trim() },
-                          {
-                            onSuccess: () => setNewStyleContent(''),
-                          },
-                        );
-                      }
-                    }}
-                    disabled={!newStyleContent.trim() || createStyle.isPending}
-                    sx={{ whiteSpace: 'nowrap' }}
-                  >
-                    Add
-                  </Button>
-                </Box>
-              )}
-            </>
+                {styleCount === 0 && !canAddStyle && (
+                  <Typography variant="body2" color="text.secondary">
+                    No styles configured.
+                  </Typography>
+                )}
+
+                {styleCount === 0 && canAddStyle && !isAddTab && (
+                  <Typography variant="body2" color="text.secondary">
+                    No styles yet. Click the + tab to add one.
+                  </Typography>
+                )}
+              </Box>
+            </Box>
           )}
         </Box>
       </Container>
