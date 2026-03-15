@@ -71,7 +71,7 @@ async function main() {
 
   const job1 = await prisma.job.create({
     data: {
-      botId: bot1.id,
+      type: 'draft',
       status: 'completed',
       scheduledAt: oneHourAgo,
       startedAt: oneHourAgo,
@@ -81,7 +81,7 @@ async function main() {
 
   const job2 = await prisma.job.create({
     data: {
-      botId: bot1.id,
+      type: 'draft',
       status: 'pending',
       scheduledAt: oneHourFromNow,
     },
@@ -89,7 +89,7 @@ async function main() {
 
   const job3 = await prisma.job.create({
     data: {
-      botId: bot2.id,
+      type: 'publish',
       status: 'pending',
       scheduledAt: twoHoursFromNow,
     },

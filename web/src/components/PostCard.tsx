@@ -25,8 +25,9 @@ import {
   type PostReview,
 } from '../hooks/useJudges';
 
-const statusColors: Record<PostStatus, 'default' | 'info' | 'success' | 'error'> = {
+const statusColors: Record<PostStatus, 'default' | 'info' | 'success' | 'error' | 'warning'> = {
   draft: 'default',
+  approved: 'warning',
   scheduled: 'info',
   published: 'success',
   discarded: 'error',
@@ -181,7 +182,10 @@ export default function PostCard({ post }: PostCardProps) {
   };
 
   const ratingEnabled =
-    post.status === 'draft' || post.status === 'scheduled' || post.status === 'published';
+    post.status === 'draft' ||
+    post.status === 'approved' ||
+    post.status === 'scheduled' ||
+    post.status === 'published';
 
   return (
     <Card sx={{ mb: 2 }}>
@@ -307,6 +311,16 @@ export default function PostCard({ post }: PostCardProps) {
                   Discard
                 </Button>
               </>
+            )}
+            {post.status === 'approved' && (
+              <Button
+                size="small"
+                color="error"
+                onClick={handleDiscard}
+                disabled={updatePost.isPending}
+              >
+                Discard
+              </Button>
             )}
             {post.status === 'scheduled' && (
               <Button

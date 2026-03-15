@@ -21,6 +21,11 @@ import { usePosts, useDeleteAllDiscarded } from '../hooks/usePosts';
 const TAB_CONFIG = [
   { label: 'Drafts', status: 'draft', emptyMessage: 'No drafts yet' },
   {
+    label: 'Approved',
+    status: 'approved',
+    emptyMessage: 'No approved posts',
+  },
+  {
     label: 'Scheduled',
     status: 'scheduled',
     emptyMessage: 'No scheduled posts',

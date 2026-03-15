@@ -1,6 +1,6 @@
 export type LogEntry = {
   timestamp: string;
-  worker: 'jobWorker' | 'postPublisher' | 'staleLockRecovery';
+  worker: 'dispatcher' | 'draft' | 'publish' | 'cleanup' | 'staleLockRecovery';
   message: string;
   level: 'info' | 'warn' | 'error';
 };

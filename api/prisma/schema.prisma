@@ -109,7 +109,8 @@ model BotBehaviour {
 
 model Job {
   id          String    @id @default(uuid()) @db.Uuid
-  botId       String    @db.Uuid
+  type        String    @default("draft")
+  botId       String?   @db.Uuid
   status      String    @default("pending")
   lockToken   String?   @db.Uuid
   lockedAt    DateTime?
@@ -119,10 +120,10 @@ model Job {
   error       String?   @db.Text
   createdAt   DateTime  @default(now())
 
-  bot   Bot    @relation(fields: [botId], references: [id])
+  bot   Bot?   @relation(fields: [botId], references: [id])
   posts Post[]
 
-  @@index([status, scheduledAt])
+  @@index([type, status, scheduledAt])
   @@index([status, lockedAt])
 }
 

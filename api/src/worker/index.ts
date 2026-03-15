@@ -1,6 +1,5 @@
-import * as jobWorker from './jobWorker.js';
+import * as jobDispatcher from './jobDispatcher.js';
 import * as staleLockRecovery from './staleLockRecovery.js';
-import * as postPublisher from './postPublisher.js';
 
 let isShuttingDown = false;
 
@@ -13,9 +12,8 @@ function shutdown(signal: string): void {
   isShuttingDown = true;
   console.log(`[worker] Received ${signal}. Shutting down gracefully...`);
 
-  jobWorker.stop();
+  jobDispatcher.stop();
   staleLockRecovery.stop();
-  postPublisher.stop();
 
   // Allow a short window for in-flight work to finish
   setTimeout(() => {
@@ -38,8 +36,7 @@ process.on('unhandledRejection', (reason) => {
 
 console.log('[worker] Starting worker processes...');
 
-jobWorker.start();
+jobDispatcher.start();
 staleLockRecovery.start();
-postPublisher.start();
 
 console.log('[worker] All worker processes started');

@@ -21,11 +21,8 @@ import TableRow from '@mui/material/TableRow';
 import Typography from '@mui/material/Typography';
 import CloseIcon from '@mui/icons-material/Close';
 import Button from '@mui/material/Button';
-import FormControlLabel from '@mui/material/FormControlLabel';
-import Switch from '@mui/material/Switch';
 import CancelIcon from '@mui/icons-material/Cancel';
 import AppHeader from '../components/AppHeader';
-import { useAuth } from '../hooks/useAuth';
 import { useJobQueue, useCancelJob } from '../hooks/useJobQueue';
 
 function formatRelativeTime(dateStr: string | null): string {
@@ -108,16 +105,22 @@ function StatCard({
 
 const statusChipColors: Record<string, 'default' | 'info' | 'success' | 'error' | 'warning'> = {
   pending: 'default',
-  locked: 'info',
+  running: 'info',
   completed: 'success',
   failed: 'error',
   cancelled: 'warning',
 };
 
+const typeChipColors: Record<string, 'default' | 'primary' | 'secondary' | 'info'> = {
+  draft: 'primary',
+  publish: 'secondary',
+  cleanup: 'default',
+};
+
 type JobDetail = {
   id: string;
-  botId: string;
-  botHandle: string;
+  type: string;
+  botId: string | null;
   status: string;
   scheduledAt: string;
   startedAt?: string | null;
@@ -131,7 +134,7 @@ function JobDetailDialog({ job, onClose }: { job: JobDetail | null; onClose: () 
 
   const rows: { label: string; value: string }[] = [
     { label: 'Job ID', value: job.id },
-    { label: 'Bot', value: job.botHandle || job.botId },
+    { label: 'Type', value: job.type },
     { label: 'Status', value: job.status },
     { label: 'Scheduled At', value: new Date(job.scheduledAt).toLocaleString() },
     { label: 'Created At', value: new Date(job.createdAt).toLocaleString() },
@@ -154,6 +157,7 @@ function JobDetailDialog({ job, onClose }: { job: JobDetail | null; onClose: () 
       <DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
           Job Details
+          <Chip label={job.type} color={typeChipColors[job.type] ?? 'default'} size="small" />
           <Chip label={job.status} color={statusChipColors[job.status] ?? 'default'} size="small" />
         </Box>
         <IconButton onClick={onClose} size="small">
@@ -212,10 +216,10 @@ function JobDetailDialog({ job, onClose }: { job: JobDetail | null; onClose: () 
   );
 }
 
+const JOB_TYPES = ['draft', 'publish', 'cleanup'] as const;
+
 export default function JobQueuePage() {
-  const { user } = useAuth();
-  const [showAll, setShowAll] = useState(false);
-  const { data, isLoading, error } = useJobQueue(showAll);
+  const { data, isLoading, error } = useJobQueue();
   const cancelJob = useCancelJob();
   const [selectedJob, setSelectedJob] = useState<JobDetail | null>(null);
 
@@ -243,120 +247,120 @@ export default function JobQueuePage() {
 
   if (!data) return null;
 
+  // Find pending jobs from recent jobs list for cancel actions
+  const pendingJobs = data.recentJobs.filter((j) => j.status === 'pending');
+
   return (
     <>
       <AppHeader />
       <Container maxWidth="lg" sx={{ mt: 4 }}>
         {/* Header */}
         <Box sx={{ mb: 3 }}>
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <Typography variant="h4" gutterBottom sx={{ mb: 0 }}>
-              Job Queue
-            </Typography>
-            {user?.isAdmin && (
-              <FormControlLabel
-                control={
-                  <Switch checked={showAll} onChange={(e) => setShowAll(e.target.checked)} />
-                }
-                label="Show all bots"
-              />
-            )}
-          </Box>
-          <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-            Last completed: {formatRelativeTime(data.lastCompletedAt)} | Next scheduled:{' '}
-            {formatRelativeTime(data.nextScheduledAt)}
+          <Typography variant="h4" gutterBottom sx={{ mb: 0 }}>
+            Job Queue
+          </Typography>
+          <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+            Auto-refreshes every 60 seconds
           </Typography>
         </Box>
 
-        {/* Job Counts */}
+        {/* Job Type Schedule */}
         <Typography variant="h6" gutterBottom>
-          Job Counts
-        </Typography>
-        <Grid container spacing={2} sx={{ mb: 3 }}>
-          <Grid item xs={6} sm={3}>
-            <StatCard title="Pending" value={data.jobCounts.pending} />
-          </Grid>
-          <Grid item xs={6} sm={3}>
-            <StatCard title="Locked" value={data.jobCounts.locked} color="info" />
-          </Grid>
-          <Grid item xs={6} sm={3}>
-            <StatCard title="Completed" value={data.jobCounts.completed} color="success" />
-          </Grid>
-          <Grid item xs={6} sm={3}>
-            <StatCard title="Failed" value={data.jobCounts.failed} color="error" />
-          </Grid>
-          {data.jobCounts.cancelled > 0 && (
-            <Grid item xs={6} sm={3}>
-              <StatCard title="Cancelled" value={data.jobCounts.cancelled} color="warning" />
-            </Grid>
-          )}
-        </Grid>
-
-        {/* Post Counts */}
-        <Typography variant="h6" gutterBottom>
-          Post Counts
-        </Typography>
-        <Grid container spacing={2} sx={{ mb: 3 }}>
-          <Grid item xs={6} sm={3}>
-            <StatCard title="Draft" value={data.postCounts.draft} />
-          </Grid>
-          <Grid item xs={6} sm={3}>
-            <StatCard title="Scheduled" value={data.postCounts.scheduled} color="info" />
-          </Grid>
-          <Grid item xs={6} sm={3}>
-            <StatCard title="Published" value={data.postCounts.published} color="success" />
-          </Grid>
-          <Grid item xs={6} sm={3}>
-            <StatCard title="Discarded" value={data.postCounts.discarded} color="error" />
-          </Grid>
-        </Grid>
-
-        {/* Upcoming Jobs */}
-        <Typography variant="h6" gutterBottom>
-          Upcoming Jobs
+          Job Schedule
         </Typography>
         <TableContainer component={Paper} sx={{ mb: 3 }}>
           <Table size="small">
             <TableHead>
               <TableRow>
-                <TableCell>Bot</TableCell>
-                <TableCell>Scheduled At</TableCell>
-                <TableCell>Created At</TableCell>
-                <TableCell align="right">Actions</TableCell>
+                <TableCell>Job Type</TableCell>
+                <TableCell>Last Run</TableCell>
+                <TableCell>Next Run</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
-              {data.upcomingJobs.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={4} align="center">
-                    <Typography variant="body2" color="text.secondary" sx={{ py: 2 }}>
-                      No upcoming jobs
-                    </Typography>
+              {JOB_TYPES.map((type) => (
+                <TableRow key={type}>
+                  <TableCell>
+                    <Chip label={type} color={typeChipColors[type] ?? 'default'} size="small" />
                   </TableCell>
+                  <TableCell>
+                    {formatRelativeTime(data.lastCompletedByType[type] ?? null)}
+                  </TableCell>
+                  <TableCell>{formatRelativeTime(data.nextPendingByType[type] ?? null)}</TableCell>
                 </TableRow>
-              ) : (
-                data.upcomingJobs.map((job) => (
-                  <TableRow key={job.id}>
-                    <TableCell>{job.botHandle || '-'}</TableCell>
-                    <TableCell>{new Date(job.scheduledAt).toLocaleString()}</TableCell>
-                    <TableCell>{new Date(job.createdAt).toLocaleString()}</TableCell>
-                    <TableCell align="right">
-                      <Button
-                        size="small"
-                        color="warning"
-                        startIcon={<CancelIcon />}
-                        onClick={() => cancelJob.mutate(job.id)}
-                        disabled={cancelJob.isPending}
-                      >
-                        Cancel
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                ))
-              )}
+              ))}
             </TableBody>
           </Table>
         </TableContainer>
+
+        {/* Job Counts (last 24h) */}
+        <Typography variant="h6" gutterBottom>
+          Jobs (Last 24 Hours)
+        </Typography>
+        <Grid container spacing={2} sx={{ mb: 3 }}>
+          <Grid item xs={6} sm={2.4}>
+            <StatCard title="Pending" value={data.jobCounts.pending} />
+          </Grid>
+          <Grid item xs={6} sm={2.4}>
+            <StatCard title="Running" value={data.jobCounts.running} color="info" />
+          </Grid>
+          <Grid item xs={6} sm={2.4}>
+            <StatCard title="Completed" value={data.jobCounts.completed} color="success" />
+          </Grid>
+          <Grid item xs={6} sm={2.4}>
+            <StatCard title="Failed" value={data.jobCounts.failed} color="error" />
+          </Grid>
+          <Grid item xs={6} sm={2.4}>
+            <StatCard title="Cancelled" value={data.jobCounts.cancelled} color="warning" />
+          </Grid>
+        </Grid>
+
+        {/* Pending Jobs (cancellable) */}
+        {pendingJobs.length > 0 && (
+          <>
+            <Typography variant="h6" gutterBottom>
+              Pending Jobs
+            </Typography>
+            <TableContainer component={Paper} sx={{ mb: 3 }}>
+              <Table size="small">
+                <TableHead>
+                  <TableRow>
+                    <TableCell>Type</TableCell>
+                    <TableCell>Scheduled At</TableCell>
+                    <TableCell>Created At</TableCell>
+                    <TableCell align="right">Actions</TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {pendingJobs.map((job) => (
+                    <TableRow key={job.id}>
+                      <TableCell>
+                        <Chip
+                          label={job.type}
+                          color={typeChipColors[job.type] ?? 'default'}
+                          size="small"
+                        />
+                      </TableCell>
+                      <TableCell>{new Date(job.scheduledAt).toLocaleString()}</TableCell>
+                      <TableCell>{new Date(job.createdAt).toLocaleString()}</TableCell>
+                      <TableCell align="right">
+                        <Button
+                          size="small"
+                          color="warning"
+                          startIcon={<CancelIcon />}
+                          onClick={() => cancelJob.mutate(job.id)}
+                          disabled={cancelJob.isPending}
+                        >
+                          Cancel
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </TableContainer>
+          </>
+        )}
 
         {/* Recent Jobs */}
         <Typography variant="h6" gutterBottom>
@@ -366,7 +370,7 @@ export default function JobQueuePage() {
           <Table size="small">
             <TableHead>
               <TableRow>
-                <TableCell>Bot</TableCell>
+                <TableCell>Type</TableCell>
                 <TableCell>Status</TableCell>
                 <TableCell>Started At</TableCell>
                 <TableCell>Completed At</TableCell>
@@ -394,7 +398,13 @@ export default function JobQueuePage() {
                     }}
                     onClick={() => setSelectedJob(job)}
                   >
-                    <TableCell>{job.botHandle || '-'}</TableCell>
+                    <TableCell>
+                      <Chip
+                        label={job.type}
+                        color={typeChipColors[job.type] ?? 'default'}
+                        size="small"
+                      />
+                    </TableCell>
                     <TableCell>
                       <Chip
                         label={job.status}
@@ -427,7 +437,7 @@ export default function JobQueuePage() {
           </Table>
         </TableContainer>
 
-        {/* Recent Errors - only show if there are errors */}
+        {/* Recent Errors */}
         {data.recentErrors.length > 0 && (
           <>
             <Typography variant="h6" gutterBottom color="error">
@@ -437,7 +447,7 @@ export default function JobQueuePage() {
               <Table size="small">
                 <TableHead>
                   <TableRow sx={{ bgcolor: 'rgba(211, 47, 47, 0.08)' }}>
-                    <TableCell>Bot</TableCell>
+                    <TableCell>Type</TableCell>
                     <TableCell>Scheduled At</TableCell>
                     <TableCell>Failed At</TableCell>
                     <TableCell>Error</TableCell>
@@ -453,8 +463,8 @@ export default function JobQueuePage() {
                     >
                       <TableCell>
                         <Chip
-                          label={job.botHandle || '-'}
-                          color="error"
+                          label={job.type}
+                          color={typeChipColors[job.type] ?? 'default'}
                           size="small"
                           variant="outlined"
                         />
@@ -481,6 +491,7 @@ export default function JobQueuePage() {
             </TableContainer>
           </>
         )}
+
         {/* Worker Activity Log */}
         <Typography variant="h6" gutterBottom>
           Worker Activity Log
@@ -499,7 +510,7 @@ export default function JobQueuePage() {
                 <TableRow>
                   <TableCell colSpan={3} align="center">
                     <Typography variant="body2" color="text.secondary" sx={{ py: 2 }}>
-                      No activity yet — workers may not have started
+                      No activity yet
                     </Typography>
                   </TableCell>
                 </TableRow>
@@ -527,11 +538,13 @@ export default function JobQueuePage() {
                         size="small"
                         variant="outlined"
                         color={
-                          entry.worker === 'jobWorker'
+                          entry.worker === 'draft'
                             ? 'primary'
-                            : entry.worker === 'postPublisher'
+                            : entry.worker === 'publish'
                               ? 'success'
-                              : 'default'
+                              : entry.worker === 'dispatcher'
+                                ? 'info'
+                                : 'default'
                         }
                       />
                     </TableCell>

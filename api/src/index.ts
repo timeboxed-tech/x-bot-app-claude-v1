@@ -16,9 +16,8 @@ import userRoutes from './routes/userRoutes.js';
 import statsRoutes from './routes/statsRoutes.js';
 import jobQueueRoutes from './routes/jobQueueRoutes.js';
 import judgeRoutes from './routes/judgeRoutes.js';
-import * as jobWorker from './worker/jobWorker.js';
+import * as jobDispatcher from './worker/jobDispatcher.js';
 import * as staleLockRecovery from './worker/staleLockRecovery.js';
-import * as postPublisher from './worker/postPublisher.js';
 
 const app = express();
 
@@ -57,17 +56,15 @@ app.listen(config.port, () => {
   console.log(`API server listening on port ${config.port}`);
 
   // Start workers in-process (safe to run multiple instances via SKIP LOCKED)
-  jobWorker.start();
+  jobDispatcher.start();
   staleLockRecovery.start();
-  postPublisher.start();
   console.log('Workers started in-process');
 });
 
 // Graceful shutdown
 process.on('SIGTERM', () => {
-  jobWorker.stop();
+  jobDispatcher.stop();
   staleLockRecovery.stop();
-  postPublisher.stop();
   process.exit(0);
 });
 

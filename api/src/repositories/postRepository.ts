@@ -97,6 +97,35 @@ export const postRepository = {
     });
   },
 
+  async findLastPublishedByBot(botId: string) {
+    return prisma.post.findFirst({
+      where: {
+        botId,
+        status: 'published',
+        publishedAt: { not: null },
+      },
+      orderBy: { publishedAt: 'desc' },
+      select: { publishedAt: true },
+    });
+  },
+
+  async findApprovedReady(limit = 50) {
+    return prisma.post.findMany({
+      where: {
+        status: 'approved',
+        flagged: false,
+        bot: {
+          postMode: 'with-approval',
+          active: true,
+          user: { archivedAt: null },
+        },
+      },
+      take: limit,
+      orderBy: { createdAt: 'asc' },
+      include: { bot: true },
+    });
+  },
+
   async update(
     id: string,
     data: {
@@ -129,7 +158,7 @@ export const postRepository = {
       where: {
         botId,
         createdAt: { gte: since },
-        status: { in: ['draft', 'scheduled', 'published'] },
+        status: { in: ['draft', 'scheduled', 'published', 'approved'] },
       },
     });
   },
@@ -195,7 +224,7 @@ export const postRepository = {
     return prisma.post.findMany({
       where: {
         botId,
-        status: { in: ['draft', 'scheduled', 'published'] },
+        status: { in: ['draft', 'scheduled', 'published', 'approved'] },
       },
       select: { content: true },
       orderBy: { createdAt: 'desc' },

@@ -1,8 +1,6 @@
-import { Prisma } from '../generated/prisma/client.js';
 import { prisma } from '../utils/prisma.js';
 import { botRepository } from '../repositories/botRepository.js';
 import { botShareRepository } from '../repositories/botShareRepository.js';
-import { jobRepository } from '../repositories/jobRepository.js';
 import { NotFoundError, ForbiddenError } from '../utils/errors.js';
 
 type CreateBotInput = {
@@ -35,40 +33,28 @@ type UpdateBotInput = {
 
 export const botService = {
   async createBot(input: CreateBotInput) {
-    const result = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
-      const bot = await tx.bot.create({
-        data: {
-          ...input,
-          active: true,
-        },
-        select: {
-          id: true,
-          userId: true,
-          platform: true,
-          xAccountHandle: true,
-          prompt: true,
-          postMode: true,
-          postsPerDay: true,
-          minIntervalHours: true,
-          preferredHoursStart: true,
-          preferredHoursEnd: true,
-          knowledgeSource: true,
-          judgeKnowledgeSource: true,
-          active: true,
-          createdAt: true,
-        },
-      });
-
-      await jobRepository.createInTransaction(tx, {
-        botId: bot.id,
-        scheduledAt: new Date(),
-        status: 'pending',
-      });
-
-      return bot;
+    return prisma.bot.create({
+      data: {
+        ...input,
+        active: true,
+      },
+      select: {
+        id: true,
+        userId: true,
+        platform: true,
+        xAccountHandle: true,
+        prompt: true,
+        postMode: true,
+        postsPerDay: true,
+        minIntervalHours: true,
+        preferredHoursStart: true,
+        preferredHoursEnd: true,
+        knowledgeSource: true,
+        judgeKnowledgeSource: true,
+        active: true,
+        createdAt: true,
+      },
     });
-
-    return result;
   },
 
   async listBots(userId: string, page: number, pageSize: number) {

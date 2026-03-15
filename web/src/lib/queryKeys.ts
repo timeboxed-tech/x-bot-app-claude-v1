@@ -20,7 +20,7 @@ export const queryKeys = {
     forBot: (botId: string) => ['stats', 'bot', botId] as const,
   },
   jobs: {
-    stats: (showAll?: boolean) => ['jobs', 'stats', showAll ?? false] as const,
+    stats: () => ['jobs', 'stats'] as const,
   },
   judges: {
     list: ['judges', 'list'] as const,

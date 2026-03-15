@@ -8,7 +8,8 @@ type TransactionClient = Omit<
 
 type JobRow = {
   id: string;
-  botId: string;
+  type: string;
+  botId: string | null;
   status: string;
   lockToken: string | null;
   lockedAt: Date | null;
@@ -21,21 +22,23 @@ type JobRow = {
 export const jobRepository = {
   async createInTransaction(
     tx: TransactionClient,
-    data: { botId: string; scheduledAt: Date; status?: string },
+    data: { type?: string; botId?: string; scheduledAt: Date; status?: string },
   ) {
     return tx.job.create({
       data: {
-        botId: data.botId,
+        type: data.type || 'draft',
+        botId: data.botId ?? null,
         scheduledAt: data.scheduledAt,
         status: data.status || 'pending',
       },
     });
   },
 
-  async create(data: { botId: string; scheduledAt: Date; status?: string }) {
+  async create(data: { type?: string; botId?: string | null; scheduledAt: Date; status?: string }) {
     return prisma.job.create({
       data: {
-        botId: data.botId,
+        type: data.type || 'draft',
+        botId: data.botId ?? null,
         scheduledAt: data.scheduledAt,
         status: data.status || 'pending',
       },
@@ -47,9 +50,20 @@ export const jobRepository = {
       where: {
         status: 'pending',
         scheduledAt: { lte: new Date() },
-        bot: { active: true, user: { archivedAt: null } },
       },
       include: { bot: true },
+      take: limit,
+      orderBy: { scheduledAt: 'asc' },
+    });
+  },
+
+  async findPendingJobsByType(type: string, limit = 1) {
+    return prisma.job.findMany({
+      where: {
+        type,
+        status: 'pending',
+        scheduledAt: { lte: new Date() },
+      },
       take: limit,
       orderBy: { scheduledAt: 'asc' },
     });
@@ -63,7 +77,7 @@ export const jobRepository = {
     const now = new Date();
     const result = await prisma.$queryRaw<JobRow[]>`
       UPDATE "Job"
-      SET status = 'locked',
+      SET status = 'running',
           "lockToken" = ${lockToken}::uuid,
           "lockedAt" = ${now},
           "startedAt" = ${now}
@@ -103,7 +117,7 @@ export const jobRepository = {
     return prisma.job.updateMany({
       where: {
         id: jobId,
-        status: { in: ['pending', 'locked'] },
+        status: { in: ['pending', 'running'] },
       },
       data: {
         status: 'cancelled',
@@ -112,21 +126,21 @@ export const jobRepository = {
     });
   },
 
-  async findStaleLockedJobs(staleMinutes = 10) {
+  async findStaleRunningJobs(staleMinutes = 10) {
     const cutoff = new Date(Date.now() - staleMinutes * 60 * 1000);
     return prisma.job.findMany({
       where: {
-        status: 'locked',
+        status: 'running',
         lockedAt: { lt: cutoff },
       },
     });
   },
 
-  async resetStaleLocks(staleMinutes = 10) {
+  async resetStaleRunning(staleMinutes = 10) {
     const cutoff = new Date(Date.now() - staleMinutes * 60 * 1000);
     return prisma.job.updateMany({
       where: {
-        status: 'locked',
+        status: 'running',
         lockedAt: { lt: cutoff },
       },
       data: {
@@ -137,24 +151,66 @@ export const jobRepository = {
     });
   },
 
-  async findActiveBotsWithoutPendingJobs() {
-    return prisma.bot.findMany({
+  async hasPendingOrRunning(type: string) {
+    const count = await prisma.job.count({
       where: {
-        active: true,
-        user: { archivedAt: null },
-        jobs: {
-          none: {
-            status: { in: ['pending', 'locked'] },
-          },
-        },
-      },
-      include: {
-        jobs: {
-          where: { status: 'completed' },
-          orderBy: { completedAt: 'desc' },
-          take: 1,
-        },
+        type,
+        status: { in: ['pending', 'running'] },
       },
     });
+    return count > 0;
+  },
+
+  async ensureJobExists(type: string, scheduledAt: Date) {
+    const exists = await this.hasPendingOrRunning(type);
+    if (!exists) {
+      await this.create({ type, scheduledAt, status: 'pending' });
+    }
+  },
+
+  async deleteOldJobs(olderThanDays = 7) {
+    const cutoff = new Date(Date.now() - olderThanDays * 24 * 60 * 60 * 1000);
+    return prisma.job.deleteMany({
+      where: {
+        status: { notIn: ['pending', 'running'] },
+        createdAt: { lt: cutoff },
+      },
+    });
+  },
+
+  async getCountsByStatusSince(since: Date) {
+    return prisma.job.groupBy({
+      by: ['status'],
+      _count: { status: true },
+      where: { createdAt: { gte: since } },
+    });
+  },
+
+  async getLastCompletedByType() {
+    const types = ['draft', 'publish', 'cleanup'] as const;
+    const results: Record<string, Date | null> = {};
+    for (const type of types) {
+      const job = await prisma.job.findFirst({
+        where: { type, status: 'completed' },
+        orderBy: { completedAt: 'desc' },
+        select: { completedAt: true },
+      });
+      results[type] = job?.completedAt ?? null;
+    }
+    return results;
+  },
+
+  async getNextPendingByType() {
+    const types = ['draft', 'publish', 'cleanup'] as const;
+    const results: Record<string, Date | null> = {};
+    for (const type of types) {
+      const job = await prisma.job.findFirst({
+        where: { type, status: 'pending' },
+        orderBy: { scheduledAt: 'asc' },
+        select: { scheduledAt: true },
+      });
+      results[type] = job?.scheduledAt ?? null;
+    }
+    return results;
   },
 };

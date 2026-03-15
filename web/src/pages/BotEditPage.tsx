@@ -103,6 +103,20 @@ export default function BotEditPage() {
     setEditingWeights((prev) => ({ ...prev, ...newWeights }));
   }
 
+  function fillRemaining() {
+    if (activeBehaviours.length === 0) return;
+    if (totalWeight >= 100) return;
+    const gap = 100 - totalWeight;
+    const perBehaviour = Math.floor(gap / activeBehaviours.length);
+    const remainder = gap - perBehaviour * activeBehaviours.length;
+    const newWeights: Record<string, number> = {};
+    activeBehaviours.forEach((b, i) => {
+      const currentWeight = editingWeights[b.id] !== undefined ? editingWeights[b.id] : b.weight;
+      newWeights[b.id] = currentWeight + perBehaviour + (i < remainder ? 1 : 0);
+    });
+    setEditingWeights((prev) => ({ ...prev, ...newWeights }));
+  }
+
   function getTabLabel(
     behaviour: { title: string; content: string; active: boolean; weight: number },
     index: number,
@@ -197,9 +211,19 @@ export default function BotEditPage() {
                   >
                     Total weight: {totalWeight}%{totalWeight !== 100 ? ' (should be 100%)' : ''}
                   </Typography>
-                  <Button size="small" variant="outlined" onClick={distributeEqually}>
-                    Distribute Equally
-                  </Button>
+                  <Box sx={{ display: 'flex', gap: 1 }}>
+                    <Button size="small" variant="outlined" onClick={distributeEqually}>
+                      Distribute Equally
+                    </Button>
+                    <Button
+                      size="small"
+                      variant="outlined"
+                      onClick={fillRemaining}
+                      disabled={totalWeight >= 100}
+                    >
+                      Fill Remaining
+                    </Button>
+                  </Box>
                 </Box>
               )}
 

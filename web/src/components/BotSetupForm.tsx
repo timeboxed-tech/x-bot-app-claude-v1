@@ -25,7 +25,7 @@ const PLATFORMS = [
 const botConfigSchema = z.object({
   platform: z.enum(['x']),
   prompt: z.string().min(1, 'Prompt is required'),
-  postMode: z.enum(['auto', 'manual']),
+  postMode: z.enum(['auto', 'manual', 'with-approval']),
   postsPerDay: z.number().int().min(1).max(15),
   minIntervalHours: z.number().int().min(1).max(15),
   preferredHoursStart: z.number().int().min(0).max(23),
@@ -136,12 +136,13 @@ export default function BotSetupForm({
           onChange={(e) =>
             setValues((v) => ({
               ...v,
-              postMode: e.target.value as 'auto' | 'manual',
+              postMode: e.target.value as 'auto' | 'manual' | 'with-approval',
             }))
           }
         >
           <FormControlLabel value="auto" control={<Radio />} label="Auto" />
           <FormControlLabel value="manual" control={<Radio />} label="Manual" />
+          <FormControlLabel value="with-approval" control={<Radio />} label="With Approval" />
         </RadioGroup>
       </FormControl>
 

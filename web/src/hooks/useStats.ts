@@ -8,6 +8,7 @@ export type BotStats = {
   averageRating: number | null;
   postsByStatus: {
     draft: number;
+    approved: number;
     scheduled: number;
     published: number;
     discarded: number;

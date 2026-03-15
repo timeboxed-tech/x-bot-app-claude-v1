@@ -5,43 +5,34 @@ import { queryKeys } from '../lib/queryKeys';
 export type JobQueueStats = {
   jobCounts: {
     pending: number;
-    locked: number;
+    running: number;
     completed: number;
     failed: number;
     cancelled: number;
   };
-  postCounts: { draft: number; scheduled: number; published: number; discarded: number };
+  lastCompletedByType: Record<string, string | null>;
+  nextPendingByType: Record<string, string | null>;
   recentJobs: Array<{
     id: string;
-    botId: string;
-    botHandle: string;
+    type: string;
+    botId: string | null;
     status: string;
     scheduledAt: string;
-    startedAt: string | null;
-    completedAt: string | null;
+    startedAt?: string | null;
+    completedAt?: string | null;
     error: string | null;
-    createdAt: string;
-  }>;
-  upcomingJobs: Array<{
-    id: string;
-    botId: string;
-    botHandle: string;
-    status: string;
-    scheduledAt: string;
     createdAt: string;
   }>;
   recentErrors: Array<{
     id: string;
-    botId: string;
-    botHandle: string;
+    type: string;
+    botId: string | null;
     status: string;
     scheduledAt: string;
-    completedAt: string | null;
+    completedAt?: string | null;
     error: string | null;
     createdAt: string;
   }>;
-  lastCompletedAt: string | null;
-  nextScheduledAt: string | null;
   activityLog: Array<{
     timestamp: string;
     worker: string;
@@ -54,18 +45,14 @@ type JobQueueStatsResponse = {
   data: JobQueueStats;
 };
 
-export function useJobQueue(showAll = false) {
+export function useJobQueue() {
   return useQuery({
-    queryKey: queryKeys.jobs.stats(showAll),
+    queryKey: queryKeys.jobs.stats(),
     queryFn: async () => {
-      const params: Record<string, string> = {};
-      if (showAll) {
-        params.showAll = 'true';
-      }
-      const response = await apiClient.get<JobQueueStatsResponse>('/jobs/stats', { params });
+      const response = await apiClient.get<JobQueueStatsResponse>('/jobs/stats');
       return response.data.data;
     },
-    refetchInterval: 30000,
+    refetchInterval: 60000,
   });
 }
 

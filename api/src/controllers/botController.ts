@@ -11,7 +11,7 @@ import { checkAndFlagPost } from '../services/urlValidationService.js';
 const createBotSchema = z.object({
   platform: z.enum(['x']).default('x'),
   prompt: z.string().min(1, 'Prompt is required'),
-  postMode: z.enum(['auto', 'manual']).default('manual'),
+  postMode: z.enum(['auto', 'manual', 'with-approval']).default('manual'),
   postsPerDay: z.number().int().min(1).max(15).default(3),
   minIntervalHours: z.number().int().min(1).max(15).default(2),
   preferredHoursStart: z.number().int().min(0).max(23).default(0),
@@ -22,7 +22,7 @@ const createBotSchema = z.object({
 
 const updateBotSchema = z.object({
   prompt: z.string().min(1).optional(),
-  postMode: z.enum(['auto', 'manual']).optional(),
+  postMode: z.enum(['auto', 'manual', 'with-approval']).optional(),
   postsPerDay: z.number().int().min(1).max(15).optional(),
   minIntervalHours: z.number().int().min(1).max(15).optional(),
   preferredHoursStart: z.number().int().min(0).max(23).optional(),

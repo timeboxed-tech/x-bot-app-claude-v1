@@ -8,22 +8,19 @@ let intervalHandle: ReturnType<typeof setInterval> | null = null;
 
 async function recoverStaleLocks(): Promise<void> {
   try {
-    const staleJobs = await jobRepository.findStaleLockedJobs(STALE_THRESHOLD_MINUTES);
+    const staleJobs = await jobRepository.findStaleRunningJobs(STALE_THRESHOLD_MINUTES);
 
-    log('staleLockRecovery', `Poll: found ${staleJobs.length} stale lock(s)`);
+    if (staleJobs.length === 0) return;
 
-    if (staleJobs.length === 0) {
-      return;
-    }
-
+    log('staleLockRecovery', `Found ${staleJobs.length} stale running job(s)`);
     console.log(
-      `[staleLockRecovery] Found ${staleJobs.length} stale locked jobs: ${staleJobs.map((j: { id: string }) => j.id).join(', ')}`,
+      `[staleLockRecovery] Found ${staleJobs.length} stale running jobs: ${staleJobs.map((j: { id: string }) => j.id).join(', ')}`,
     );
 
-    const result = await jobRepository.resetStaleLocks(STALE_THRESHOLD_MINUTES);
+    const result = await jobRepository.resetStaleRunning(STALE_THRESHOLD_MINUTES);
 
-    log('staleLockRecovery', `Recovered ${result.count} stale locked job(s)`, 'warn');
-    console.log(`[staleLockRecovery] Recovered ${result.count} stale locked jobs`);
+    log('staleLockRecovery', `Recovered ${result.count} stale running job(s)`, 'warn');
+    console.log(`[staleLockRecovery] Recovered ${result.count} stale running jobs`);
   } catch (err) {
     console.error('[staleLockRecovery] Error recovering stale locks:', err);
   }
@@ -32,7 +29,6 @@ async function recoverStaleLocks(): Promise<void> {
 export function start(): void {
   log('staleLockRecovery', 'Starting stale lock recovery');
   console.log('[staleLockRecovery] Starting stale lock recovery');
-  // Run immediately on start
   void recoverStaleLocks();
   intervalHandle = setInterval(() => void recoverStaleLocks(), RECOVERY_INTERVAL_MS);
 }

@@ -50,8 +50,9 @@ import { usePosts, type PostStatus } from '../hooks/usePosts';
 import { apiClient } from '../lib/apiClient';
 import { useNavigate } from '@tanstack/react-router';
 
-const statusColors: Record<PostStatus, 'default' | 'info' | 'success' | 'error'> = {
+const statusColors: Record<PostStatus, 'default' | 'info' | 'success' | 'error' | 'warning'> = {
   draft: 'default',
+  approved: 'warning',
   scheduled: 'info',
   published: 'success',
   discarded: 'error',
@@ -364,6 +365,9 @@ export default function DashboardPage() {
             <Grid container spacing={2} sx={{ mb: 3 }}>
               <Grid item xs={6} sm={3}>
                 <StatCard title="Drafts" value={stats.postsByStatus.draft} />
+              </Grid>
+              <Grid item xs={6} sm={3}>
+                <StatCard title="Approved" value={stats.postsByStatus.approved ?? 0} />
               </Grid>
               <Grid item xs={6} sm={3}>
                 <StatCard title="Scheduled" value={stats.postsByStatus.scheduled} />

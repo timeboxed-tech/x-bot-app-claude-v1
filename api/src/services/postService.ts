@@ -7,7 +7,7 @@ import { NotFoundError, ForbiddenError, ValidationError } from '../utils/errors.
 type UpdatePostInput = {
   content?: string;
   rating?: number | null;
-  status?: 'draft' | 'scheduled' | 'discarded';
+  status?: 'draft' | 'scheduled' | 'discarded' | 'approved';
   scheduledAt?: string | null;
 };
 
@@ -82,9 +82,23 @@ export const postService = {
 
     if (input.rating !== undefined) {
       updateData.rating = input.rating;
+
+      // Auto-approve: when a draft post from a with-approval bot is rated 4 or 5 (and not flagged)
+      if (
+        input.rating !== null &&
+        input.rating >= 4 &&
+        post.bot.postMode === 'with-approval' &&
+        post.status === 'draft' &&
+        !post.flagged &&
+        !input.status // don't override an explicit status change
+      ) {
+        updateData.status = 'approved';
+      }
     }
 
-    if (input.status === 'scheduled') {
+    if (input.status === 'approved') {
+      updateData.status = 'approved';
+    } else if (input.status === 'scheduled') {
       updateData.status = 'scheduled';
       updateData.scheduledAt = input.scheduledAt ? new Date(input.scheduledAt) : new Date();
     } else if (input.status === 'discarded') {
@@ -197,7 +211,9 @@ export const postService = {
 function getAllowedTransitions(currentStatus: string): string[] {
   switch (currentStatus) {
     case 'draft':
-      return ['scheduled', 'discarded'];
+      return ['scheduled', 'discarded', 'approved'];
+    case 'approved':
+      return ['discarded', 'draft'];
     case 'scheduled':
       return ['discarded'];
     case 'discarded':

@@ -25,6 +25,7 @@ export const statsController = {
         postsToday,
         ratingAgg,
         draftCount,
+        approvedCount,
         scheduledCount,
         publishedCount,
         discardedCount,
@@ -38,6 +39,7 @@ export const statsController = {
           _avg: { rating: true },
         }),
         prisma.post.count({ where: { botId, status: 'draft' } }),
+        prisma.post.count({ where: { botId, status: 'approved' } }),
         prisma.post.count({ where: { botId, status: 'scheduled' } }),
         prisma.post.count({ where: { botId, status: 'published' } }),
         prisma.post.count({ where: { botId, status: 'discarded' } }),
@@ -50,6 +52,7 @@ export const statsController = {
           averageRating: ratingAgg._avg.rating ?? null,
           postsByStatus: {
             draft: draftCount,
+            approved: approvedCount,
             scheduled: scheduledCount,
             published: publishedCount,
             discarded: discardedCount,
