@@ -6,8 +6,6 @@ const router = Router();
 
 router.use(authMiddleware);
 
-router.get('/system-prompts', exportController.systemPrompts);
-router.get('/judges', exportController.judges);
-router.get('/bots', exportController.bots);
+router.get('/config', exportController.config);
 
 export default router;

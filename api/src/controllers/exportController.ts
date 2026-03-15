@@ -42,89 +42,69 @@ function setDownloadHeaders(res: Response, filename: string, format: string): vo
 }
 
 export const exportController = {
-  async systemPrompts(req: Request, res: Response, next: NextFunction): Promise<void> {
-    try {
-      const userId = req.userId!;
-      await assertAdmin(userId);
-
-      const { format } = formatSchema.parse(req.query);
-      const prompts = await systemPromptRepository.findAll();
-
-      setDownloadHeaders(res, 'system-prompts', format);
-
-      if (format === 'csv') {
-        const headers = ['id', 'key', 'name', 'content', 'createdAt', 'updatedAt'];
-        const rows = prompts.map((p) => [p.id, p.key, p.name, p.content, p.createdAt, p.updatedAt]);
-        res.send(toCsv(headers, rows));
-      } else {
-        res.json(prompts);
-      }
-    } catch (err) {
-      next(err);
-    }
-  },
-
-  async judges(req: Request, res: Response, next: NextFunction): Promise<void> {
-    try {
-      const userId = req.userId!;
-      await assertAdmin(userId);
-
-      const { format } = formatSchema.parse(req.query);
-      const judges = await judgeRepository.findAll();
-
-      setDownloadHeaders(res, 'judges', format);
-
-      if (format === 'csv') {
-        const headers = ['id', 'name', 'prompt', 'archivedAt', 'createdAt'];
-        const rows = judges.map((j) => [j.id, j.name, j.prompt, j.archivedAt, j.createdAt]);
-        res.send(toCsv(headers, rows));
-      } else {
-        res.json(judges);
-      }
-    } catch (err) {
-      next(err);
-    }
-  },
-
-  async bots(req: Request, res: Response, next: NextFunction): Promise<void> {
+  async config(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const userId = req.userId!;
       await assertAdmin(userId);
 
       const { format } = formatSchema.parse(req.query);
 
-      const bots = await prisma.bot.findMany({
-        select: {
-          id: true,
-          xAccountHandle: true,
-          prompt: true,
-          postMode: true,
-          postsPerDay: true,
-          active: true,
-          knowledgeSource: true,
-          judgeKnowledgeSource: true,
-          createdAt: true,
-          user: { select: { email: true } },
-          behaviours: {
-            select: {
-              id: true,
-              title: true,
-              content: true,
-              active: true,
-              knowledgeSource: true,
-              outcome: true,
-              weight: true,
+      const [prompts, judges, bots] = await Promise.all([
+        systemPromptRepository.findAll(),
+        judgeRepository.findAll(),
+        prisma.bot.findMany({
+          select: {
+            id: true,
+            xAccountHandle: true,
+            prompt: true,
+            postMode: true,
+            postsPerDay: true,
+            active: true,
+            knowledgeSource: true,
+            judgeKnowledgeSource: true,
+            createdAt: true,
+            user: { select: { email: true } },
+            behaviours: {
+              select: {
+                id: true,
+                title: true,
+                content: true,
+                active: true,
+                knowledgeSource: true,
+                outcome: true,
+                weight: true,
+              },
+              orderBy: { title: 'asc' },
             },
-            orderBy: { title: 'asc' },
           },
-        },
-        orderBy: { createdAt: 'desc' },
-      });
+          orderBy: { createdAt: 'desc' },
+        }),
+      ]);
 
-      setDownloadHeaders(res, 'bots', format);
+      setDownloadHeaders(res, 'config', format);
 
       if (format === 'csv') {
-        const headers = [
+        const sections: string[] = [];
+
+        // System Prompts
+        const promptHeaders = ['id', 'key', 'name', 'content', 'createdAt', 'updatedAt'];
+        const promptRows = prompts.map((p) => [
+          p.id,
+          p.key,
+          p.name,
+          p.content,
+          p.createdAt,
+          p.updatedAt,
+        ]);
+        sections.push('## System Prompts\n' + toCsv(promptHeaders, promptRows));
+
+        // Judges
+        const judgeHeaders = ['id', 'name', 'prompt', 'archivedAt', 'createdAt'];
+        const judgeRows = judges.map((j) => [j.id, j.name, j.prompt, j.archivedAt, j.createdAt]);
+        sections.push('## Judges\n' + toCsv(judgeHeaders, judgeRows));
+
+        // Bots
+        const botHeaders = [
           'botId',
           'handle',
           'ownerEmail',
@@ -143,10 +123,10 @@ export const exportController = {
           'behaviourOutcome',
           'behaviourWeight',
         ];
-        const rows: unknown[][] = [];
+        const botRows: unknown[][] = [];
         for (const bot of bots) {
           if (bot.behaviours.length === 0) {
-            rows.push([
+            botRows.push([
               bot.id,
               bot.xAccountHandle,
               bot.user.email,
@@ -167,7 +147,7 @@ export const exportController = {
             ]);
           } else {
             for (const b of bot.behaviours) {
-              rows.push([
+              botRows.push([
                 bot.id,
                 bot.xAccountHandle,
                 bot.user.email,
@@ -189,9 +169,11 @@ export const exportController = {
             }
           }
         }
-        res.send(toCsv(headers, rows));
+        sections.push('## Bots\n' + toCsv(botHeaders, botRows));
+
+        res.send(sections.join('\n\n'));
       } else {
-        res.json(bots);
+        res.json({ systemPrompts: prompts, judges, bots });
       }
     } catch (err) {
       next(err);

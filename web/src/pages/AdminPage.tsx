@@ -26,16 +26,6 @@ const adminLinks = [
   },
 ];
 
-const exportItems = [
-  { label: 'System Prompts', endpoint: 'system-prompts' },
-  { label: 'Judge Prompts', endpoint: 'judges' },
-  { label: 'Bot Configs (with behaviours)', endpoint: 'bots' },
-];
-
-function downloadUrl(endpoint: string, format: 'json' | 'csv'): string {
-  return `${API_BASE}/export/${endpoint}?format=${format}`;
-}
-
 export default function AdminPage() {
   return (
     <>
@@ -77,45 +67,30 @@ export default function AdminPage() {
         <Divider sx={{ mb: 3 }} />
 
         <Typography variant="h5" sx={{ mb: 2 }}>
-          Explore Config
+          Export Config
         </Typography>
         <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
           Download configuration data for offline review.
         </Typography>
 
-        <Grid container spacing={3}>
-          {exportItems.map((item) => (
-            <Grid item xs={12} sm={6} md={4} key={item.endpoint}>
-              <Card sx={{ height: '100%' }}>
-                <CardContent>
-                  <Typography variant="h6" gutterBottom>
-                    {item.label}
-                  </Typography>
-                  <Box sx={{ display: 'flex', gap: 1, mt: 1 }}>
-                    <Button
-                      variant="outlined"
-                      size="small"
-                      component="a"
-                      href={downloadUrl(item.endpoint, 'json')}
-                      download
-                    >
-                      Download JSON
-                    </Button>
-                    <Button
-                      variant="outlined"
-                      size="small"
-                      component="a"
-                      href={downloadUrl(item.endpoint, 'csv')}
-                      download
-                    >
-                      Download CSV
-                    </Button>
-                  </Box>
-                </CardContent>
-              </Card>
-            </Grid>
-          ))}
-        </Grid>
+        <Box sx={{ display: 'flex', gap: 2 }}>
+          <Button
+            variant="outlined"
+            component="a"
+            href={`${API_BASE}/export/config?format=json`}
+            download
+          >
+            Export Config (JSON)
+          </Button>
+          <Button
+            variant="outlined"
+            component="a"
+            href={`${API_BASE}/export/config?format=csv`}
+            download
+          >
+            Export Config (CSV)
+          </Button>
+        </Box>
       </Container>
     </>
   );
