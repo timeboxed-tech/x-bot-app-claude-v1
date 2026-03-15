@@ -14,6 +14,7 @@ export type Post = {
   flagReasons: string[];
   behaviourPrompt: string | null;
   behaviourTitle: string | null;
+  generationPrompt?: string | null;
   scheduledAt: string | null;
   publishedAt: string | null;
   createdAt: string;

@@ -150,6 +150,7 @@ export const botController = {
             status: 'draft',
             behaviourPrompt: selectedBehaviour?.content ?? null,
             behaviourTitle: selectedBehaviour?.title || null,
+            generationPrompt: result.prompt ? JSON.stringify(result.prompt) : null,
           });
           // Fire-and-forget URL validation — don't block the response
           checkAndFlagPost(post.id).catch(console.error);

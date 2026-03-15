@@ -68,6 +68,7 @@ export async function handleDraftJob(jobId: string): Promise<void> {
         scheduledAt: null,
         behaviourPrompt: selectedBehaviour?.content ?? null,
         behaviourTitle: selectedBehaviour?.title || null,
+        generationPrompt: result.prompt ? JSON.stringify(result.prompt) : null,
       });
 
       await checkAndFlagPost(post.id);

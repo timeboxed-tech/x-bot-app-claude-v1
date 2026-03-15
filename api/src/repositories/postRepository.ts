@@ -12,6 +12,7 @@ export const postRepository = {
     scheduledAt?: Date | null;
     behaviourPrompt?: string | null;
     behaviourTitle?: string | null;
+    generationPrompt?: string | null;
   }) {
     return prisma.post.create({
       data: {
@@ -22,6 +23,7 @@ export const postRepository = {
         scheduledAt: data.scheduledAt ?? null,
         behaviourPrompt: data.behaviourPrompt ?? null,
         behaviourTitle: data.behaviourTitle ?? null,
+        generationPrompt: data.generationPrompt ?? null,
       },
     });
   },

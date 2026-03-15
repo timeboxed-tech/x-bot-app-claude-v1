@@ -45,6 +45,35 @@ type ConversationMessage = {
   content: string;
 };
 
+function PromptTooltipContent({ generationPrompt }: { generationPrompt: string }) {
+  try {
+    const messages = JSON.parse(generationPrompt) as Array<{ role: string; content: string }>;
+    return (
+      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+        {messages.map((msg, idx) => (
+          <Box key={idx}>
+            <Typography
+              variant="caption"
+              sx={{ fontWeight: 'bold', textTransform: 'uppercase', color: 'inherit' }}
+            >
+              {msg.role}
+            </Typography>
+            <Typography variant="body2" sx={{ whiteSpace: 'pre-wrap', color: 'inherit' }}>
+              {msg.content}
+            </Typography>
+          </Box>
+        ))}
+      </Box>
+    );
+  } catch {
+    return (
+      <Typography variant="body2" sx={{ whiteSpace: 'pre-wrap', color: 'inherit' }}>
+        {generationPrompt}
+      </Typography>
+    );
+  }
+}
+
 type PostCardProps = {
   post: Post;
 };
@@ -275,15 +304,50 @@ export default function PostCard({ post }: PostCardProps) {
         )}
 
         {(post.behaviourTitle || post.behaviourPrompt) && (
-          <Chip
-            label={`Behaviour: ${post.behaviourTitle || post.behaviourPrompt}`}
-            size="small"
-            variant="outlined"
-            sx={{
-              mb: 1,
-              maxWidth: '100%',
+          <Tooltip
+            title={
+              post.generationPrompt ? (
+                <PromptTooltipContent generationPrompt={post.generationPrompt} />
+              ) : (
+                ''
+              )
+            }
+            arrow
+            slotProps={{
+              tooltip: {
+                sx: { maxWidth: 500, maxHeight: 400, overflow: 'auto' },
+              },
             }}
-          />
+          >
+            <Chip
+              label={`Behaviour: ${post.behaviourTitle || post.behaviourPrompt}`}
+              size="small"
+              variant="outlined"
+              sx={{
+                mb: 1,
+                maxWidth: '100%',
+                cursor: post.generationPrompt ? 'pointer' : 'default',
+              }}
+            />
+          </Tooltip>
+        )}
+        {!post.behaviourTitle && !post.behaviourPrompt && post.generationPrompt && (
+          <Tooltip
+            title={<PromptTooltipContent generationPrompt={post.generationPrompt} />}
+            arrow
+            slotProps={{
+              tooltip: {
+                sx: { maxWidth: 500, maxHeight: 400, overflow: 'auto' },
+              },
+            }}
+          >
+            <Chip
+              label="Prompt"
+              size="small"
+              variant="outlined"
+              sx={{ mb: 1, cursor: 'pointer' }}
+            />
+          </Tooltip>
         )}
 
         {post.scheduledAt && (

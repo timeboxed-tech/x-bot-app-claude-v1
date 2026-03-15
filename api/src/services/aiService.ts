@@ -2,10 +2,16 @@ import Anthropic from '@anthropic-ai/sdk';
 import { systemPromptRepository } from '../repositories/systemPromptRepository.js';
 import { DEFAULT_SYSTEM_PROMPTS } from '../constants/defaultSystemPrompts.js';
 
+type PromptMessage = {
+  role: 'system' | 'user' | 'assistant';
+  content: string;
+};
+
 type GenerateTweetResult = {
   content: string;
   success: boolean;
   error?: string;
+  prompt?: PromptMessage[];
 };
 
 const FALLBACK_SYSTEM_PROMPT = DEFAULT_SYSTEM_PROMPTS['tweet_generation'];
@@ -155,18 +161,24 @@ export async function generateTweet(
   }
   messages.push({ role: 'user', content: 'Generate a tweet.' });
 
+  // Capture the full prompt for storage
+  const promptMessages: PromptMessage[] = [
+    { role: 'system', content: systemPrompt },
+    ...messages.map((m) => ({ role: m.role as PromptMessage['role'], content: m.content })),
+  ];
+
   const callFn = useWebSearch
     ? () => callClaudeWithWebSearch(client, messages, systemPrompt)
     : () => callClaude(client, messages, systemPrompt);
 
   try {
     const content = await callFn();
-    return { content, success: true };
+    return { content, success: true, prompt: promptMessages };
   } catch {
     // Retry once on failure
     try {
       const content = await callFn();
-      return { content, success: true };
+      return { content, success: true, prompt: promptMessages };
     } catch (retryErr: unknown) {
       const message = retryErr instanceof Error ? retryErr.message : String(retryErr);
       return { content: '', success: false, error: message };
