@@ -209,28 +209,29 @@ export default function PostCard({ post }: PostCardProps) {
         >
           <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
             <Chip label={post.status} color={statusColors[post.status]} size="small" />
-            {post.flagged && (
-              <Tooltip title={post.flagReasons.join('\n')}>
-                <Chip label="Flagged" color="warning" size="small" />
-              </Tooltip>
-            )}
-            {post.status !== 'published' && (
-              <Tooltip title={post.flagged ? 'Unflag this post' : 'Flag this post'}>
-                <IconButton
-                  size="small"
-                  onClick={handleToggleFlag}
-                  disabled={updatePost.isPending}
-                  color={post.flagged ? 'warning' : 'default'}
-                  sx={{ p: 0.25 }}
-                >
-                  {post.flagged ? (
-                    <FlagIcon fontSize="small" />
-                  ) : (
-                    <OutlinedFlagIcon fontSize="small" />
-                  )}
-                </IconButton>
-              </Tooltip>
-            )}
+            <Tooltip
+              title={
+                post.flagged
+                  ? post.flagReasons.length > 0
+                    ? `${post.flagReasons.join('\n')}\n\nClick to unflag`
+                    : 'Click to unflag'
+                  : 'Click to flag'
+              }
+            >
+              <IconButton
+                size="small"
+                onClick={handleToggleFlag}
+                disabled={updatePost.isPending || post.status === 'published'}
+                color={post.flagged ? 'warning' : 'default'}
+                sx={{ p: 0.25 }}
+              >
+                {post.flagged ? (
+                  <FlagIcon fontSize="small" />
+                ) : (
+                  <OutlinedFlagIcon fontSize="small" />
+                )}
+              </IconButton>
+            </Tooltip>
           </Box>
           <Typography variant="caption" color="text.secondary">
             {formatDate(post.createdAt)}
