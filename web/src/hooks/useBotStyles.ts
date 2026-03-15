@@ -30,7 +30,15 @@ export function useCreateBotStyle() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ botId, content, title }: { botId: string; content: string; title?: string }) => {
+    mutationFn: async ({
+      botId,
+      content,
+      title,
+    }: {
+      botId: string;
+      content: string;
+      title?: string;
+    }) => {
       const response = await apiClient.post<{ data: BotStyle }>(`/bots/${botId}/styles`, {
         content,
         title,

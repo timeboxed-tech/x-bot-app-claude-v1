@@ -79,7 +79,10 @@ export default function BotEditPage() {
 
   function getTabLabel(style: { title: string; content: string; active: boolean }, index: number) {
     const prefix = `Style ${index + 1}`;
-    const label = style.title || (style.content.length > 20 ? style.content.slice(0, 20) + '...' : style.content) || prefix;
+    const label =
+      style.title ||
+      (style.content.length > 20 ? style.content.slice(0, 20) + '...' : style.content) ||
+      prefix;
     return style.active ? label : `(off) ${label}`;
   }
 
@@ -166,7 +169,8 @@ export default function BotEditPage() {
               <Box sx={{ p: 2 }}>
                 {styles?.map((style, index) => {
                   if (index !== activeTab) return null;
-                  const isEditing = editingStyles[style.id] !== undefined || editingTitles[style.id] !== undefined;
+                  const isEditing =
+                    editingStyles[style.id] !== undefined || editingTitles[style.id] !== undefined;
                   return (
                     <Box key={style.id}>
                       <TextField
@@ -174,7 +178,11 @@ export default function BotEditPage() {
                         size="small"
                         label="Title"
                         placeholder="e.g., Witty & Sarcastic"
-                        value={editingTitles[style.id] !== undefined ? editingTitles[style.id] : style.title}
+                        value={
+                          editingTitles[style.id] !== undefined
+                            ? editingTitles[style.id]
+                            : style.title
+                        }
                         onChange={(e) =>
                           setEditingTitles((prev) => ({ ...prev, [style.id]: e.target.value }))
                         }
@@ -191,7 +199,11 @@ export default function BotEditPage() {
                         minRows={3}
                         size="small"
                         label="Prompt"
-                        value={editingStyles[style.id] !== undefined ? editingStyles[style.id] : style.content}
+                        value={
+                          editingStyles[style.id] !== undefined
+                            ? editingStyles[style.id]
+                            : style.content
+                        }
                         onChange={(e) =>
                           setEditingStyles((prev) => ({ ...prev, [style.id]: e.target.value }))
                         }
@@ -236,7 +248,12 @@ export default function BotEditPage() {
                                 const title = editingTitles[style.id] ?? style.title;
                                 if (content && content.trim()) {
                                   updateStyle.mutate(
-                                    { botId: bot.id, styleId: style.id, content: content.trim(), title: title?.trim() },
+                                    {
+                                      botId: bot.id,
+                                      styleId: style.id,
+                                      content: content.trim(),
+                                      title: title?.trim(),
+                                    },
                                     {
                                       onSuccess: () => {
                                         setEditingStyles((prev) => {
@@ -313,7 +330,11 @@ export default function BotEditPage() {
                       onClick={() => {
                         if (newStyleContent.trim()) {
                           createStyle.mutate(
-                            { botId: bot.id, content: newStyleContent.trim(), title: newStyleTitle.trim() || undefined },
+                            {
+                              botId: bot.id,
+                              content: newStyleContent.trim(),
+                              title: newStyleTitle.trim() || undefined,
+                            },
                             {
                               onSuccess: () => {
                                 setNewStyleContent('');
