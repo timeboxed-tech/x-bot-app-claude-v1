@@ -74,6 +74,7 @@ type SnackbarState = {
   open: boolean;
   message: string;
   severity: 'success' | 'error';
+  action?: React.ReactNode;
 };
 
 export default function DashboardPage() {
@@ -119,8 +120,12 @@ export default function DashboardPage() {
   const { data: recentPostsData, isLoading: recentPostsLoading } = usePosts(undefined, 1, 5);
   const recentPosts = recentPostsData?.data ?? [];
 
-  const showSnackbar = (message: string, severity: 'success' | 'error') => {
-    setSnackbar({ open: true, message, severity });
+  const showSnackbar = (
+    message: string,
+    severity: 'success' | 'error',
+    action?: React.ReactNode,
+  ) => {
+    setSnackbar({ open: true, message, severity, action });
   };
 
   const handleCloseSnackbar = () => {
@@ -649,7 +654,17 @@ export default function DashboardPage() {
                 { botId: bot.id, count: 3 },
                 {
                   onSuccess: (posts) => {
-                    showSnackbar(`Generated ${posts.length} practice draft(s)`, 'success');
+                    showSnackbar(
+                      `Generated ${posts.length} practice draft(s)`,
+                      'success',
+                      <Button
+                        color="inherit"
+                        size="small"
+                        onClick={() => void navigate({ to: '/posts' })}
+                      >
+                        View Drafts
+                      </Button>,
+                    );
                   },
                   onError: () => {
                     showSnackbar('Failed to generate drafts', 'error');
@@ -855,11 +870,16 @@ export default function DashboardPage() {
         {/* Snackbar notifications */}
         <Snackbar
           open={snackbar.open}
-          autoHideDuration={4000}
+          autoHideDuration={snackbar.action ? 8000 : 4000}
           onClose={handleCloseSnackbar}
           anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
         >
-          <Alert onClose={handleCloseSnackbar} severity={snackbar.severity} variant="filled">
+          <Alert
+            onClose={handleCloseSnackbar}
+            severity={snackbar.severity}
+            variant="filled"
+            action={snackbar.action}
+          >
             {snackbar.message}
           </Alert>
         </Snackbar>
