@@ -33,6 +33,14 @@ function getClient(): Anthropic | null {
   return new Anthropic({ apiKey });
 }
 
+function extractText(content: Anthropic.ContentBlock[]): string {
+  return content
+    .filter((block): block is Anthropic.TextBlock => block.type === 'text')
+    .map((block) => block.text)
+    .join('')
+    .trim();
+}
+
 async function callClaude(
   client: Anthropic,
   prompt: string,
@@ -45,10 +53,27 @@ async function callClaude(
     messages: [{ role: 'user', content: prompt }],
   });
 
-  const block = response.content[0];
-  if (block.type === 'text') {
-    return block.text.trim();
-  }
+  const text = extractText(response.content);
+  if (text) return text;
+
+  throw new Error('Unexpected response format from Claude API');
+}
+
+async function callClaudeWithWebSearch(
+  client: Anthropic,
+  prompt: string,
+  systemPrompt: string,
+): Promise<string> {
+  const response = await client.messages.create({
+    model: 'claude-sonnet-4-6',
+    max_tokens: 1024,
+    system: systemPrompt,
+    messages: [{ role: 'user', content: prompt }],
+    tools: [{ type: 'web_search_20250305', name: 'web_search', max_uses: 3 }],
+  });
+
+  const text = extractText(response.content);
+  if (text) return text;
 
   throw new Error('Unexpected response format from Claude API');
 }
@@ -66,10 +91,8 @@ async function callClaudeWithMessages(
     messages,
   });
 
-  const block = response.content[0];
-  if (block.type === 'text') {
-    return block.text.trim();
-  }
+  const text = extractText(response.content);
+  if (text) return text;
 
   throw new Error('Unexpected response format from Claude API');
 }
@@ -101,14 +124,14 @@ export async function generateTweet(
     systemPrompt += `\n\nWrite in this style: ${stylePrompt}`;
   }
 
-  // First attempt
+  // Use web search so Claude can look up current information
   try {
-    const content = await callClaude(client, prompt, systemPrompt);
+    const content = await callClaudeWithWebSearch(client, prompt, systemPrompt);
     return { content, success: true };
   } catch {
     // Retry once on failure
     try {
-      const content = await callClaude(client, prompt, systemPrompt);
+      const content = await callClaudeWithWebSearch(client, prompt, systemPrompt);
       return { content, success: true };
     } catch (retryErr: unknown) {
       const message = retryErr instanceof Error ? retryErr.message : String(retryErr);
