@@ -10,8 +10,8 @@ services:
     runtime: node
     plan: free
     rootDir: .
-    buildCommand: npm ci --include=dev && cd api && npx prisma generate && cd .. && npm run build --workspace=shared && npm run build --workspace=api
-    startCommand: cd api && GIT_SHA=$(echo $RENDER_GIT_COMMIT | cut -c1-7) npm run start
+    buildCommand: npm ci --include=dev && cd api && npx prisma generate && cd .. && npm run build --workspace=shared && npm run build --workspace=api && echo "${RENDER_GIT_COMMIT:-unknown}" | cut -c1-7 > api/GIT_SHA
+    startCommand: cd api && GIT_SHA=$(cat GIT_SHA 2>/dev/null || echo dev) npm run start
     healthCheckPath: /api/health
     envVars:
       - key: NODE_VERSION
