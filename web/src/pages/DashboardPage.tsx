@@ -12,7 +12,6 @@ import DialogContent from '@mui/material/DialogContent';
 import DialogContentText from '@mui/material/DialogContentText';
 import DialogTitle from '@mui/material/DialogTitle';
 import Divider from '@mui/material/Divider';
-import Grid from '@mui/material/Grid';
 import IconButton from '@mui/material/IconButton';
 import List from '@mui/material/List';
 import ListItem from '@mui/material/ListItem';
@@ -45,31 +44,9 @@ import {
 } from '../hooks/useBot';
 import { useJudges, useBotJudges, useAssignJudge, useRemoveJudge } from '../hooks/useJudges';
 import { useAuth } from '../hooks/useAuth';
-import { useStats } from '../hooks/useStats';
-import { usePosts, type PostStatus } from '../hooks/usePosts';
+import { usePosts } from '../hooks/usePosts';
 import { apiClient } from '../lib/apiClient';
 import { useNavigate } from '@tanstack/react-router';
-
-const statusColors: Record<PostStatus, 'default' | 'info' | 'success' | 'error' | 'warning'> = {
-  draft: 'default',
-  approved: 'warning',
-  scheduled: 'info',
-  published: 'success',
-  discarded: 'error',
-};
-
-function StatCard({ title, value }: { title: string; value: string | number }) {
-  return (
-    <Card>
-      <CardContent sx={{ textAlign: 'center', py: 2 }}>
-        <Typography variant="body2" color="text.secondary" gutterBottom>
-          {title}
-        </Typography>
-        <Typography variant="h4">{value}</Typography>
-      </CardContent>
-    </Card>
-  );
-}
 
 type SnackbarState = {
   open: boolean;
@@ -117,8 +94,7 @@ export default function DashboardPage() {
   const assignJudge = useAssignJudge();
   const removeJudge = useRemoveJudge();
 
-  const { data: stats, isLoading: statsLoading } = useStats(bot?.id);
-  const { data: recentPostsData, isLoading: recentPostsLoading } = usePosts(undefined, 1, 5);
+  const { data: recentPostsData, isLoading: recentPostsLoading } = usePosts('published', 1, 10);
   const recentPosts = recentPostsData?.data ?? [];
 
   const showSnackbar = (
@@ -330,107 +306,6 @@ export default function DashboardPage() {
             </Box>
           </CardContent>
         </Card>
-
-        {/* Stats Section */}
-        {statsLoading ? (
-          <Grid container spacing={2} sx={{ mb: 3 }}>
-            {[1, 2, 3, 4].map((i) => (
-              <Grid item xs={6} sm={3} key={i}>
-                <Skeleton variant="rectangular" height={100} sx={{ borderRadius: 1 }} />
-              </Grid>
-            ))}
-          </Grid>
-        ) : stats ? (
-          <>
-            <Typography variant="h6" gutterBottom>
-              Stats
-            </Typography>
-            <Grid container spacing={2} sx={{ mb: 3 }}>
-              <Grid item xs={6} sm={3}>
-                <StatCard title="Total Posts" value={stats.totalPosts} />
-              </Grid>
-              <Grid item xs={6} sm={3}>
-                <StatCard title="Posts Today" value={stats.postsToday} />
-              </Grid>
-              <Grid item xs={6} sm={3}>
-                <StatCard
-                  title="Avg Rating"
-                  value={stats.averageRating != null ? stats.averageRating.toFixed(1) : 'N/A'}
-                />
-              </Grid>
-              <Grid item xs={6} sm={3}>
-                <StatCard title="Published" value={stats.postsByStatus.published} />
-              </Grid>
-            </Grid>
-            <Grid container spacing={2} sx={{ mb: 3 }}>
-              <Grid item xs={6} sm={3}>
-                <StatCard title="Drafts" value={stats.postsByStatus.draft} />
-              </Grid>
-              <Grid item xs={6} sm={3}>
-                <StatCard title="Approved" value={stats.postsByStatus.approved ?? 0} />
-              </Grid>
-              <Grid item xs={6} sm={3}>
-                <StatCard title="Scheduled" value={stats.postsByStatus.scheduled} />
-              </Grid>
-              <Grid item xs={6} sm={3}>
-                <StatCard title="Discarded" value={stats.postsByStatus.discarded} />
-              </Grid>
-            </Grid>
-          </>
-        ) : null}
-
-        {/* Recent Posts */}
-        <Typography variant="h6" gutterBottom>
-          Recent Posts
-        </Typography>
-        {recentPostsLoading ? (
-          <Box>
-            {[1, 2, 3].map((i) => (
-              <Skeleton key={i} variant="rectangular" height={60} sx={{ mb: 1, borderRadius: 1 }} />
-            ))}
-          </Box>
-        ) : recentPosts.length === 0 ? (
-          <Card sx={{ mb: 3 }}>
-            <CardContent>
-              <Typography variant="body2" color="text.secondary" textAlign="center">
-                No posts yet
-              </Typography>
-            </CardContent>
-          </Card>
-        ) : (
-          <Card sx={{ mb: 3 }}>
-            <CardContent sx={{ p: 0, '&:last-child': { pb: 0 } }}>
-              {recentPosts.map((post, index) => (
-                <Box
-                  key={post.id}
-                  sx={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    px: 2,
-                    py: 1.5,
-                    borderBottom: index < recentPosts.length - 1 ? '1px solid' : 'none',
-                    borderColor: 'divider',
-                  }}
-                >
-                  <Typography
-                    variant="body2"
-                    sx={{
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis',
-                      whiteSpace: 'nowrap',
-                      mr: 2,
-                      flex: 1,
-                    }}
-                  >
-                    {post.content}
-                  </Typography>
-                  <Chip label={post.status} color={statusColors[post.status]} size="small" />
-                </Box>
-              ))}
-            </CardContent>
-          </Card>
-        )}
 
         {/* Memory Tips */}
         <Typography variant="h6" gutterBottom>
@@ -758,6 +633,65 @@ export default function DashboardPage() {
               </CardContent>
             </Card>
           </>
+        )}
+
+        {/* Recent Published Posts */}
+        <Typography variant="h6" gutterBottom>
+          Recent Published Posts
+        </Typography>
+        {recentPostsLoading ? (
+          <Box>
+            {[1, 2, 3].map((i) => (
+              <Skeleton key={i} variant="rectangular" height={60} sx={{ mb: 1, borderRadius: 1 }} />
+            ))}
+          </Box>
+        ) : recentPosts.length === 0 ? (
+          <Card sx={{ mb: 3 }}>
+            <CardContent>
+              <Typography variant="body2" color="text.secondary" textAlign="center">
+                No published posts yet
+              </Typography>
+            </CardContent>
+          </Card>
+        ) : (
+          <Card sx={{ mb: 3 }}>
+            <CardContent sx={{ p: 0, '&:last-child': { pb: 0 } }}>
+              {recentPosts.map((post, index) => (
+                <Box
+                  key={post.id}
+                  sx={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    px: 2,
+                    py: 1.5,
+                    borderBottom: index < recentPosts.length - 1 ? '1px solid' : 'none',
+                    borderColor: 'divider',
+                  }}
+                >
+                  <Typography
+                    variant="body2"
+                    sx={{
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      whiteSpace: 'nowrap',
+                      mr: 2,
+                      flex: 1,
+                    }}
+                  >
+                    {post.content}
+                  </Typography>
+                  <Typography
+                    variant="caption"
+                    color="text.secondary"
+                    sx={{ whiteSpace: 'nowrap' }}
+                  >
+                    {post.publishedAt ? new Date(post.publishedAt).toLocaleDateString() : ''}
+                  </Typography>
+                </Box>
+              ))}
+            </CardContent>
+          </Card>
         )}
 
         {/* Share Bot dialog */}
