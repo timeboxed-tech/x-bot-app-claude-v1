@@ -644,46 +644,74 @@ export default function DashboardPage() {
           Stats
         </Typography>
         {statsData ? (
-          <Grid container spacing={2} sx={{ mb: 3 }}>
-            {(
-              [
-                { label: 'Draft', value: String(statsData.postsByStatus.draft) },
-                { label: 'Scheduled', value: String(statsData.postsByStatus.scheduled) },
-                { label: 'Approved', value: String(statsData.postsByStatus.approved) },
-                { label: 'Published', value: String(statsData.postsByStatus.published) },
-                { label: 'Discarded', value: String(statsData.postsByStatus.discarded) },
-                {
-                  label: 'Avg Post Rating',
-                  value: statsData.avgPostRating != null ? statsData.avgPostRating.toFixed(1) : '-',
-                },
-                {
-                  label: 'Avg Judge Rating (Draft+Published)',
-                  value:
-                    statsData.avgJudgeRatingDraftPublished != null
-                      ? statsData.avgJudgeRatingDraftPublished.toFixed(1)
-                      : '-',
-                },
-                {
-                  label: 'Avg Judge Rating (All)',
-                  value:
-                    statsData.avgJudgeRatingAll != null
-                      ? statsData.avgJudgeRatingAll.toFixed(1)
-                      : '-',
-                },
-              ] as const
-            ).map((stat) => (
-              <Grid item xs={6} sm={4} md key={stat.label}>
-                <Card>
-                  <CardContent sx={{ textAlign: 'center', py: 1.5, '&:last-child': { pb: 1.5 } }}>
-                    <Typography variant="h5">{stat.value}</Typography>
-                    <Typography variant="caption" color="text.secondary">
+          <>
+            <Grid container spacing={2} sx={{ mb: 2 }}>
+              {(
+                [
+                  { label: 'Draft', value: String(statsData.postsByStatus.draft) },
+                  { label: 'Scheduled', value: String(statsData.postsByStatus.scheduled) },
+                  { label: 'Approved', value: String(statsData.postsByStatus.approved) },
+                  { label: 'Published', value: String(statsData.postsByStatus.published) },
+                  { label: 'Discarded', value: String(statsData.postsByStatus.discarded) },
+                ] as const
+              ).map((stat) => (
+                <Grid item xs={6} sm={4} md key={stat.label}>
+                  <Card>
+                    <CardContent sx={{ textAlign: 'center', py: 1.5, '&:last-child': { pb: 1.5 } }}>
+                      <Typography variant="h5">{stat.value}</Typography>
+                      <Typography variant="caption" color="text.secondary">
+                        {stat.label}
+                      </Typography>
+                    </CardContent>
+                  </Card>
+                </Grid>
+              ))}
+            </Grid>
+            <Card sx={{ mb: 3 }}>
+              <CardContent sx={{ py: 1.5, '&:last-child': { pb: 1.5 } }}>
+                {(
+                  [
+                    {
+                      label: 'Avg Post Rating',
+                      value:
+                        statsData.avgPostRating != null ? statsData.avgPostRating.toFixed(1) : '-',
+                    },
+                    {
+                      label: 'Avg Judge Rating (Draft+Published)',
+                      value:
+                        statsData.avgJudgeRatingDraftPublished != null
+                          ? statsData.avgJudgeRatingDraftPublished.toFixed(1)
+                          : '-',
+                    },
+                    {
+                      label: 'Avg Judge Rating (All)',
+                      value:
+                        statsData.avgJudgeRatingAll != null
+                          ? statsData.avgJudgeRatingAll.toFixed(1)
+                          : '-',
+                    },
+                  ] as const
+                ).map((stat, index) => (
+                  <Box
+                    key={stat.label}
+                    sx={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      py: 0.75,
+                      borderBottom: index < 2 ? '1px solid' : 'none',
+                      borderColor: 'divider',
+                    }}
+                  >
+                    <Typography variant="body2" color="text.secondary">
                       {stat.label}
                     </Typography>
-                  </CardContent>
-                </Card>
-              </Grid>
-            ))}
-          </Grid>
+                    <Typography variant="h6">{stat.value}</Typography>
+                  </Box>
+                ))}
+              </CardContent>
+            </Card>
+          </>
         ) : (
           <Skeleton variant="rectangular" height={80} sx={{ mb: 3, borderRadius: 1 }} />
         )}

@@ -47,7 +47,7 @@ export const statsController = {
         prisma.post.count({ where: { botId, status: 'published' } }),
         prisma.post.count({ where: { botId, status: 'discarded' } }),
         prisma.post.aggregate({
-          where: { botId, status: { in: ['draft', 'published'] }, rating: { not: null } },
+          where: { botId, rating: { not: null } },
           _avg: { rating: true },
         }),
         prisma.postReview.aggregate({
