@@ -37,6 +37,29 @@ type UpdatePostInput = {
   flagged?: boolean;
 };
 
+type PostCounts = {
+  draft: number;
+  approved: number;
+  scheduled: number;
+  published: number;
+  discarded: number;
+  total: number;
+};
+
+export function usePostCounts(showAll = false) {
+  return useQuery({
+    queryKey: queryKeys.posts.counts(showAll),
+    queryFn: async () => {
+      const params: Record<string, string> = {};
+      if (showAll) {
+        params.showAll = 'true';
+      }
+      const response = await apiClient.get<{ data: PostCounts }>('/posts/counts', { params });
+      return response.data.data;
+    },
+  });
+}
+
 export function usePosts(status?: string, page = 1, pageSize = 10, showAll = false) {
   return useQuery({
     queryKey: queryKeys.posts.list(status, page, showAll),

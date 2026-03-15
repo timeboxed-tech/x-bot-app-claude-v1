@@ -200,6 +200,21 @@ export const postService = {
     await postRepository.delete(postId);
   },
 
+  async getPostCounts(userId: string | undefined) {
+    if (!userId) {
+      return postRepository.countsByStatus();
+    }
+
+    const { bots } = await botRepository.findByUserId(userId, 1, 1000);
+    const botIds = bots.map((b: { id: string }) => b.id);
+
+    if (botIds.length === 0) {
+      return { draft: 0, approved: 0, scheduled: 0, published: 0, discarded: 0, total: 0 };
+    }
+
+    return postRepository.countsByStatus(botIds);
+  },
+
   async deleteAllDiscarded(userId: string | undefined) {
     if (!userId) {
       // Admin show-all: delete all discarded posts

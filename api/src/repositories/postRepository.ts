@@ -222,6 +222,23 @@ export const postRepository = {
     });
   },
 
+  async countsByStatus(botIds?: string[]) {
+    const where = botIds ? { botId: { in: botIds } } : {};
+    const statuses = ['draft', 'approved', 'scheduled', 'published', 'discarded'] as const;
+    const counts = await Promise.all(
+      statuses.map((status) => prisma.post.count({ where: { ...where, status } })),
+    );
+    const total = counts.reduce((sum, c) => sum + c, 0);
+    return {
+      draft: counts[0],
+      approved: counts[1],
+      scheduled: counts[2],
+      published: counts[3],
+      discarded: counts[4],
+      total,
+    };
+  },
+
   async findRecentByBotId(botId: string, limit = 10) {
     return prisma.post.findMany({
       where: {

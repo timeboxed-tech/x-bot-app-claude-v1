@@ -72,6 +72,26 @@ export const postController = {
     }
   },
 
+  async counts(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const userId = req.userId!;
+      const { showAll } = postListQuerySchema.parse(req.query);
+
+      let scopeToUser = true;
+      if (showAll === 'true') {
+        const user = await userRepository.findById(userId);
+        if (user?.isAdmin) {
+          scopeToUser = false;
+        }
+      }
+
+      const counts = await postService.getPostCounts(scopeToUser ? userId : undefined);
+      res.status(200).json({ data: counts });
+    } catch (err) {
+      next(err);
+    }
+  },
+
   async update(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const userId = req.userId!;

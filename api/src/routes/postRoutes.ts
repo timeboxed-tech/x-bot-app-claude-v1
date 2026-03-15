@@ -9,6 +9,7 @@ const router = Router();
 router.use(authMiddleware);
 
 router.get('/', postController.list);
+router.get('/counts', postController.counts);
 router.delete('/discarded', postController.removeAllDiscarded);
 router.patch('/:id', postController.update);
 router.delete('/:id', postController.remove);

@@ -16,7 +16,7 @@ import DialogTitle from '@mui/material/DialogTitle';
 import DialogContent from '@mui/material/DialogContent';
 import DialogActions from '@mui/material/DialogActions';
 import CircularProgress from '@mui/material/CircularProgress';
-import { usePosts, useDeleteAllDiscarded } from '../hooks/usePosts';
+import { usePosts, usePostCounts, useDeleteAllDiscarded } from '../hooks/usePosts';
 
 const TAB_CONFIG = [
   { label: 'Drafts', status: 'draft', emptyMessage: 'No drafts yet' },
@@ -51,6 +51,8 @@ export default function PostsPage() {
 
   const [deleteAllOpen, setDeleteAllOpen] = useState(false);
   const deleteAllDiscarded = useDeleteAllDiscarded();
+
+  const { data: counts } = usePostCounts(showAll);
 
   const currentTab = TAB_CONFIG[tabIndex];
   const { data, isLoading } = usePosts(currentTab.status, page, 10, showAll);
@@ -96,9 +98,11 @@ export default function PostsPage() {
             variant="scrollable"
             scrollButtons="auto"
           >
-            {TAB_CONFIG.map((tab) => (
-              <Tab key={tab.label} label={tab.label} />
-            ))}
+            {TAB_CONFIG.map((tab) => {
+              const count = counts ? (tab.status ? counts[tab.status] : counts.total) : undefined;
+              const label = count !== undefined ? `${tab.label} (${count})` : tab.label;
+              return <Tab key={tab.label} label={label} />;
+            })}
           </Tabs>
         </Box>
 

@@ -14,6 +14,7 @@ export const queryKeys = {
     list: (status?: string, page?: number, showAll?: boolean) =>
       ['posts', 'list', status ?? 'all', page ?? 1, showAll ?? false] as const,
     all: ['posts'] as const,
+    counts: (showAll?: boolean) => ['posts', 'counts', showAll ?? false] as const,
     reviews: (postId: string) => ['posts', 'reviews', postId] as const,
   },
   stats: {
