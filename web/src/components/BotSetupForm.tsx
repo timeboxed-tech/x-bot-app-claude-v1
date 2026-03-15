@@ -110,6 +110,7 @@ export default function BotSetupForm({
         label="Bot Prompt"
         multiline
         minRows={8}
+        maxRows={20}
         value={values.prompt}
         onChange={(e) => setValues((v) => ({ ...v, prompt: e.target.value }))}
         error={!!errors['prompt']}
@@ -118,6 +119,9 @@ export default function BotSetupForm({
           'Describe how your bot should write posts. This can be multiple paragraphs.'
         }
         fullWidth
+        InputProps={{
+          sx: { overflowY: 'auto' },
+        }}
       />
 
       <FormControl>
