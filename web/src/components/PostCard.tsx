@@ -95,6 +95,14 @@ export default function PostCard({ post }: PostCardProps) {
     updatePost.mutate({ id: post.id, status: 'scheduled' });
   };
 
+  const handleApprove = () => {
+    updatePost.mutate({ id: post.id, status: 'approved' });
+  };
+
+  const handleBackToDraft = () => {
+    updatePost.mutate({ id: post.id, status: 'draft' });
+  };
+
   const handleDiscard = () => {
     updatePost.mutate({ id: post.id, status: 'discarded' });
   };
@@ -320,6 +328,15 @@ export default function PostCard({ post }: PostCardProps) {
                 <Button
                   size="small"
                   variant="contained"
+                  color="success"
+                  onClick={handleApprove}
+                  disabled={updatePost.isPending}
+                >
+                  Approve
+                </Button>
+                <Button
+                  size="small"
+                  variant="contained"
                   onClick={handleSchedule}
                   disabled={updatePost.isPending}
                 >
@@ -336,14 +353,33 @@ export default function PostCard({ post }: PostCardProps) {
               </>
             )}
             {post.status === 'approved' && (
-              <Button
-                size="small"
-                color="error"
-                onClick={handleDiscard}
-                disabled={updatePost.isPending}
-              >
-                Discard
-              </Button>
+              <>
+                <Button
+                  size="small"
+                  variant="contained"
+                  onClick={handleSchedule}
+                  disabled={updatePost.isPending}
+                >
+                  Schedule
+                </Button>
+                <Button
+                  size="small"
+                  color="warning"
+                  variant="outlined"
+                  onClick={handleBackToDraft}
+                  disabled={updatePost.isPending}
+                >
+                  Back to Draft
+                </Button>
+                <Button
+                  size="small"
+                  color="error"
+                  onClick={handleDiscard}
+                  disabled={updatePost.isPending}
+                >
+                  Discard
+                </Button>
+              </>
             )}
             {post.status === 'scheduled' && (
               <Button

@@ -224,7 +224,7 @@ function getAllowedTransitions(currentStatus: string): string[] {
     case 'draft':
       return ['scheduled', 'discarded', 'approved'];
     case 'approved':
-      return ['discarded', 'draft'];
+      return ['scheduled', 'discarded', 'draft'];
     case 'scheduled':
       return ['discarded'];
     case 'discarded':
