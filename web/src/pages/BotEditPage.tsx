@@ -1,17 +1,18 @@
 import { useState } from 'react';
+import Accordion from '@mui/material/Accordion';
+import AccordionDetails from '@mui/material/AccordionDetails';
+import AccordionSummary from '@mui/material/AccordionSummary';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
+import Chip from '@mui/material/Chip';
 import CircularProgress from '@mui/material/CircularProgress';
 import Container from '@mui/material/Container';
 import Switch from '@mui/material/Switch';
-import Tab from '@mui/material/Tab';
-import Tabs from '@mui/material/Tabs';
 import TextField from '@mui/material/TextField';
-import Tooltip from '@mui/material/Tooltip';
 import Typography from '@mui/material/Typography';
-import FormControlLabel from '@mui/material/FormControlLabel';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import DeleteIcon from '@mui/icons-material/Delete';
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import SaveIcon from '@mui/icons-material/Save';
 import AddIcon from '@mui/icons-material/Add';
 import FormControl from '@mui/material/FormControl';
@@ -48,7 +49,7 @@ export default function BotEditPage() {
     {},
   );
   const [editingWeights, setEditingWeights] = useState<Record<string, number>>({});
-  const [activeTab, setActiveTab] = useState(0);
+  const [expanded, setExpanded] = useState<string | false>(false);
 
   const bot = bots.find((b) => b.id === botId);
 
@@ -82,9 +83,7 @@ export default function BotEditPage() {
   }
 
   const behaviourCount = behaviours?.length ?? 0;
-  const canAddBehaviour = behaviourCount < 5;
-  // The "add new" tab is at index === behaviourCount (after all behaviour tabs)
-  const isAddTab = activeTab === behaviourCount;
+  const canAddBehaviour = behaviourCount < 10;
 
   const activeBehaviours = behaviours?.filter((b) => b.active) ?? [];
   const totalWeight = activeBehaviours.reduce((sum, b) => {
@@ -117,24 +116,10 @@ export default function BotEditPage() {
     setEditingWeights((prev) => ({ ...prev, ...newWeights }));
   }
 
-  function getTabLabel(
-    behaviour: { title: string; content: string; active: boolean; weight: number },
-    index: number,
-  ) {
-    const prefix = `Behaviour ${index + 1}`;
-    const label =
-      behaviour.title ||
-      (behaviour.content.length > 20
-        ? behaviour.content.slice(0, 20) + '...'
-        : behaviour.content) ||
-      prefix;
-    const weight =
-      editingWeights[behaviours?.[index]?.id ?? ''] !== undefined
-        ? editingWeights[behaviours![index].id]
-        : behaviour.weight;
-    const weightSuffix = behaviour.active ? ` (${weight}%)` : '';
-    return behaviour.active ? `${label}${weightSuffix}` : `(off) ${label}`;
-  }
+  const handleAccordionChange =
+    (panel: string) => (_event: React.SyntheticEvent, isExpanded: boolean) => {
+      setExpanded(isExpanded ? panel : false);
+    };
 
   return (
     <>
@@ -181,7 +166,7 @@ export default function BotEditPage() {
 
         <Box sx={{ mt: 4 }}>
           <Typography variant="h6" gutterBottom>
-            Behaviours ({behaviourCount}/5)
+            Behaviours ({behaviourCount}/10)
           </Typography>
           <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
             Add behaviours to vary how posts are generated. Active behaviours are selected using
@@ -191,12 +176,16 @@ export default function BotEditPage() {
           {behavioursLoading ? (
             <CircularProgress size={24} />
           ) : (
-            <Box sx={{ border: 1, borderColor: 'divider', borderRadius: 1 }}>
+            <Box>
               {activeBehaviours.length > 0 && (
                 <Box
                   sx={{
                     px: 2,
-                    pt: 2,
+                    py: 2,
+                    mb: 2,
+                    border: 1,
+                    borderColor: 'divider',
+                    borderRadius: 1,
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'space-between',
@@ -227,55 +216,59 @@ export default function BotEditPage() {
                 </Box>
               )}
 
-              <Tabs
-                value={activeTab}
-                onChange={(_e, newValue: number) => setActiveTab(newValue)}
-                variant="fullWidth"
-              >
-                {behaviours?.map((behaviour, index) => (
-                  <Tab
-                    key={behaviour.id}
-                    label={
-                      <Tooltip title={getTabLabel(behaviour, index)} enterDelay={400}>
-                        <span
-                          style={{
-                            display: 'block',
-                            overflow: 'hidden',
-                            textOverflow: 'ellipsis',
-                            whiteSpace: 'nowrap',
-                          }}
-                        >
-                          {getTabLabel(behaviour, index)}
-                        </span>
-                      </Tooltip>
-                    }
-                    sx={{
-                      minWidth: 0,
-                      opacity: behaviour.active ? 1 : 0.5,
-                      textTransform: 'none',
-                    }}
-                  />
-                ))}
-                {canAddBehaviour && (
-                  <Tab
-                    icon={<AddIcon />}
-                    iconPosition="start"
-                    label="Add"
-                    sx={{ textTransform: 'none' }}
-                  />
-                )}
-              </Tabs>
+              {behaviours?.map((behaviour) => {
+                const weight =
+                  editingWeights[behaviour.id] !== undefined
+                    ? editingWeights[behaviour.id]
+                    : behaviour.weight;
+                const isEditing =
+                  editingBehaviours[behaviour.id] !== undefined ||
+                  editingTitles[behaviour.id] !== undefined ||
+                  editingKnowledgeSources[behaviour.id] !== undefined ||
+                  editingWeights[behaviour.id] !== undefined;
 
-              <Box sx={{ p: 2 }}>
-                {behaviours?.map((behaviour, index) => {
-                  if (index !== activeTab) return null;
-                  const isEditing =
-                    editingBehaviours[behaviour.id] !== undefined ||
-                    editingTitles[behaviour.id] !== undefined ||
-                    editingKnowledgeSources[behaviour.id] !== undefined ||
-                    editingWeights[behaviour.id] !== undefined;
-                  return (
-                    <Box key={behaviour.id}>
+                return (
+                  <Accordion
+                    key={behaviour.id}
+                    expanded={expanded === behaviour.id}
+                    onChange={handleAccordionChange(behaviour.id)}
+                    sx={{ opacity: behaviour.active ? 1 : 0.7 }}
+                  >
+                    <AccordionSummary
+                      expandIcon={<ExpandMoreIcon />}
+                      sx={{ '& .MuiAccordionSummary-content': { alignItems: 'center', gap: 1.5 } }}
+                    >
+                      <Switch
+                        size="small"
+                        checked={behaviour.active}
+                        onClick={(event) => event.stopPropagation()}
+                        onChange={(event) => {
+                          event.stopPropagation();
+                          toggleBehaviour.mutate({
+                            botId: bot.id,
+                            behaviourId: behaviour.id,
+                            active: event.target.checked,
+                          });
+                        }}
+                        disabled={toggleBehaviour.isPending}
+                      />
+                      <Typography sx={{ flexGrow: 1 }}>{behaviour.title || 'Untitled'}</Typography>
+                      {behaviour.active && (
+                        <Chip
+                          label={`${weight}%`}
+                          size="small"
+                          color="primary"
+                          variant="outlined"
+                        />
+                      )}
+                      <Chip
+                        label={behaviour.active ? 'Active' : 'Inactive'}
+                        size="small"
+                        color={behaviour.active ? 'success' : 'default'}
+                        variant="outlined"
+                      />
+                    </AccordionSummary>
+                    <AccordionDetails>
                       <TextField
                         fullWidth
                         size="small"
@@ -379,173 +372,151 @@ export default function BotEditPage() {
                         sx={{
                           display: 'flex',
                           alignItems: 'center',
-                          justifyContent: 'space-between',
+                          justifyContent: 'flex-end',
+                          gap: 1,
                         }}
                       >
-                        <FormControlLabel
-                          control={
-                            <Switch
-                              checked={behaviour.active}
-                              onChange={(e) =>
-                                toggleBehaviour.mutate({
-                                  botId: bot.id,
-                                  behaviourId: behaviour.id,
-                                  active: e.target.checked,
-                                })
-                              }
-                              disabled={toggleBehaviour.isPending}
-                            />
-                          }
-                          label={behaviour.active ? 'Active' : 'Inactive'}
-                        />
-                        <Box sx={{ display: 'flex', gap: 1 }}>
-                          {isEditing && (
-                            <Button
-                              variant="contained"
-                              size="small"
-                              startIcon={<SaveIcon />}
-                              onClick={() => {
-                                const content =
-                                  editingBehaviours[behaviour.id] ?? behaviour.content;
-                                const title = editingTitles[behaviour.id] ?? behaviour.title;
-                                const ks =
-                                  editingKnowledgeSources[behaviour.id] ??
-                                  behaviour.knowledgeSource;
-                                const weight = editingWeights[behaviour.id] ?? behaviour.weight;
-                                if (content && content.trim()) {
-                                  updateBehaviour.mutate(
-                                    {
-                                      botId: bot.id,
-                                      behaviourId: behaviour.id,
-                                      content: content.trim(),
-                                      title: title?.trim(),
-                                      knowledgeSource: ks,
-                                      weight,
-                                    },
-                                    {
-                                      onSuccess: () => {
-                                        setEditingBehaviours((prev) => {
-                                          const next = { ...prev };
-                                          delete next[behaviour.id];
-                                          return next;
-                                        });
-                                        setEditingTitles((prev) => {
-                                          const next = { ...prev };
-                                          delete next[behaviour.id];
-                                          return next;
-                                        });
-                                        setEditingKnowledgeSources((prev) => {
-                                          const next = { ...prev };
-                                          delete next[behaviour.id];
-                                          return next;
-                                        });
-                                        setEditingWeights((prev) => {
-                                          const next = { ...prev };
-                                          delete next[behaviour.id];
-                                          return next;
-                                        });
-                                      },
-                                    },
-                                  );
-                                }
-                              }}
-                              disabled={updateBehaviour.isPending}
-                            >
-                              Save
-                            </Button>
-                          )}
+                        {isEditing && (
                           <Button
-                            variant="outlined"
+                            variant="contained"
                             size="small"
-                            color="error"
-                            startIcon={<DeleteIcon />}
+                            startIcon={<SaveIcon />}
                             onClick={() => {
-                              deleteBehaviour.mutate(
-                                { botId: bot.id, behaviourId: behaviour.id },
-                                {
-                                  onSuccess: () => {
-                                    setActiveTab((prev) => Math.max(0, prev - 1));
+                              const content = editingBehaviours[behaviour.id] ?? behaviour.content;
+                              const title = editingTitles[behaviour.id] ?? behaviour.title;
+                              const ks =
+                                editingKnowledgeSources[behaviour.id] ?? behaviour.knowledgeSource;
+                              const w = editingWeights[behaviour.id] ?? behaviour.weight;
+                              if (content && content.trim()) {
+                                updateBehaviour.mutate(
+                                  {
+                                    botId: bot.id,
+                                    behaviourId: behaviour.id,
+                                    content: content.trim(),
+                                    title: title?.trim(),
+                                    knowledgeSource: ks,
+                                    weight: w,
                                   },
-                                },
-                              );
+                                  {
+                                    onSuccess: () => {
+                                      setEditingBehaviours((prev) => {
+                                        const next = { ...prev };
+                                        delete next[behaviour.id];
+                                        return next;
+                                      });
+                                      setEditingTitles((prev) => {
+                                        const next = { ...prev };
+                                        delete next[behaviour.id];
+                                        return next;
+                                      });
+                                      setEditingKnowledgeSources((prev) => {
+                                        const next = { ...prev };
+                                        delete next[behaviour.id];
+                                        return next;
+                                      });
+                                      setEditingWeights((prev) => {
+                                        const next = { ...prev };
+                                        delete next[behaviour.id];
+                                        return next;
+                                      });
+                                    },
+                                  },
+                                );
+                              }
                             }}
-                            disabled={deleteBehaviour.isPending}
+                            disabled={updateBehaviour.isPending}
                           >
-                            Delete
+                            Save
                           </Button>
-                        </Box>
-                      </Box>
-                    </Box>
-                  );
-                })}
-
-                {canAddBehaviour && isAddTab && (
-                  <Box>
-                    <TextField
-                      fullWidth
-                      size="small"
-                      label="Title"
-                      placeholder="e.g., Witty & Sarcastic"
-                      value={newBehaviourTitle}
-                      onChange={(e) => setNewBehaviourTitle(e.target.value)}
-                      sx={{ mb: 1 }}
-                    />
-                    <TextField
-                      fullWidth
-                      multiline
-                      minRows={3}
-                      size="small"
-                      label="Prompt"
-                      placeholder="e.g., Write in a witty, sarcastic tone with pop culture references"
-                      value={newBehaviourContent}
-                      onChange={(e) => setNewBehaviourContent(e.target.value)}
-                      sx={{ mb: 2 }}
-                    />
-                    <Button
-                      variant="contained"
-                      size="small"
-                      startIcon={<AddIcon />}
-                      onClick={() => {
-                        if (newBehaviourContent.trim()) {
-                          // Auto-distribute weights equally when adding a new behaviour
-                          const newCount = activeBehaviours.length + 1;
-                          const equalWeight = Math.floor(100 / newCount);
-                          createBehaviour.mutate(
-                            {
-                              botId: bot.id,
-                              content: newBehaviourContent.trim(),
-                              title: newBehaviourTitle.trim() || undefined,
-                              weight: equalWeight,
-                            },
-                            {
-                              onSuccess: () => {
-                                setNewBehaviourContent('');
-                                setNewBehaviourTitle('');
-                                setActiveTab(behaviourCount);
+                        )}
+                        <Button
+                          variant="outlined"
+                          size="small"
+                          color="error"
+                          startIcon={<DeleteIcon />}
+                          onClick={() => {
+                            deleteBehaviour.mutate(
+                              { botId: bot.id, behaviourId: behaviour.id },
+                              {
+                                onSuccess: () => {
+                                  if (expanded === behaviour.id) {
+                                    setExpanded(false);
+                                  }
+                                },
                               },
+                            );
+                          }}
+                          disabled={deleteBehaviour.isPending}
+                        >
+                          Delete
+                        </Button>
+                      </Box>
+                    </AccordionDetails>
+                  </Accordion>
+                );
+              })}
+
+              {behaviourCount === 0 && (
+                <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                  No behaviours configured. Add one below.
+                </Typography>
+              )}
+
+              {canAddBehaviour && (
+                <Box sx={{ mt: 2, p: 2, border: 1, borderColor: 'divider', borderRadius: 1 }}>
+                  <Typography variant="subtitle2" sx={{ mb: 1 }}>
+                    Add New Behaviour
+                  </Typography>
+                  <TextField
+                    fullWidth
+                    size="small"
+                    label="Title"
+                    placeholder="e.g., Witty & Sarcastic"
+                    value={newBehaviourTitle}
+                    onChange={(e) => setNewBehaviourTitle(e.target.value)}
+                    sx={{ mb: 1 }}
+                  />
+                  <TextField
+                    fullWidth
+                    multiline
+                    minRows={3}
+                    size="small"
+                    label="Prompt"
+                    placeholder="e.g., Write in a witty, sarcastic tone with pop culture references"
+                    value={newBehaviourContent}
+                    onChange={(e) => setNewBehaviourContent(e.target.value)}
+                    sx={{ mb: 2 }}
+                  />
+                  <Button
+                    variant="contained"
+                    size="small"
+                    startIcon={<AddIcon />}
+                    onClick={() => {
+                      if (newBehaviourContent.trim()) {
+                        const newCount = activeBehaviours.length + 1;
+                        const equalWeight = Math.floor(100 / newCount);
+                        createBehaviour.mutate(
+                          {
+                            botId: bot.id,
+                            content: newBehaviourContent.trim(),
+                            title: newBehaviourTitle.trim() || undefined,
+                            weight: equalWeight,
+                          },
+                          {
+                            onSuccess: () => {
+                              setNewBehaviourContent('');
+                              setNewBehaviourTitle('');
                             },
-                          );
-                        }
-                      }}
-                      disabled={!newBehaviourContent.trim() || createBehaviour.isPending}
-                    >
-                      Add Behaviour
-                    </Button>
-                  </Box>
-                )}
-
-                {behaviourCount === 0 && !canAddBehaviour && (
-                  <Typography variant="body2" color="text.secondary">
-                    No behaviours configured.
-                  </Typography>
-                )}
-
-                {behaviourCount === 0 && canAddBehaviour && !isAddTab && (
-                  <Typography variant="body2" color="text.secondary">
-                    No behaviours yet. Click the + tab to add one.
-                  </Typography>
-                )}
-              </Box>
+                          },
+                        );
+                      }
+                    }}
+                    disabled={!newBehaviourContent.trim() || createBehaviour.isPending}
+                  >
+                    Add Behaviour
+                  </Button>
+                </Box>
+              )}
             </Box>
           )}
         </Box>

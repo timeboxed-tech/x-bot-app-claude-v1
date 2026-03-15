@@ -3,7 +3,7 @@ import { botRepository } from '../repositories/botRepository.js';
 import { botShareRepository } from '../repositories/botShareRepository.js';
 import { NotFoundError, ForbiddenError, ValidationError } from '../utils/errors.js';
 
-const MAX_BEHAVIOURS_PER_BOT = 5;
+const MAX_BEHAVIOURS_PER_BOT = 10;
 
 async function assertBotAccess(botId: string, userId: string): Promise<void> {
   const bot = await botRepository.findById(botId);
