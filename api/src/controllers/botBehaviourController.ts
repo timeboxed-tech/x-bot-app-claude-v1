@@ -19,6 +19,7 @@ const createBehaviourSchema = z.object({
   title: z.string().optional(),
   knowledgeSource: z.enum(['default', 'ai', 'ai+web']).default('default'),
   outcome: outcomeEnum.default('write_post'),
+  queryPrompt: z.string().optional(),
   weight: z.number().int().min(0).max(100).optional(),
 });
 
@@ -27,6 +28,7 @@ const updateBehaviourSchema = z.object({
   title: z.string().optional(),
   knowledgeSource: z.enum(['default', 'ai', 'ai+web']).optional(),
   outcome: outcomeEnum.optional(),
+  queryPrompt: z.string().optional(),
   weight: z.number().int().min(0).max(100).optional(),
 });
 
@@ -53,9 +55,8 @@ export const botBehaviourController = {
     try {
       const userId = req.userId!;
       const { id } = botIdParamSchema.parse(req.params);
-      const { content, title, knowledgeSource, outcome, weight } = createBehaviourSchema.parse(
-        req.body,
-      );
+      const { content, title, knowledgeSource, outcome, queryPrompt, weight } =
+        createBehaviourSchema.parse(req.body);
       const behaviour = await botBehaviourService.create(
         id,
         userId,
@@ -63,6 +64,7 @@ export const botBehaviourController = {
         title,
         knowledgeSource,
         outcome,
+        queryPrompt,
         weight,
       );
 
@@ -78,9 +80,8 @@ export const botBehaviourController = {
     try {
       const userId = req.userId!;
       const { id, behaviourId } = behaviourIdParamSchema.parse(req.params);
-      const { content, title, knowledgeSource, outcome, weight } = updateBehaviourSchema.parse(
-        req.body,
-      );
+      const { content, title, knowledgeSource, outcome, queryPrompt, weight } =
+        updateBehaviourSchema.parse(req.body);
       const behaviour = await botBehaviourService.update(
         id,
         behaviourId,
@@ -89,6 +90,7 @@ export const botBehaviourController = {
         title,
         knowledgeSource,
         outcome,
+        queryPrompt,
         weight,
       );
 

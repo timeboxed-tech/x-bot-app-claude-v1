@@ -31,6 +31,7 @@ export const botBehaviourService = {
     title?: string,
     knowledgeSource?: string,
     outcome?: string,
+    queryPrompt?: string,
     weight?: number,
   ) {
     await assertBotAccess(botId, userId);
@@ -47,6 +48,7 @@ export const botBehaviourService = {
       title,
       knowledgeSource,
       outcome,
+      queryPrompt,
       weight,
     );
   },
@@ -59,6 +61,7 @@ export const botBehaviourService = {
     title?: string,
     knowledgeSource?: string,
     outcome?: string,
+    queryPrompt?: string,
     weight?: number,
   ) {
     await assertBotAccess(botId, userId);
@@ -74,6 +77,7 @@ export const botBehaviourService = {
       title,
       knowledgeSource,
       outcome,
+      queryPrompt,
       weight,
     );
   },

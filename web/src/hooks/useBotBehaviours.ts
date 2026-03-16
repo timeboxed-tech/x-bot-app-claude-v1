@@ -9,6 +9,7 @@ export type BotBehaviour = {
   content: string;
   knowledgeSource: string;
   outcome: string;
+  queryPrompt: string | null;
   weight: number;
   active: boolean;
   createdAt: string;
@@ -39,6 +40,7 @@ export function useCreateBotBehaviour() {
       title,
       knowledgeSource,
       outcome,
+      queryPrompt,
       weight,
     }: {
       botId: string;
@@ -46,6 +48,7 @@ export function useCreateBotBehaviour() {
       title?: string;
       knowledgeSource?: string;
       outcome?: string;
+      queryPrompt?: string;
       weight?: number;
     }) => {
       const response = await apiClient.post<{ data: BotBehaviour }>(`/bots/${botId}/behaviours`, {
@@ -53,6 +56,7 @@ export function useCreateBotBehaviour() {
         title,
         knowledgeSource,
         outcome,
+        queryPrompt,
         weight,
       });
       return response.data.data;
@@ -76,6 +80,7 @@ export function useUpdateBotBehaviour() {
       title,
       knowledgeSource,
       outcome,
+      queryPrompt,
       weight,
     }: {
       botId: string;
@@ -84,11 +89,12 @@ export function useUpdateBotBehaviour() {
       title?: string;
       knowledgeSource?: string;
       outcome?: string;
+      queryPrompt?: string;
       weight?: number;
     }) => {
       const response = await apiClient.patch<{ data: BotBehaviour }>(
         `/bots/${botId}/behaviours/${behaviourId}`,
-        { content, title, knowledgeSource, outcome, weight },
+        { content, title, knowledgeSource, outcome, queryPrompt, weight },
       );
       return response.data.data;
     },

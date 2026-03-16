@@ -28,6 +28,7 @@ export const botBehaviourRepository = {
     title?: string,
     knowledgeSource?: string,
     outcome?: string,
+    queryPrompt?: string,
     weight?: number,
   ) {
     return prisma.botBehaviour.create({
@@ -38,6 +39,7 @@ export const botBehaviourRepository = {
         ...(active !== undefined ? { active } : {}),
         ...(knowledgeSource !== undefined ? { knowledgeSource } : {}),
         ...(outcome !== undefined ? { outcome } : {}),
+        ...(queryPrompt !== undefined ? { queryPrompt } : {}),
         ...(weight !== undefined ? { weight } : {}),
       },
     });
@@ -49,6 +51,7 @@ export const botBehaviourRepository = {
     title?: string,
     knowledgeSource?: string,
     outcome?: string,
+    queryPrompt?: string,
     weight?: number,
   ) {
     return prisma.botBehaviour.update({
@@ -58,6 +61,7 @@ export const botBehaviourRepository = {
         ...(title !== undefined ? { title } : {}),
         ...(knowledgeSource !== undefined ? { knowledgeSource } : {}),
         ...(outcome !== undefined ? { outcome } : {}),
+        ...(queryPrompt !== undefined ? { queryPrompt } : {}),
         ...(weight !== undefined ? { weight } : {}),
       },
     });

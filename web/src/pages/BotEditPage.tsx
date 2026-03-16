@@ -50,6 +50,7 @@ export default function BotEditPage() {
   );
   const [editingWeights, setEditingWeights] = useState<Record<string, number>>({});
   const [editingOutcomes, setEditingOutcomes] = useState<Record<string, string>>({});
+  const [editingQueryPrompts, setEditingQueryPrompts] = useState<Record<string, string>>({});
   const [expanded, setExpanded] = useState<string | false>(false);
 
   const bot = bots.find((b) => b.id === botId);
@@ -227,6 +228,7 @@ export default function BotEditPage() {
                   editingTitles[behaviour.id] !== undefined ||
                   editingKnowledgeSources[behaviour.id] !== undefined ||
                   editingOutcomes[behaviour.id] !== undefined ||
+                  editingQueryPrompts[behaviour.id] !== undefined ||
                   editingWeights[behaviour.id] !== undefined;
 
                 return (
@@ -293,6 +295,42 @@ export default function BotEditPage() {
                           <MenuItem value="follow_account">Follow Account</MenuItem>
                         </Select>
                       </FormControl>
+                      {((editingOutcomes[behaviour.id] !== undefined
+                        ? editingOutcomes[behaviour.id]
+                        : behaviour.outcome) === 'like_post' ||
+                        (editingOutcomes[behaviour.id] !== undefined
+                          ? editingOutcomes[behaviour.id]
+                          : behaviour.outcome) === 'reply_to_post') && (
+                        <TextField
+                          fullWidth
+                          multiline
+                          minRows={2}
+                          maxRows={3}
+                          size="small"
+                          label="Query Prompt"
+                          placeholder="e.g. Generate a list of topics a pragmatic CTO should be interested in"
+                          value={
+                            editingQueryPrompts[behaviour.id] !== undefined
+                              ? editingQueryPrompts[behaviour.id]
+                              : (behaviour.queryPrompt ?? '')
+                          }
+                          onChange={(e) =>
+                            setEditingQueryPrompts((prev) => ({
+                              ...prev,
+                              [behaviour.id]: e.target.value,
+                            }))
+                          }
+                          onFocus={() => {
+                            if (editingQueryPrompts[behaviour.id] === undefined) {
+                              setEditingQueryPrompts((prev) => ({
+                                ...prev,
+                                [behaviour.id]: behaviour.queryPrompt ?? '',
+                              }));
+                            }
+                          }}
+                          sx={{ mb: 1 }}
+                        />
+                      )}
                       <TextField
                         fullWidth
                         size="small"
@@ -411,6 +449,10 @@ export default function BotEditPage() {
                               const ks =
                                 editingKnowledgeSources[behaviour.id] ?? behaviour.knowledgeSource;
                               const oc = editingOutcomes[behaviour.id] ?? behaviour.outcome;
+                              const qp =
+                                editingQueryPrompts[behaviour.id] ??
+                                behaviour.queryPrompt ??
+                                undefined;
                               const w = editingWeights[behaviour.id] ?? behaviour.weight;
                               if (content && content.trim()) {
                                 updateBehaviour.mutate(
@@ -421,6 +463,7 @@ export default function BotEditPage() {
                                     title: title?.trim(),
                                     knowledgeSource: ks,
                                     outcome: oc,
+                                    queryPrompt: qp,
                                     weight: w,
                                   },
                                   {
@@ -441,6 +484,11 @@ export default function BotEditPage() {
                                         return next;
                                       });
                                       setEditingOutcomes((prev) => {
+                                        const next = { ...prev };
+                                        delete next[behaviour.id];
+                                        return next;
+                                      });
+                                      setEditingQueryPrompts((prev) => {
                                         const next = { ...prev };
                                         delete next[behaviour.id];
                                         return next;
