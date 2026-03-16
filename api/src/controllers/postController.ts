@@ -2,7 +2,10 @@ import { Request, Response, NextFunction } from 'express';
 import { z } from 'zod';
 import { postService } from '../services/postService.js';
 import { userRepository } from '../repositories/userRepository.js';
+import { postRepository } from '../repositories/postRepository.js';
+import { publishPostNow } from '../services/publishService.js';
 import { paginationSchema, uuidSchema } from '../utils/validation.js';
+import { NotFoundError, ForbiddenError, ValidationError } from '../utils/errors.js';
 
 const postListQuerySchema = paginationSchema.extend({
   status: z.string().optional(),
@@ -143,6 +146,53 @@ export const postController = {
       const { id } = postIdParamSchema.parse(req.params);
       await postService.deletePost(id, userId);
       res.status(204).send();
+    } catch (err) {
+      next(err);
+    }
+  },
+
+  async publish(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const userId = req.userId!;
+      const { id } = postIdParamSchema.parse(req.params);
+
+      const post = await postRepository.findById(id);
+      if (!post) {
+        throw new NotFoundError('Post not found');
+      }
+      if (post.bot.userId !== userId) {
+        throw new ForbiddenError('You do not have access to this post');
+      }
+
+      const publishableStatuses = ['draft', 'approved', 'scheduled'];
+      if (!publishableStatuses.includes(post.status)) {
+        throw new ValidationError(
+          `Cannot publish a post with status '${post.status}'. Post must be draft, approved, or scheduled.`,
+        );
+      }
+
+      const result = await publishPostNow(post, post.bot);
+
+      if (!result.success) {
+        res.status(502).json({
+          error: result.error ?? 'Failed to publish to X',
+        });
+        return;
+      }
+
+      const updateData: { status: string; publishedAt: Date; metadata?: string | null } = {
+        status: 'published',
+        publishedAt: new Date(),
+      };
+      if (result.updatedMetadata) {
+        updateData.metadata = result.updatedMetadata;
+      }
+
+      const updatedPost = await postRepository.update(id, updateData);
+
+      res.status(200).json({
+        data: updatedPost,
+      });
     } catch (err) {
       next(err);
     }

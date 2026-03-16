@@ -151,6 +151,20 @@ export function useAcceptTweak() {
   });
 }
 
+export function usePublishPost() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (postId: string) => {
+      const response = await apiClient.post<PostResponse>(`/posts/${postId}/publish`);
+      return response.data.data;
+    },
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: queryKeys.posts.all });
+    },
+  });
+}
+
 export function useDeletePost() {
   const queryClient = useQueryClient();
 

@@ -24,7 +24,13 @@ import OutlinedFlagIcon from '@mui/icons-material/OutlinedFlag';
 import VisibilityIcon from '@mui/icons-material/Visibility';
 import ProcessVisualisationDialog, { type ProcessStep } from './ProcessVisualisationDialog';
 import type { Post, PostStatus } from '../hooks/usePosts';
-import { useUpdatePost, useTweakPost, useAcceptTweak, useDeletePost } from '../hooks/usePosts';
+import {
+  useUpdatePost,
+  useTweakPost,
+  useAcceptTweak,
+  useDeletePost,
+  usePublishPost,
+} from '../hooks/usePosts';
 import {
   usePostReviews,
   useRequestReview,
@@ -98,6 +104,7 @@ export default function PostCard({ post }: PostCardProps) {
   const updatePost = useUpdatePost();
   const tweakPost = useTweakPost();
   const acceptTweak = useAcceptTweak();
+  const publishPost = usePublishPost();
   const { data: reviews } = usePostReviews(post.id);
   const requestReview = useRequestReview();
   const deleteReview = useDeleteReview();
@@ -105,6 +112,7 @@ export default function PostCard({ post }: PostCardProps) {
   const [showReviews, setShowReviews] = useState(false);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [processDialogOpen, setProcessDialogOpen] = useState(false);
+  const [publishError, setPublishError] = useState<string | null>(null);
 
   // Parse metadata for like_post process steps
   const parsedMetadata = (() => {
@@ -155,6 +163,22 @@ export default function PostCard({ post }: PostCardProps) {
 
   const handleApprove = () => {
     updatePost.mutate({ id: post.id, status: 'approved' });
+  };
+
+  const handlePublishNow = () => {
+    setPublishError(null);
+    publishPost.mutate(post.id, {
+      onError: (err: unknown) => {
+        const message =
+          err instanceof Error
+            ? err.message
+            : typeof err === 'object' && err !== null && 'response' in err
+              ? ((err as { response?: { data?: { error?: string } } }).response?.data?.error ??
+                'Failed to publish')
+              : 'Failed to publish';
+        setPublishError(message);
+      },
+    });
   };
 
   const handleBackToDraft = () => {
@@ -484,15 +508,24 @@ export default function PostCard({ post }: PostCardProps) {
                   variant="contained"
                   color="success"
                   onClick={handleApprove}
-                  disabled={updatePost.isPending}
+                  disabled={updatePost.isPending || publishPost.isPending}
                 >
                   Approve
                 </Button>
                 <Button
                   size="small"
                   variant="contained"
+                  color="primary"
+                  onClick={handlePublishNow}
+                  disabled={updatePost.isPending || publishPost.isPending}
+                >
+                  {publishPost.isPending ? <CircularProgress size={16} /> : 'Publish Now'}
+                </Button>
+                <Button
+                  size="small"
+                  variant="outlined"
                   onClick={handleSchedule}
-                  disabled={updatePost.isPending}
+                  disabled={updatePost.isPending || publishPost.isPending}
                 >
                   Schedule
                 </Button>
@@ -500,7 +533,7 @@ export default function PostCard({ post }: PostCardProps) {
                   size="small"
                   color="error"
                   onClick={handleDiscard}
-                  disabled={updatePost.isPending}
+                  disabled={updatePost.isPending || publishPost.isPending}
                 >
                   Discard
                 </Button>
@@ -511,8 +544,17 @@ export default function PostCard({ post }: PostCardProps) {
                 <Button
                   size="small"
                   variant="contained"
+                  color="primary"
+                  onClick={handlePublishNow}
+                  disabled={updatePost.isPending || publishPost.isPending}
+                >
+                  {publishPost.isPending ? <CircularProgress size={16} /> : 'Publish Now'}
+                </Button>
+                <Button
+                  size="small"
+                  variant="outlined"
                   onClick={handleSchedule}
-                  disabled={updatePost.isPending}
+                  disabled={updatePost.isPending || publishPost.isPending}
                 >
                   Schedule
                 </Button>
@@ -521,7 +563,7 @@ export default function PostCard({ post }: PostCardProps) {
                   color="warning"
                   variant="outlined"
                   onClick={handleBackToDraft}
-                  disabled={updatePost.isPending}
+                  disabled={updatePost.isPending || publishPost.isPending}
                 >
                   Back to Draft
                 </Button>
@@ -529,21 +571,32 @@ export default function PostCard({ post }: PostCardProps) {
                   size="small"
                   color="error"
                   onClick={handleDiscard}
-                  disabled={updatePost.isPending}
+                  disabled={updatePost.isPending || publishPost.isPending}
                 >
                   Discard
                 </Button>
               </>
             )}
             {post.status === 'scheduled' && (
-              <Button
-                size="small"
-                color="error"
-                onClick={handleDiscard}
-                disabled={updatePost.isPending}
-              >
-                Discard
-              </Button>
+              <>
+                <Button
+                  size="small"
+                  variant="contained"
+                  color="primary"
+                  onClick={handlePublishNow}
+                  disabled={updatePost.isPending || publishPost.isPending}
+                >
+                  {publishPost.isPending ? <CircularProgress size={16} /> : 'Publish Now'}
+                </Button>
+                <Button
+                  size="small"
+                  color="error"
+                  onClick={handleDiscard}
+                  disabled={updatePost.isPending || publishPost.isPending}
+                >
+                  Discard
+                </Button>
+              </>
             )}
             {post.status === 'discarded' && (
               <>
@@ -568,6 +621,11 @@ export default function PostCard({ post }: PostCardProps) {
             )}
           </Box>
         </Box>
+        {publishError && (
+          <Alert severity="error" onClose={() => setPublishError(null)} sx={{ mt: 1 }}>
+            {publishError}
+          </Alert>
+        )}
       </CardContent>
 
       {/* Reviews Section */}

@@ -13,6 +13,7 @@ router.get('/counts', postController.counts);
 router.delete('/discarded', postController.removeAllDiscarded);
 router.patch('/:id', postController.update);
 router.delete('/:id', postController.remove);
+router.post('/:id/publish', postController.publish);
 router.post('/:id/tweak', postController.tweak);
 router.post('/:id/accept-tweak', postController.acceptTweak);
 
