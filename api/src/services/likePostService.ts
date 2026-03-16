@@ -64,7 +64,7 @@ async function generateSearchQueries(
 }
 
 /**
- * Use AI to select the top 3 posts to like from a list of candidates.
+ * Use AI to select 3-5 posts to like from a list of candidates.
  */
 async function selectPostsToLike(
   client: Anthropic,
@@ -89,7 +89,7 @@ async function selectPostsToLike(
     messages: [
       {
         role: 'user',
-        content: `${behaviourPrompt}\n\nHere are candidate posts found on X. Select the top 3 posts that best align with the brand/persona described above and would be most strategic to like. For each selection, explain briefly why.\n\nCandidate posts:\n${candidateList}\n\nRespond in this format:\nSELECTED: <tweet_id_1>, <tweet_id_2>, <tweet_id_3>\nREASONING:\n1. [tweet_id]: reason\n2. [tweet_id]: reason\n3. [tweet_id]: reason`,
+        content: `${behaviourPrompt}\n\nHere are candidate posts found on X. Select 3 to 5 posts that best align with the brand/persona described above and would be most strategic to like. For each selection, explain briefly why.\n\nCandidate posts:\n${candidateList}\n\nRespond in this format:\nSELECTED: <tweet_id_1>, <tweet_id_2>, ...\nREASONING:\n1. [tweet_id]: reason\n2. [tweet_id]: reason\n...`,
       },
     ],
   });
@@ -118,15 +118,15 @@ async function selectPostsToLike(
       if (text.includes(candidate.id)) {
         selectedIds.push(candidate.id);
       }
-      if (selectedIds.length >= 3) break;
+      if (selectedIds.length >= 5) break;
     }
   }
 
-  return { selectedIds: selectedIds.slice(0, 3), reasoning: text };
+  return { selectedIds: selectedIds.slice(0, 5), reasoning: text };
 }
 
 /**
- * Generate a like_post draft: search X for relevant posts and select top 3 to like.
+ * Generate a like_post draft: search X for relevant posts and select 3-5 to like.
  */
 export async function generateLikePostDraft(
   bot: BotForLikePost,
@@ -226,8 +226,8 @@ export async function generateLikePostDraft(
     return;
   }
 
-  // Limit to top 15 candidates
-  const candidates = allTweets.slice(0, 15);
+  // Limit to top 5 candidates
+  const candidates = allTweets.slice(0, 5);
   log(
     'draft',
     `Bot ${bot.xAccountHandle || bot.id}: found ${allTweets.length} unique tweets, using top ${candidates.length} as candidates`,
