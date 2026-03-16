@@ -80,8 +80,6 @@ export default function BotEditBPage() {
   const [minInterval, setMinInterval] = useState<string | null>(null);
   const [hoursStart, setHoursStart] = useState<string | null>(null);
   const [hoursEnd, setHoursEnd] = useState<string | null>(null);
-  const [settingsOpen, setSettingsOpen] = useState(false);
-
   const [newBehaviourContent, setNewBehaviourContent] = useState('');
   const [newBehaviourTitle, setNewBehaviourTitle] = useState('');
   const [editingBehaviours, setEditingBehaviours] = useState<Record<string, string>>({});
@@ -224,7 +222,7 @@ export default function BotEditBPage() {
 
   // --- Tab content renderers ---
 
-  const renderPromptSettingsTab = () => (
+  const renderPromptTab = () => (
     <Box>
       <Typography variant="subtitle2" gutterBottom>
         Bot Prompt
@@ -238,7 +236,7 @@ export default function BotEditBPage() {
         onChange={(e) => setPrompt(e.target.value)}
         sx={{ mb: 2 }}
       />
-      {(hasPromptChanges || hasSettingsChanges) && (
+      {hasPromptChanges && (
         <Button
           variant="contained"
           startIcon={<SaveIcon />}
@@ -249,73 +247,105 @@ export default function BotEditBPage() {
           {updateBot.isPending ? 'Saving...' : 'Save Changes'}
         </Button>
       )}
+    </Box>
+  );
 
-      <Accordion expanded={settingsOpen} onChange={() => setSettingsOpen(!settingsOpen)}>
-        <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-          <Typography variant="subtitle2">Schedule & Mode Settings</Typography>
-        </AccordionSummary>
-        <AccordionDetails>
-          <Grid container spacing={2}>
-            <Grid item xs={6}>
-              <FormControl fullWidth size="small">
-                <InputLabel>Post Mode</InputLabel>
-                <Select
-                  value={currentPostMode}
-                  label="Post Mode"
-                  onChange={(e) => setPostMode(e.target.value)}
-                >
-                  <MenuItem value="auto">Auto</MenuItem>
-                  <MenuItem value="manual">Manual</MenuItem>
-                </Select>
-              </FormControl>
-            </Grid>
-            <Grid item xs={6}>
-              <TextField
-                fullWidth
-                size="small"
-                type="number"
-                label="Posts/Day"
-                value={currentPostsPerDay}
-                onChange={(e) => setPostsPerDay(e.target.value)}
-                InputProps={{ inputProps: { min: 1, max: 48 } }}
-              />
-            </Grid>
-            <Grid item xs={4}>
-              <TextField
-                fullWidth
-                size="small"
-                type="number"
-                label="Min Interval (h)"
-                value={currentMinInterval}
-                onChange={(e) => setMinInterval(e.target.value)}
-                InputProps={{ inputProps: { min: 1, max: 24 } }}
-              />
-            </Grid>
-            <Grid item xs={4}>
-              <TextField
-                fullWidth
-                size="small"
-                type="number"
-                label="Hours Start"
-                value={currentHoursStart}
-                onChange={(e) => setHoursStart(e.target.value)}
-                InputProps={{ inputProps: { min: 0, max: 23 } }}
-              />
-            </Grid>
-            <Grid item xs={4}>
-              <TextField
-                fullWidth
-                size="small"
-                type="number"
-                label="Hours End"
-                value={currentHoursEnd}
-                onChange={(e) => setHoursEnd(e.target.value)}
-                InputProps={{ inputProps: { min: 0, max: 23 } }}
-              />
-            </Grid>
-          </Grid>
-        </AccordionDetails>
-      </Accordion>
+  const renderScheduleModeTab = () => (
+    <Box>
+      <Typography variant="subtitle2" gutterBottom>
+        Schedule & Mode Settings
+      </Typography>
+      <Grid container spacing={2}>
+        <Grid item xs={6}>
+          <FormControl fullWidth size="small">
+            <InputLabel>Post Mode</InputLabel>
+            <Select
+              value={currentPostMode}
+              label="Post Mode"
+              onChange={(e) => setPostMode(e.target.value)}
+            >
+              <MenuItem value="auto">Auto</MenuItem>
+              <MenuItem value="manual">Manual</MenuItem>
+            </Select>
+          </FormControl>
+        </Grid>
+        <Grid item xs={6}>
+          <TextField
+            fullWidth
+            size="small"
+            type="number"
+            label="Posts/Day"
+            value={currentPostsPerDay}
+            onChange={(e) => setPostsPerDay(e.target.value)}
+            InputProps={{ inputProps: { min: 1, max: 48 } }}
+          />
+        </Grid>
+        <Grid item xs={4}>
+          <TextField
+            fullWidth
+            size="small"
+            type="number"
+            label="Min Interval (h)"
+            value={currentMinInterval}
+            onChange={(e) => setMinInterval(e.target.value)}
+            InputProps={{ inputProps: { min: 1, max: 24 } }}
+          />
+        </Grid>
+        <Grid item xs={4}>
+          <TextField
+            fullWidth
+            size="small"
+            type="number"
+            label="Hours Start"
+            value={currentHoursStart}
+            onChange={(e) => setHoursStart(e.target.value)}
+            InputProps={{ inputProps: { min: 0, max: 23 } }}
+          />
+        </Grid>
+        <Grid item xs={4}>
+          <TextField
+            fullWidth
+            size="small"
+            type="number"
+            label="Hours End"
+            value={currentHoursEnd}
+            onChange={(e) => setHoursEnd(e.target.value)}
+            InputProps={{ inputProps: { min: 0, max: 23 } }}
+          />
+        </Grid>
+        <Grid item xs={12}>
+          <FormControl fullWidth size="small">
+            <InputLabel>Knowledge Source</InputLabel>
+            <Select
+              value={bot.knowledgeSource ?? 'ai'}
+              label="Knowledge Source"
+              onChange={(e) => {
+                updateBot.mutate(
+                  { id: bot.id, knowledgeSource: e.target.value },
+                  {
+                    onSuccess: () => showSnackbar('Knowledge source updated', 'success'),
+                    onError: () => showSnackbar('Failed to update', 'error'),
+                  },
+                );
+              }}
+            >
+              <MenuItem value="ai">AI Only</MenuItem>
+              <MenuItem value="ai+web">AI + Web Search</MenuItem>
+            </Select>
+          </FormControl>
+        </Grid>
+      </Grid>
+      {hasSettingsChanges && (
+        <Button
+          variant="contained"
+          startIcon={<SaveIcon />}
+          onClick={handleSaveBot}
+          disabled={updateBot.isPending}
+          sx={{ mt: 2 }}
+        >
+          {updateBot.isPending ? 'Saving...' : 'Save Changes'}
+        </Button>
+      )}
     </Box>
   );
 
@@ -977,15 +1007,17 @@ export default function BotEditBPage() {
                 onChange={(_e, newValue: number) => setActiveTab(newValue)}
                 aria-label="Bot edit tabs"
               >
-                <Tab label="Prompt & Settings" />
+                <Tab label="Prompt" />
+                <Tab label="Schedule & Mode" />
                 <Tab label="Behaviours" />
                 <Tab label="Judges & Tips" />
               </Tabs>
             </Box>
 
-            {activeTab === 0 && renderPromptSettingsTab()}
-            {activeTab === 1 && renderBehavioursTab()}
-            {activeTab === 2 && renderJudgesTipsTab()}
+            {activeTab === 0 && renderPromptTab()}
+            {activeTab === 1 && renderScheduleModeTab()}
+            {activeTab === 2 && renderBehavioursTab()}
+            {activeTab === 3 && renderJudgesTipsTab()}
           </Grid>
 
           {/* Right column: persistent test run sidebar */}
