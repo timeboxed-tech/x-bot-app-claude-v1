@@ -121,6 +121,26 @@ export function useDeleteBotBehaviour() {
   });
 }
 
+export type QuickRunResult = {
+  post: { id: string; content: string };
+};
+
+export function useQuickRunBehaviour() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ botId, behaviourId }: { botId: string; behaviourId: string }) => {
+      const response = await apiClient.post<{ data: QuickRunResult }>(
+        `/bots/${botId}/generate-draft/${behaviourId}`,
+      );
+      return response.data.data;
+    },
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: queryKeys.posts.all });
+    },
+  });
+}
+
 export function useToggleBotBehaviour() {
   const queryClient = useQueryClient();
 

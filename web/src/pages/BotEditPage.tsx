@@ -7,12 +7,19 @@ import Button from '@mui/material/Button';
 import Chip from '@mui/material/Chip';
 import CircularProgress from '@mui/material/CircularProgress';
 import Container from '@mui/material/Container';
+import Dialog from '@mui/material/Dialog';
+import DialogActions from '@mui/material/DialogActions';
+import DialogContent from '@mui/material/DialogContent';
+import DialogTitle from '@mui/material/DialogTitle';
+import IconButton from '@mui/material/IconButton';
 import Switch from '@mui/material/Switch';
 import TextField from '@mui/material/TextField';
+import Tooltip from '@mui/material/Tooltip';
 import Typography from '@mui/material/Typography';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import DeleteIcon from '@mui/icons-material/Delete';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
+import PlayArrowIcon from '@mui/icons-material/PlayArrow';
 import SaveIcon from '@mui/icons-material/Save';
 import AddIcon from '@mui/icons-material/Add';
 import FormControl from '@mui/material/FormControl';
@@ -22,12 +29,14 @@ import Select from '@mui/material/Select';
 import AppHeader from '../components/AppHeader';
 import BotSetupForm from '../components/BotSetupForm';
 import { useBot, useUpdateBot } from '../hooks/useBot';
+import { useDeletePost } from '../hooks/usePosts';
 import {
   useBotBehaviours,
   useCreateBotBehaviour,
   useUpdateBotBehaviour,
   useDeleteBotBehaviour,
   useToggleBotBehaviour,
+  useQuickRunBehaviour,
 } from '../hooks/useBotBehaviours';
 import { useNavigate, useParams } from '@tanstack/react-router';
 
@@ -52,6 +61,15 @@ export default function BotEditPage() {
   const [editingOutcomes, setEditingOutcomes] = useState<Record<string, string>>({});
   const [editingQueryPrompts, setEditingQueryPrompts] = useState<Record<string, string>>({});
   const [expanded, setExpanded] = useState<string | false>(false);
+  const quickRunBehaviour = useQuickRunBehaviour();
+  const deletePost = useDeletePost();
+  const [quickRunModal, setQuickRunModal] = useState<{
+    open: boolean;
+    loading: boolean;
+    postId: string | null;
+    content: string | null;
+    error: string | null;
+  }>({ open: false, loading: false, postId: null, content: null, error: null });
 
   const bot = bots.find((b) => b.id === botId);
 
@@ -271,6 +289,50 @@ export default function BotEditPage() {
                         color={behaviour.active ? 'success' : 'default'}
                         variant="outlined"
                       />
+                      <Tooltip title="Quick Run: generate a draft using this behaviour">
+                        <IconButton
+                          size="small"
+                          color="primary"
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            setQuickRunModal({
+                              open: true,
+                              loading: true,
+                              postId: null,
+                              content: null,
+                              error: null,
+                            });
+                            quickRunBehaviour.mutate(
+                              { botId: bot.id, behaviourId: behaviour.id },
+                              {
+                                onSuccess: (data) => {
+                                  setQuickRunModal({
+                                    open: true,
+                                    loading: false,
+                                    postId: data.post.id,
+                                    content: data.post.content,
+                                    error: null,
+                                  });
+                                },
+                                onError: (err: unknown) => {
+                                  const message =
+                                    err instanceof Error ? err.message : 'Generation failed';
+                                  setQuickRunModal({
+                                    open: true,
+                                    loading: false,
+                                    postId: null,
+                                    content: null,
+                                    error: message,
+                                  });
+                                },
+                              },
+                            );
+                          }}
+                          disabled={quickRunBehaviour.isPending}
+                        >
+                          <PlayArrowIcon fontSize="small" />
+                        </IconButton>
+                      </Tooltip>
                     </AccordionSummary>
                     <AccordionDetails>
                       <FormControl fullWidth size="small" sx={{ mb: 2 }}>
@@ -600,6 +662,88 @@ export default function BotEditPage() {
           )}
         </Box>
       </Container>
+
+      <Dialog
+        open={quickRunModal.open}
+        onClose={() =>
+          setQuickRunModal({
+            open: false,
+            loading: false,
+            postId: null,
+            content: null,
+            error: null,
+          })
+        }
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle>Quick Run Result</DialogTitle>
+        <DialogContent>
+          {quickRunModal.loading && (
+            <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
+              <CircularProgress />
+            </Box>
+          )}
+          {quickRunModal.error && (
+            <Typography color="error" sx={{ py: 2 }}>
+              {quickRunModal.error}
+            </Typography>
+          )}
+          {quickRunModal.content && (
+            <Typography sx={{ py: 2, whiteSpace: 'pre-wrap' }}>{quickRunModal.content}</Typography>
+          )}
+        </DialogContent>
+        <DialogActions>
+          {quickRunModal.postId && (
+            <>
+              <Button
+                color="error"
+                onClick={() => {
+                  if (quickRunModal.postId) {
+                    deletePost.mutate(quickRunModal.postId);
+                  }
+                  setQuickRunModal({
+                    open: false,
+                    loading: false,
+                    postId: null,
+                    content: null,
+                    error: null,
+                  });
+                }}
+              >
+                Discard
+              </Button>
+              <Button
+                onClick={() => {
+                  setQuickRunModal({
+                    open: false,
+                    loading: false,
+                    postId: null,
+                    content: null,
+                    error: null,
+                  });
+                  void navigate({ to: '/posts' });
+                }}
+              >
+                View Posts
+              </Button>
+            </>
+          )}
+          <Button
+            onClick={() =>
+              setQuickRunModal({
+                open: false,
+                loading: false,
+                postId: null,
+                content: null,
+                error: null,
+              })
+            }
+          >
+            Close
+          </Button>
+        </DialogActions>
+      </Dialog>
     </>
   );
 }

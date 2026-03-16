@@ -19,6 +19,9 @@ router.patch('/:id', botController.update);
 // Generate practice drafts
 router.post('/:id/generate-drafts', botController.generateDrafts);
 
+// Generate draft for a specific behaviour
+router.post('/:id/generate-draft/:behaviourId', botController.generateDraftForBehaviour);
+
 // Share routes
 router.post('/:id/shares', botShareController.create);
 router.get('/:id/shares', botShareController.list);

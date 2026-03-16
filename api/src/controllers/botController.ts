@@ -39,6 +39,11 @@ const botIdParamSchema = z.object({
   id: uuidSchema,
 });
 
+const botIdBehaviourIdParamSchema = z.object({
+  id: uuidSchema,
+  behaviourId: uuidSchema,
+});
+
 export function selectWeightedBehaviour(
   behaviours: Array<{ weight: number; [key: string]: any }>,
 ): any {
@@ -178,6 +183,66 @@ export const botController = {
       res.status(201).json({
         data: { posts, errors },
       });
+    } catch (err) {
+      next(err);
+    }
+  },
+
+  async generateDraftForBehaviour(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const userId = req.userId!;
+      const { id, behaviourId } = botIdBehaviourIdParamSchema.parse(req.params);
+
+      const bot = await botService.getBot(id, userId);
+      const behaviour = await botBehaviourRepository.findById(behaviourId);
+
+      if (!behaviour || behaviour.botId !== bot.id) {
+        res.status(404).json({ error: 'Behaviour not found' });
+        return;
+      }
+
+      const tips = await botTipRepository.findByBotId(bot.id);
+      const tipContents = tips.map((t: { content: string }) => t.content);
+      const recentPosts = await postRepository.findRecentByBotId(bot.id, 10);
+      const recentContents = recentPosts.map((p: { content: string }) => p.content);
+
+      const effectiveSource =
+        behaviour.knowledgeSource && behaviour.knowledgeSource !== 'default'
+          ? behaviour.knowledgeSource
+          : bot.knowledgeSource;
+      const outcomePromptKey = behaviour.outcome
+        ? (OUTCOME_PROMPT_KEY_MAP[behaviour.outcome] ?? 'tweet_generation')
+        : 'tweet_generation';
+
+      const result = await generateTweet(
+        bot.prompt,
+        tipContents,
+        recentContents,
+        behaviour.content,
+        effectiveSource === 'ai+web',
+        outcomePromptKey,
+      );
+
+      if (result.success) {
+        const post = await postRepository.create({
+          botId: bot.id,
+          content: result.content,
+          status: 'draft',
+          behaviourPrompt: behaviour.content ?? null,
+          behaviourTitle: behaviour.title || null,
+          generationPrompt: result.prompt
+            ? JSON.stringify({
+                outcome: behaviour.outcome ?? 'write_post',
+                systemPromptKey: outcomePromptKey,
+                messages: result.prompt,
+              })
+            : null,
+        });
+        checkAndFlagPost(post.id).catch(console.error);
+        res.status(201).json({ data: { post } });
+      } else {
+        res.status(500).json({ error: result.error || 'Generation failed' });
+      }
     } catch (err) {
       next(err);
     }
