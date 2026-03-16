@@ -164,10 +164,6 @@ export async function generateTweet(
   const messages: Array<{ role: 'user' | 'assistant'; content: string }> = [];
   if (stylePrompt) {
     messages.push({ role: 'user', content: stylePrompt });
-    messages.push({
-      role: 'assistant',
-      content: 'Understood.',
-    });
   }
 
   // Capture the full prompt for storage
