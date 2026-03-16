@@ -49,7 +49,7 @@ async function generateSearchQueries(
     messages: [
       {
         role: 'user',
-        content: `${queryPrompt}\n\nGenerate 3-5 concise X/Twitter search queries based on the above. Return ONLY the queries, one per line, no numbering or bullets. Each query should be a few keywords suitable for X search.`,
+        content: `${queryPrompt}\n\nGenerate 5 short, broad search queries (1-3 words each) that would return popular, recent tweets related to the above topic. Avoid overly specific or long queries. Return ONLY the queries, one per line, no numbering or bullets.`,
       },
     ],
   });
@@ -190,9 +190,18 @@ export async function generateLikePostDraft(
   const allTweets: SearchTweetResult[] = [];
   const seenIds = new Set<string>();
 
+  const MIN_CANDIDATES = 5;
+
   for (const query of queries.slice(0, 5)) {
     try {
-      const result = await searchTweets(query, bot.xAccessToken, bot.xAccessSecret, bot.id, 10);
+      const searchQuery = `${query} -is:retweet`;
+      const result = await searchTweets(
+        searchQuery,
+        bot.xAccessToken,
+        bot.xAccessSecret,
+        bot.id,
+        20,
+      );
       if (result.success && result.tweets) {
         for (const tweet of result.tweets) {
           if (!seenIds.has(tweet.id)) {
@@ -226,8 +235,16 @@ export async function generateLikePostDraft(
     return null;
   }
 
-  // Limit to top 5 candidates
-  const candidates = allTweets.slice(0, 5);
+  if (allTweets.length < MIN_CANDIDATES) {
+    log(
+      'draft',
+      `Bot ${bot.xAccountHandle || bot.id}: only found ${allTweets.length} unique tweets (wanted at least ${MIN_CANDIDATES}), proceeding with available results`,
+      'warn',
+    );
+  }
+
+  // Limit to top 15 candidates to give AI more to choose from
+  const candidates = allTweets.slice(0, 15);
   log(
     'draft',
     `Bot ${bot.xAccountHandle || bot.id}: found ${allTweets.length} unique tweets, using top ${candidates.length} as candidates`,
