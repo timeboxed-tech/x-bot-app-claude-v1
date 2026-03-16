@@ -23,7 +23,7 @@ export default function AppHeader() {
     <AppBar
       position="static"
       sx={{
-        background: `linear-gradient(90deg, ${tokens.colors.primary}, ${tokens.colors.secondary})`,
+        background: `linear-gradient(90deg, ${tokens.colors.secondary}, ${tokens.colors.primary})`,
       }}
     >
       <Toolbar>
