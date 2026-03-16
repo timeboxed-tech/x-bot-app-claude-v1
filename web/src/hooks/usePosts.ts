@@ -15,6 +15,7 @@ export type Post = {
   behaviourPrompt: string | null;
   behaviourTitle: string | null;
   generationPrompt?: string | null;
+  metadata?: string | null;
   scheduledAt: string | null;
   publishedAt: string | null;
   createdAt: string;

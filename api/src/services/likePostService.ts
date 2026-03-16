@@ -149,11 +149,20 @@ export async function generateLikePostDraft(
     systemPrompt = fallback;
   }
 
+  // Track process steps for visualisation
+  type ProcessStep = { step: string; input: string; output: string };
+  const processSteps: ProcessStep[] = [];
+
   // Step 1: Generate search queries from queryPrompt
   const queryPrompt = behaviour.queryPrompt || behaviour.content;
   let queries: string[];
   try {
     queries = await generateSearchQueries(client, queryPrompt, systemPrompt);
+    processSteps.push({
+      step: 'Query Prompt',
+      input: queryPrompt,
+      output: queries.join('\n'),
+    });
     log(
       'draft',
       `Bot ${bot.xAccountHandle || bot.id}: generated ${queries.length} search queries for like_post`,
@@ -224,6 +233,15 @@ export async function generateLikePostDraft(
     `Bot ${bot.xAccountHandle || bot.id}: found ${allTweets.length} unique tweets, using top ${candidates.length} as candidates`,
   );
 
+  const tweetSummaries = candidates
+    .map((t) => `@${t.authorUsername ?? 'unknown'}: "${t.text}"`)
+    .join('\n');
+  processSteps.push({
+    step: 'X API Search',
+    input: queries.join(', '),
+    output: tweetSummaries,
+  });
+
   // Step 3: AI selection
   let selectedIds: string[];
   let reasoning: string;
@@ -237,6 +255,11 @@ export async function generateLikePostDraft(
     );
     selectedIds = selectionResult.selectedIds;
     reasoning = selectionResult.reasoning;
+    processSteps.push({
+      step: 'Behaviour Prompt',
+      input: behaviour.content,
+      output: reasoning,
+    });
   } catch (err) {
     console.error('Failed to select posts to like:', err);
     log(
@@ -271,6 +294,15 @@ export async function generateLikePostDraft(
   }
   const content = contentLines.join('\n');
 
+  const selectedTweetsSummary = selectedTweets
+    .map((t) => `@${t.authorUsername ?? 'unknown'}: "${t.text}"`)
+    .join('\n');
+  processSteps.push({
+    step: 'Final Result',
+    input: selectedTweetsSummary,
+    output: content,
+  });
+
   const metadata = JSON.stringify({
     outcome: 'like_post',
     tweetIds: selectedIds,
@@ -279,6 +311,7 @@ export async function generateLikePostDraft(
       authorUsername: t.authorUsername,
       text: t.text,
     })),
+    processSteps,
   });
 
   const generationPrompt = JSON.stringify({

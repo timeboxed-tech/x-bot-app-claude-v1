@@ -21,6 +21,8 @@ import FileCopyOutlinedIcon from '@mui/icons-material/FileCopyOutlined';
 import CheckIcon from '@mui/icons-material/Check';
 import FlagIcon from '@mui/icons-material/Flag';
 import OutlinedFlagIcon from '@mui/icons-material/OutlinedFlag';
+import VisibilityIcon from '@mui/icons-material/Visibility';
+import ProcessVisualisationDialog, { type ProcessStep } from './ProcessVisualisationDialog';
 import type { Post, PostStatus } from '../hooks/usePosts';
 import { useUpdatePost, useTweakPost, useAcceptTweak, useDeletePost } from '../hooks/usePosts';
 import {
@@ -102,6 +104,28 @@ export default function PostCard({ post }: PostCardProps) {
   const deletePost = useDeletePost();
   const [showReviews, setShowReviews] = useState(false);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [processDialogOpen, setProcessDialogOpen] = useState(false);
+
+  // Parse metadata for like_post process steps
+  const parsedMetadata = (() => {
+    if (!post.metadata) return null;
+    try {
+      const parsed = JSON.parse(post.metadata) as {
+        outcome?: string;
+        processSteps?: ProcessStep[];
+      };
+      if (parsed.outcome === 'like_post' && Array.isArray(parsed.processSteps)) {
+        return parsed;
+      }
+      return null;
+    } catch {
+      return null;
+    }
+  })();
+  const hasProcessSteps =
+    parsedMetadata !== null &&
+    parsedMetadata.processSteps !== undefined &&
+    parsedMetadata.processSteps.length > 0;
 
   useEffect(() => {
     if (conversationEndRef.current) {
@@ -402,6 +426,17 @@ export default function PostCard({ post }: PostCardProps) {
               </IconButton>
             </Tooltip>
           )}
+          {hasProcessSteps && (
+            <Tooltip title="View like post process">
+              <IconButton
+                size="small"
+                onClick={() => setProcessDialogOpen(true)}
+                sx={{ mb: 1, p: 0.25 }}
+              >
+                <VisibilityIcon fontSize="small" />
+              </IconButton>
+            </Tooltip>
+          )}
         </Box>
 
         {post.scheduledAt && (
@@ -609,6 +644,15 @@ export default function PostCard({ post }: PostCardProps) {
           </Button>
         </DialogActions>
       </Dialog>
+
+      {/* Process Visualisation Dialog */}
+      {hasProcessSteps && (
+        <ProcessVisualisationDialog
+          open={processDialogOpen}
+          onClose={() => setProcessDialogOpen(false)}
+          steps={parsedMetadata!.processSteps!}
+        />
+      )}
 
       {/* Tweak Dialog */}
       <Dialog open={tweakOpen} onClose={handleCloseTweak} maxWidth="sm" fullWidth>
