@@ -153,10 +153,10 @@ export async function generateTweet(
   let systemPrompt = await getCachedPrompt(systemPromptKey, fallback);
   // Append the bot's main prompt to the system prompt
   systemPrompt += `\n\n${prompt}`;
-  if (tips && tips.length > 0) {
+  if (systemPromptKey === 'tweet_generation' && tips && tips.length > 0) {
     systemPrompt += `\n\nRemember these tips from past feedback:\n${tips.map((t) => `- ${t}`).join('\n')}`;
   }
-  if (recentPosts && recentPosts.length > 0) {
+  if (systemPromptKey === 'tweet_generation' && recentPosts && recentPosts.length > 0) {
     systemPrompt += `\n\nHere are recent posts for this account — make sure your new tweet is fresh and different, not repetitive:\n${recentPosts.map((p) => `- ${p}`).join('\n')}`;
   }
 
