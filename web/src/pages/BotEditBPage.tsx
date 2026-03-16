@@ -23,6 +23,8 @@ import Switch from '@mui/material/Switch';
 import Skeleton from '@mui/material/Skeleton';
 import Snackbar from '@mui/material/Snackbar';
 import Alert from '@mui/material/Alert';
+import Tab from '@mui/material/Tab';
+import Tabs from '@mui/material/Tabs';
 import TextField from '@mui/material/TextField';
 import Typography from '@mui/material/Typography';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
@@ -91,6 +93,9 @@ export default function BotEditBPage() {
   const [editingOutcomes, setEditingOutcomes] = useState<Record<string, string>>({});
   const [editingQueryPrompts, setEditingQueryPrompts] = useState<Record<string, string>>({});
   const [expanded, setExpanded] = useState<string | false>(false);
+
+  // Tab state
+  const [activeTab, setActiveTab] = useState(0);
 
   // Test run panel state
   const [selectedBehaviourId, setSelectedBehaviourId] = useState<string>('');
@@ -217,10 +222,740 @@ export default function BotEditBPage() {
     );
   };
 
+  // --- Tab content renderers ---
+
+  const renderPromptSettingsTab = () => (
+    <Box>
+      <Typography variant="subtitle2" gutterBottom>
+        Bot Prompt
+      </Typography>
+      <TextField
+        fullWidth
+        multiline
+        minRows={6}
+        maxRows={20}
+        value={currentPrompt}
+        onChange={(e) => setPrompt(e.target.value)}
+        sx={{ mb: 2 }}
+      />
+      {(hasPromptChanges || hasSettingsChanges) && (
+        <Button
+          variant="contained"
+          startIcon={<SaveIcon />}
+          onClick={handleSaveBot}
+          disabled={updateBot.isPending}
+          sx={{ mb: 2 }}
+        >
+          {updateBot.isPending ? 'Saving...' : 'Save Changes'}
+        </Button>
+      )}
+
+      <Accordion expanded={settingsOpen} onChange={() => setSettingsOpen(!settingsOpen)}>
+        <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+          <Typography variant="subtitle2">Schedule & Mode Settings</Typography>
+        </AccordionSummary>
+        <AccordionDetails>
+          <Grid container spacing={2}>
+            <Grid item xs={6}>
+              <FormControl fullWidth size="small">
+                <InputLabel>Post Mode</InputLabel>
+                <Select
+                  value={currentPostMode}
+                  label="Post Mode"
+                  onChange={(e) => setPostMode(e.target.value)}
+                >
+                  <MenuItem value="auto">Auto</MenuItem>
+                  <MenuItem value="manual">Manual</MenuItem>
+                </Select>
+              </FormControl>
+            </Grid>
+            <Grid item xs={6}>
+              <TextField
+                fullWidth
+                size="small"
+                type="number"
+                label="Posts/Day"
+                value={currentPostsPerDay}
+                onChange={(e) => setPostsPerDay(e.target.value)}
+                InputProps={{ inputProps: { min: 1, max: 48 } }}
+              />
+            </Grid>
+            <Grid item xs={4}>
+              <TextField
+                fullWidth
+                size="small"
+                type="number"
+                label="Min Interval (h)"
+                value={currentMinInterval}
+                onChange={(e) => setMinInterval(e.target.value)}
+                InputProps={{ inputProps: { min: 1, max: 24 } }}
+              />
+            </Grid>
+            <Grid item xs={4}>
+              <TextField
+                fullWidth
+                size="small"
+                type="number"
+                label="Hours Start"
+                value={currentHoursStart}
+                onChange={(e) => setHoursStart(e.target.value)}
+                InputProps={{ inputProps: { min: 0, max: 23 } }}
+              />
+            </Grid>
+            <Grid item xs={4}>
+              <TextField
+                fullWidth
+                size="small"
+                type="number"
+                label="Hours End"
+                value={currentHoursEnd}
+                onChange={(e) => setHoursEnd(e.target.value)}
+                InputProps={{ inputProps: { min: 0, max: 23 } }}
+              />
+            </Grid>
+          </Grid>
+        </AccordionDetails>
+      </Accordion>
+    </Box>
+  );
+
+  const renderBehavioursTab = () => (
+    <Box>
+      <Typography variant="h6" gutterBottom>
+        Behaviours ({behaviourCount}/10)
+      </Typography>
+
+      {behavioursLoading ? (
+        <Skeleton variant="rectangular" height={100} sx={{ borderRadius: 1 }} />
+      ) : (
+        <>
+          {activeBehaviours.length > 0 && (
+            <Box
+              sx={{
+                px: 2,
+                py: 1,
+                mb: 1,
+                border: 1,
+                borderColor: 'divider',
+                borderRadius: 1,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+              }}
+            >
+              <Typography
+                variant="body2"
+                sx={{
+                  color: totalWeight === 100 ? 'success.main' : 'error.main',
+                  fontWeight: 'bold',
+                }}
+              >
+                Weight: {totalWeight}%{totalWeight !== 100 ? ' (should be 100%)' : ''}
+              </Typography>
+            </Box>
+          )}
+
+          {behaviours?.map((behaviour) => {
+            const weight =
+              editingWeights[behaviour.id] !== undefined
+                ? editingWeights[behaviour.id]
+                : behaviour.weight;
+            const isEditing =
+              editingBehaviours[behaviour.id] !== undefined ||
+              editingTitles[behaviour.id] !== undefined ||
+              editingKnowledgeSources[behaviour.id] !== undefined ||
+              editingOutcomes[behaviour.id] !== undefined ||
+              editingQueryPrompts[behaviour.id] !== undefined ||
+              editingWeights[behaviour.id] !== undefined;
+
+            return (
+              <Accordion
+                key={behaviour.id}
+                expanded={expanded === behaviour.id}
+                onChange={handleAccordionChange(behaviour.id)}
+                sx={{ opacity: behaviour.active ? 1 : 0.7 }}
+              >
+                <AccordionSummary
+                  expandIcon={<ExpandMoreIcon />}
+                  sx={{
+                    '& .MuiAccordionSummary-content': {
+                      alignItems: 'center',
+                      gap: 1,
+                    },
+                  }}
+                >
+                  <Switch
+                    size="small"
+                    checked={behaviour.active}
+                    onClick={(event) => event.stopPropagation()}
+                    onChange={(event) => {
+                      event.stopPropagation();
+                      toggleBehaviour.mutate({
+                        botId: bot.id,
+                        behaviourId: behaviour.id,
+                        active: event.target.checked,
+                      });
+                    }}
+                    disabled={toggleBehaviour.isPending}
+                  />
+                  <Typography sx={{ flexGrow: 1 }}>{behaviour.title || 'Untitled'}</Typography>
+                  {behaviour.active && (
+                    <Chip label={`${weight}%`} size="small" color="primary" variant="outlined" />
+                  )}
+                </AccordionSummary>
+                <AccordionDetails>
+                  <FormControl fullWidth size="small" sx={{ mb: 2 }}>
+                    <InputLabel>Outcome</InputLabel>
+                    <Select
+                      value={
+                        editingOutcomes[behaviour.id] !== undefined
+                          ? editingOutcomes[behaviour.id]
+                          : behaviour.outcome
+                      }
+                      label="Outcome"
+                      onChange={(e) =>
+                        setEditingOutcomes((prev) => ({
+                          ...prev,
+                          [behaviour.id]: e.target.value,
+                        }))
+                      }
+                    >
+                      <MenuItem value="write_post">Write Post</MenuItem>
+                      <MenuItem value="reply_to_post">Reply to Post</MenuItem>
+                      <MenuItem value="like_post">Like Post</MenuItem>
+                      <MenuItem value="follow_account">Follow Account</MenuItem>
+                    </Select>
+                  </FormControl>
+                  {((editingOutcomes[behaviour.id] !== undefined
+                    ? editingOutcomes[behaviour.id]
+                    : behaviour.outcome) === 'like_post' ||
+                    (editingOutcomes[behaviour.id] !== undefined
+                      ? editingOutcomes[behaviour.id]
+                      : behaviour.outcome) === 'reply_to_post') && (
+                    <TextField
+                      fullWidth
+                      multiline
+                      minRows={2}
+                      maxRows={3}
+                      size="small"
+                      label="Query Prompt"
+                      value={
+                        editingQueryPrompts[behaviour.id] !== undefined
+                          ? editingQueryPrompts[behaviour.id]
+                          : (behaviour.queryPrompt ?? '')
+                      }
+                      onChange={(e) =>
+                        setEditingQueryPrompts((prev) => ({
+                          ...prev,
+                          [behaviour.id]: e.target.value,
+                        }))
+                      }
+                      onFocus={() => {
+                        if (editingQueryPrompts[behaviour.id] === undefined) {
+                          setEditingQueryPrompts((prev) => ({
+                            ...prev,
+                            [behaviour.id]: behaviour.queryPrompt ?? '',
+                          }));
+                        }
+                      }}
+                      sx={{ mb: 1 }}
+                    />
+                  )}
+                  <TextField
+                    fullWidth
+                    size="small"
+                    label="Title"
+                    value={
+                      editingTitles[behaviour.id] !== undefined
+                        ? editingTitles[behaviour.id]
+                        : behaviour.title
+                    }
+                    onChange={(e) =>
+                      setEditingTitles((prev) => ({
+                        ...prev,
+                        [behaviour.id]: e.target.value,
+                      }))
+                    }
+                    onFocus={() => {
+                      if (editingTitles[behaviour.id] === undefined) {
+                        setEditingTitles((prev) => ({
+                          ...prev,
+                          [behaviour.id]: behaviour.title,
+                        }));
+                      }
+                    }}
+                    sx={{ mb: 1 }}
+                  />
+                  <TextField
+                    fullWidth
+                    multiline
+                    minRows={3}
+                    size="small"
+                    label="Prompt"
+                    value={
+                      editingBehaviours[behaviour.id] !== undefined
+                        ? editingBehaviours[behaviour.id]
+                        : behaviour.content
+                    }
+                    onChange={(e) =>
+                      setEditingBehaviours((prev) => ({
+                        ...prev,
+                        [behaviour.id]: e.target.value,
+                      }))
+                    }
+                    onFocus={() => {
+                      if (editingBehaviours[behaviour.id] === undefined) {
+                        setEditingBehaviours((prev) => ({
+                          ...prev,
+                          [behaviour.id]: behaviour.content,
+                        }));
+                      }
+                    }}
+                    sx={{ mb: 2 }}
+                  />
+                  <FormControl fullWidth size="small" sx={{ mb: 2 }}>
+                    <InputLabel>Knowledge Source</InputLabel>
+                    <Select
+                      value={
+                        editingKnowledgeSources[behaviour.id] !== undefined
+                          ? editingKnowledgeSources[behaviour.id]
+                          : behaviour.knowledgeSource
+                      }
+                      label="Knowledge Source"
+                      onChange={(e) =>
+                        setEditingKnowledgeSources((prev) => ({
+                          ...prev,
+                          [behaviour.id]: e.target.value,
+                        }))
+                      }
+                    >
+                      <MenuItem value="default">Use Bot Default</MenuItem>
+                      <MenuItem value="ai">AI Only</MenuItem>
+                      <MenuItem value="ai+web">AI + Web Search</MenuItem>
+                    </Select>
+                  </FormControl>
+                  <TextField
+                    fullWidth
+                    size="small"
+                    type="number"
+                    label="Weight (%)"
+                    InputProps={{ inputProps: { min: 0, max: 100 } }}
+                    value={weight}
+                    onChange={(e) => {
+                      const val = parseInt(e.target.value, 10);
+                      if (!isNaN(val) && val >= 0 && val <= 100) {
+                        setEditingWeights((prev) => ({
+                          ...prev,
+                          [behaviour.id]: val,
+                        }));
+                      }
+                    }}
+                    disabled={!behaviour.active}
+                    sx={{ mb: 2 }}
+                  />
+                  <Box
+                    sx={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'flex-end',
+                      gap: 1,
+                    }}
+                  >
+                    {isEditing && (
+                      <Button
+                        variant="contained"
+                        size="small"
+                        startIcon={<SaveIcon />}
+                        onClick={() => {
+                          const content = editingBehaviours[behaviour.id] ?? behaviour.content;
+                          const title = editingTitles[behaviour.id] ?? behaviour.title;
+                          const ks =
+                            editingKnowledgeSources[behaviour.id] ?? behaviour.knowledgeSource;
+                          const oc = editingOutcomes[behaviour.id] ?? behaviour.outcome;
+                          const qp =
+                            editingQueryPrompts[behaviour.id] ?? behaviour.queryPrompt ?? undefined;
+                          const w = editingWeights[behaviour.id] ?? behaviour.weight;
+                          if (content && content.trim()) {
+                            updateBehaviour.mutate(
+                              {
+                                botId: bot.id,
+                                behaviourId: behaviour.id,
+                                content: content.trim(),
+                                title: title?.trim(),
+                                knowledgeSource: ks,
+                                outcome: oc,
+                                queryPrompt: qp,
+                                weight: w,
+                              },
+                              {
+                                onSuccess: () => {
+                                  setEditingBehaviours((prev) => {
+                                    const next = { ...prev };
+                                    delete next[behaviour.id];
+                                    return next;
+                                  });
+                                  setEditingTitles((prev) => {
+                                    const next = { ...prev };
+                                    delete next[behaviour.id];
+                                    return next;
+                                  });
+                                  setEditingKnowledgeSources((prev) => {
+                                    const next = { ...prev };
+                                    delete next[behaviour.id];
+                                    return next;
+                                  });
+                                  setEditingOutcomes((prev) => {
+                                    const next = { ...prev };
+                                    delete next[behaviour.id];
+                                    return next;
+                                  });
+                                  setEditingQueryPrompts((prev) => {
+                                    const next = { ...prev };
+                                    delete next[behaviour.id];
+                                    return next;
+                                  });
+                                  setEditingWeights((prev) => {
+                                    const next = { ...prev };
+                                    delete next[behaviour.id];
+                                    return next;
+                                  });
+                                  showSnackbar('Behaviour saved', 'success');
+                                },
+                                onError: () => showSnackbar('Failed to save behaviour', 'error'),
+                              },
+                            );
+                          }
+                        }}
+                        disabled={updateBehaviour.isPending}
+                      >
+                        Save
+                      </Button>
+                    )}
+                    <Button
+                      variant="outlined"
+                      size="small"
+                      color="error"
+                      startIcon={<DeleteIcon />}
+                      onClick={() => {
+                        deleteBehaviour.mutate(
+                          { botId: bot.id, behaviourId: behaviour.id },
+                          {
+                            onSuccess: () => {
+                              if (expanded === behaviour.id) setExpanded(false);
+                            },
+                          },
+                        );
+                      }}
+                      disabled={deleteBehaviour.isPending}
+                    >
+                      Delete
+                    </Button>
+                  </Box>
+                </AccordionDetails>
+              </Accordion>
+            );
+          })}
+
+          {canAddBehaviour && (
+            <Box sx={{ mt: 2, p: 2, border: 1, borderColor: 'divider', borderRadius: 1 }}>
+              <Typography variant="subtitle2" sx={{ mb: 1 }}>
+                Add New Behaviour
+              </Typography>
+              <TextField
+                fullWidth
+                size="small"
+                label="Title"
+                value={newBehaviourTitle}
+                onChange={(e) => setNewBehaviourTitle(e.target.value)}
+                sx={{ mb: 1 }}
+              />
+              <TextField
+                fullWidth
+                multiline
+                minRows={2}
+                size="small"
+                label="Prompt"
+                value={newBehaviourContent}
+                onChange={(e) => setNewBehaviourContent(e.target.value)}
+                sx={{ mb: 1 }}
+              />
+              <Button
+                variant="contained"
+                size="small"
+                startIcon={<AddIcon />}
+                onClick={() => {
+                  if (newBehaviourContent.trim()) {
+                    const newCount = activeBehaviours.length + 1;
+                    const equalWeight = Math.floor(100 / newCount);
+                    createBehaviour.mutate(
+                      {
+                        botId: bot.id,
+                        content: newBehaviourContent.trim(),
+                        title: newBehaviourTitle.trim() || undefined,
+                        weight: equalWeight,
+                      },
+                      {
+                        onSuccess: () => {
+                          setNewBehaviourContent('');
+                          setNewBehaviourTitle('');
+                        },
+                      },
+                    );
+                  }
+                }}
+                disabled={!newBehaviourContent.trim() || createBehaviour.isPending}
+              >
+                Add
+              </Button>
+            </Box>
+          )}
+        </>
+      )}
+    </Box>
+  );
+
+  const renderJudgesTipsTab = () => (
+    <Box>
+      {/* Judges */}
+      <Card sx={{ mb: 3 }}>
+        <CardContent>
+          <Typography variant="h6" gutterBottom>
+            Judges {botJudges ? `(${botJudges.length}/5)` : ''}
+          </Typography>
+          {botJudges && botJudges.length > 0 ? (
+            <List dense disablePadding>
+              {botJudges.map((bj, index) => (
+                <div key={bj.id}>
+                  {index > 0 && <Divider />}
+                  <ListItem
+                    disablePadding
+                    secondaryAction={
+                      <IconButton
+                        edge="end"
+                        size="small"
+                        onClick={() =>
+                          removeJudge.mutate(
+                            { botId: bot.id, judgeId: bj.judgeId },
+                            {
+                              onSuccess: () =>
+                                showSnackbar(`Removed "${bj.judge.name}"`, 'success'),
+                              onError: () => showSnackbar('Failed to remove', 'error'),
+                            },
+                          )
+                        }
+                        disabled={removeJudge.isPending}
+                      >
+                        <DeleteIcon fontSize="small" />
+                      </IconButton>
+                    }
+                  >
+                    <ListItemText
+                      primary={bj.judge.name}
+                      primaryTypographyProps={{ variant: 'body2' }}
+                    />
+                  </ListItem>
+                </div>
+              ))}
+            </List>
+          ) : (
+            <Typography variant="body2" color="text.secondary">
+              No judges assigned
+            </Typography>
+          )}
+          {allJudges && botJudges && botJudges.length < 5 && (
+            <Select
+              size="small"
+              displayEmpty
+              value=""
+              onChange={(e) => {
+                const judgeId = e.target.value as string;
+                if (!judgeId) return;
+                assignJudge.mutate(
+                  { botId: bot.id, judgeId },
+                  {
+                    onSuccess: () => showSnackbar('Judge assigned', 'success'),
+                    onError: () => showSnackbar('Failed to assign', 'error'),
+                  },
+                );
+              }}
+              fullWidth
+              disabled={assignJudge.isPending}
+              sx={{ mt: 1 }}
+            >
+              <MenuItem value="" disabled>
+                Add a judge...
+              </MenuItem>
+              {allJudges
+                .filter((j) => !botJudges.some((bj) => bj.judgeId === j.id))
+                .map((j) => (
+                  <MenuItem key={j.id} value={j.id}>
+                    {j.name}
+                  </MenuItem>
+                ))}
+            </Select>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Tips */}
+      <Card>
+        <CardContent>
+          <Typography variant="h6" gutterBottom>
+            Memory Tips {tips ? `(${tips.length}/10)` : ''}
+          </Typography>
+          {tips && tips.length > 0 ? (
+            <List dense disablePadding>
+              {tips.map((tip, index) => (
+                <div key={tip.id}>
+                  {index > 0 && <Divider />}
+                  <ListItem disablePadding>
+                    <ListItemText
+                      primary={tip.content}
+                      primaryTypographyProps={{ variant: 'body2' }}
+                    />
+                  </ListItem>
+                </div>
+              ))}
+            </List>
+          ) : (
+            <Typography variant="body2" color="text.secondary">
+              No tips yet
+            </Typography>
+          )}
+        </CardContent>
+      </Card>
+    </Box>
+  );
+
+  const renderTestRunSidebar = () => (
+    <Box sx={{ position: 'sticky', top: 16 }}>
+      <Card>
+        <CardContent>
+          <Typography variant="subtitle2" gutterBottom>
+            Test Run
+          </Typography>
+          <FormControl fullWidth size="small" sx={{ mb: 1.5 }}>
+            <InputLabel>Behaviour</InputLabel>
+            <Select
+              value={selectedBehaviourId}
+              label="Behaviour"
+              onChange={(e) => setSelectedBehaviourId(e.target.value)}
+            >
+              {behaviours
+                ?.filter((b) => b.active)
+                .map((b) => (
+                  <MenuItem key={b.id} value={b.id}>
+                    {b.title || 'Untitled'}
+                  </MenuItem>
+                ))}
+            </Select>
+          </FormControl>
+          <Button
+            variant="contained"
+            size="small"
+            fullWidth
+            startIcon={testRunLoading ? <CircularProgress size={16} /> : <PlayArrowIcon />}
+            onClick={handleTestRun}
+            disabled={!selectedBehaviourId || testRunLoading}
+          >
+            {testRunLoading ? 'Generating...' : 'Generate'}
+          </Button>
+
+          {testRunError && (
+            <Typography color="error" variant="body2" sx={{ mt: 1 }}>
+              {testRunError}
+            </Typography>
+          )}
+
+          {testRunResult && (
+            <Box sx={{ mt: 2 }}>
+              <Card variant="outlined">
+                <CardContent sx={{ py: 1.5, '&:last-child': { pb: 1.5 } }}>
+                  <Typography variant="body2" sx={{ whiteSpace: 'pre-wrap' }}>
+                    {testRunResult.content}
+                  </Typography>
+                </CardContent>
+              </Card>
+              {/* Process visualisation for like_post results */}
+              {(() => {
+                if (!testRunResult.metadata) return null;
+                try {
+                  const parsed = JSON.parse(testRunResult.metadata) as {
+                    outcome?: string;
+                    processSteps?: ProcessStep[];
+                  };
+                  if (
+                    parsed.outcome === 'like_post' &&
+                    Array.isArray(parsed.processSteps) &&
+                    parsed.processSteps.length > 0
+                  ) {
+                    return (
+                      <Box sx={{ mt: 2 }}>
+                        <Typography variant="subtitle2" sx={{ mb: 1 }}>
+                          Process Visualisation
+                        </Typography>
+                        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
+                          {parsed.processSteps.map(
+                            (step: ProcessStep, idx: number, arr: ProcessStep[]) => (
+                              <Box key={idx}>
+                                <StepCard step={step} index={idx} />
+                                {idx < arr.length - 1 && (
+                                  <Box
+                                    sx={{
+                                      display: 'flex',
+                                      justifyContent: 'center',
+                                      py: 0.5,
+                                    }}
+                                  >
+                                    <ArrowDownwardIcon color="action" />
+                                  </Box>
+                                )}
+                              </Box>
+                            ),
+                          )}
+                        </Box>
+                      </Box>
+                    );
+                  }
+                  return null;
+                } catch {
+                  return null;
+                }
+              })()}
+              <Box sx={{ display: 'flex', gap: 1, mt: 1, justifyContent: 'flex-end' }}>
+                <Button
+                  size="small"
+                  variant="outlined"
+                  onClick={() => {
+                    void navigate({ to: '/posts' });
+                  }}
+                >
+                  Keep (View Posts)
+                </Button>
+                <Button
+                  size="small"
+                  color="error"
+                  variant="outlined"
+                  onClick={() => {
+                    deletePost.mutate(testRunResult.postId);
+                    setTestRunResult(null);
+                  }}
+                >
+                  Discard
+                </Button>
+              </Box>
+            </Box>
+          )}
+        </CardContent>
+      </Card>
+    </Box>
+  );
+
   return (
     <>
       <AppHeader />
       <Container maxWidth="lg" sx={{ mt: 3, mb: 4 }}>
+        {/* Top navigation and bot title — always visible above tabs */}
         <Button
           startIcon={<ArrowBackIcon />}
           onClick={() => void navigate({ to: '/dashboard' })}
@@ -234,741 +969,28 @@ export default function BotEditBPage() {
         </Typography>
 
         <Grid container spacing={3}>
-          {/* LEFT column */}
+          {/* Left column: tabs + tab content */}
           <Grid item xs={12} md={7}>
-            {/* Prompt textarea */}
-            <Typography variant="subtitle2" gutterBottom>
-              Bot Prompt
-            </Typography>
-            <TextField
-              fullWidth
-              multiline
-              minRows={6}
-              maxRows={20}
-              value={currentPrompt}
-              onChange={(e) => setPrompt(e.target.value)}
-              sx={{ mb: 2 }}
-            />
-            {(hasPromptChanges || hasSettingsChanges) && (
-              <Button
-                variant="contained"
-                startIcon={<SaveIcon />}
-                onClick={handleSaveBot}
-                disabled={updateBot.isPending}
-                sx={{ mb: 2 }}
+            <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 2 }}>
+              <Tabs
+                value={activeTab}
+                onChange={(_e, newValue: number) => setActiveTab(newValue)}
+                aria-label="Bot edit tabs"
               >
-                {updateBot.isPending ? 'Saving...' : 'Save Changes'}
-              </Button>
-            )}
-
-            {/* Collapsible schedule/mode settings */}
-            <Accordion expanded={settingsOpen} onChange={() => setSettingsOpen(!settingsOpen)}>
-              <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-                <Typography variant="subtitle2">Schedule & Mode Settings</Typography>
-              </AccordionSummary>
-              <AccordionDetails>
-                <Grid container spacing={2}>
-                  <Grid item xs={6}>
-                    <FormControl fullWidth size="small">
-                      <InputLabel>Post Mode</InputLabel>
-                      <Select
-                        value={currentPostMode}
-                        label="Post Mode"
-                        onChange={(e) => setPostMode(e.target.value)}
-                      >
-                        <MenuItem value="auto">Auto</MenuItem>
-                        <MenuItem value="manual">Manual</MenuItem>
-                      </Select>
-                    </FormControl>
-                  </Grid>
-                  <Grid item xs={6}>
-                    <TextField
-                      fullWidth
-                      size="small"
-                      type="number"
-                      label="Posts/Day"
-                      value={currentPostsPerDay}
-                      onChange={(e) => setPostsPerDay(e.target.value)}
-                      InputProps={{ inputProps: { min: 1, max: 48 } }}
-                    />
-                  </Grid>
-                  <Grid item xs={4}>
-                    <TextField
-                      fullWidth
-                      size="small"
-                      type="number"
-                      label="Min Interval (h)"
-                      value={currentMinInterval}
-                      onChange={(e) => setMinInterval(e.target.value)}
-                      InputProps={{ inputProps: { min: 1, max: 24 } }}
-                    />
-                  </Grid>
-                  <Grid item xs={4}>
-                    <TextField
-                      fullWidth
-                      size="small"
-                      type="number"
-                      label="Hours Start"
-                      value={currentHoursStart}
-                      onChange={(e) => setHoursStart(e.target.value)}
-                      InputProps={{ inputProps: { min: 0, max: 23 } }}
-                    />
-                  </Grid>
-                  <Grid item xs={4}>
-                    <TextField
-                      fullWidth
-                      size="small"
-                      type="number"
-                      label="Hours End"
-                      value={currentHoursEnd}
-                      onChange={(e) => setHoursEnd(e.target.value)}
-                      InputProps={{ inputProps: { min: 0, max: 23 } }}
-                    />
-                  </Grid>
-                </Grid>
-              </AccordionDetails>
-            </Accordion>
-
-            {/* Behaviours accordion */}
-            <Box sx={{ mt: 3 }}>
-              <Typography variant="h6" gutterBottom>
-                Behaviours ({behaviourCount}/10)
-              </Typography>
-
-              {behavioursLoading ? (
-                <Skeleton variant="rectangular" height={100} sx={{ borderRadius: 1 }} />
-              ) : (
-                <>
-                  {activeBehaviours.length > 0 && (
-                    <Box
-                      sx={{
-                        px: 2,
-                        py: 1,
-                        mb: 1,
-                        border: 1,
-                        borderColor: 'divider',
-                        borderRadius: 1,
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'space-between',
-                      }}
-                    >
-                      <Typography
-                        variant="body2"
-                        sx={{
-                          color: totalWeight === 100 ? 'success.main' : 'error.main',
-                          fontWeight: 'bold',
-                        }}
-                      >
-                        Weight: {totalWeight}%{totalWeight !== 100 ? ' (should be 100%)' : ''}
-                      </Typography>
-                    </Box>
-                  )}
-
-                  {behaviours?.map((behaviour) => {
-                    const weight =
-                      editingWeights[behaviour.id] !== undefined
-                        ? editingWeights[behaviour.id]
-                        : behaviour.weight;
-                    const isEditing =
-                      editingBehaviours[behaviour.id] !== undefined ||
-                      editingTitles[behaviour.id] !== undefined ||
-                      editingKnowledgeSources[behaviour.id] !== undefined ||
-                      editingOutcomes[behaviour.id] !== undefined ||
-                      editingQueryPrompts[behaviour.id] !== undefined ||
-                      editingWeights[behaviour.id] !== undefined;
-
-                    return (
-                      <Accordion
-                        key={behaviour.id}
-                        expanded={expanded === behaviour.id}
-                        onChange={handleAccordionChange(behaviour.id)}
-                        sx={{ opacity: behaviour.active ? 1 : 0.7 }}
-                      >
-                        <AccordionSummary
-                          expandIcon={<ExpandMoreIcon />}
-                          sx={{
-                            '& .MuiAccordionSummary-content': {
-                              alignItems: 'center',
-                              gap: 1,
-                            },
-                          }}
-                        >
-                          <Switch
-                            size="small"
-                            checked={behaviour.active}
-                            onClick={(event) => event.stopPropagation()}
-                            onChange={(event) => {
-                              event.stopPropagation();
-                              toggleBehaviour.mutate({
-                                botId: bot.id,
-                                behaviourId: behaviour.id,
-                                active: event.target.checked,
-                              });
-                            }}
-                            disabled={toggleBehaviour.isPending}
-                          />
-                          <Typography sx={{ flexGrow: 1 }}>
-                            {behaviour.title || 'Untitled'}
-                          </Typography>
-                          {behaviour.active && (
-                            <Chip
-                              label={`${weight}%`}
-                              size="small"
-                              color="primary"
-                              variant="outlined"
-                            />
-                          )}
-                        </AccordionSummary>
-                        <AccordionDetails>
-                          <FormControl fullWidth size="small" sx={{ mb: 2 }}>
-                            <InputLabel>Outcome</InputLabel>
-                            <Select
-                              value={
-                                editingOutcomes[behaviour.id] !== undefined
-                                  ? editingOutcomes[behaviour.id]
-                                  : behaviour.outcome
-                              }
-                              label="Outcome"
-                              onChange={(e) =>
-                                setEditingOutcomes((prev) => ({
-                                  ...prev,
-                                  [behaviour.id]: e.target.value,
-                                }))
-                              }
-                            >
-                              <MenuItem value="write_post">Write Post</MenuItem>
-                              <MenuItem value="reply_to_post">Reply to Post</MenuItem>
-                              <MenuItem value="like_post">Like Post</MenuItem>
-                              <MenuItem value="follow_account">Follow Account</MenuItem>
-                            </Select>
-                          </FormControl>
-                          {((editingOutcomes[behaviour.id] !== undefined
-                            ? editingOutcomes[behaviour.id]
-                            : behaviour.outcome) === 'like_post' ||
-                            (editingOutcomes[behaviour.id] !== undefined
-                              ? editingOutcomes[behaviour.id]
-                              : behaviour.outcome) === 'reply_to_post') && (
-                            <TextField
-                              fullWidth
-                              multiline
-                              minRows={2}
-                              maxRows={3}
-                              size="small"
-                              label="Query Prompt"
-                              value={
-                                editingQueryPrompts[behaviour.id] !== undefined
-                                  ? editingQueryPrompts[behaviour.id]
-                                  : (behaviour.queryPrompt ?? '')
-                              }
-                              onChange={(e) =>
-                                setEditingQueryPrompts((prev) => ({
-                                  ...prev,
-                                  [behaviour.id]: e.target.value,
-                                }))
-                              }
-                              onFocus={() => {
-                                if (editingQueryPrompts[behaviour.id] === undefined) {
-                                  setEditingQueryPrompts((prev) => ({
-                                    ...prev,
-                                    [behaviour.id]: behaviour.queryPrompt ?? '',
-                                  }));
-                                }
-                              }}
-                              sx={{ mb: 1 }}
-                            />
-                          )}
-                          <TextField
-                            fullWidth
-                            size="small"
-                            label="Title"
-                            value={
-                              editingTitles[behaviour.id] !== undefined
-                                ? editingTitles[behaviour.id]
-                                : behaviour.title
-                            }
-                            onChange={(e) =>
-                              setEditingTitles((prev) => ({
-                                ...prev,
-                                [behaviour.id]: e.target.value,
-                              }))
-                            }
-                            onFocus={() => {
-                              if (editingTitles[behaviour.id] === undefined) {
-                                setEditingTitles((prev) => ({
-                                  ...prev,
-                                  [behaviour.id]: behaviour.title,
-                                }));
-                              }
-                            }}
-                            sx={{ mb: 1 }}
-                          />
-                          <TextField
-                            fullWidth
-                            multiline
-                            minRows={3}
-                            size="small"
-                            label="Prompt"
-                            value={
-                              editingBehaviours[behaviour.id] !== undefined
-                                ? editingBehaviours[behaviour.id]
-                                : behaviour.content
-                            }
-                            onChange={(e) =>
-                              setEditingBehaviours((prev) => ({
-                                ...prev,
-                                [behaviour.id]: e.target.value,
-                              }))
-                            }
-                            onFocus={() => {
-                              if (editingBehaviours[behaviour.id] === undefined) {
-                                setEditingBehaviours((prev) => ({
-                                  ...prev,
-                                  [behaviour.id]: behaviour.content,
-                                }));
-                              }
-                            }}
-                            sx={{ mb: 2 }}
-                          />
-                          <FormControl fullWidth size="small" sx={{ mb: 2 }}>
-                            <InputLabel>Knowledge Source</InputLabel>
-                            <Select
-                              value={
-                                editingKnowledgeSources[behaviour.id] !== undefined
-                                  ? editingKnowledgeSources[behaviour.id]
-                                  : behaviour.knowledgeSource
-                              }
-                              label="Knowledge Source"
-                              onChange={(e) =>
-                                setEditingKnowledgeSources((prev) => ({
-                                  ...prev,
-                                  [behaviour.id]: e.target.value,
-                                }))
-                              }
-                            >
-                              <MenuItem value="default">Use Bot Default</MenuItem>
-                              <MenuItem value="ai">AI Only</MenuItem>
-                              <MenuItem value="ai+web">AI + Web Search</MenuItem>
-                            </Select>
-                          </FormControl>
-                          <TextField
-                            fullWidth
-                            size="small"
-                            type="number"
-                            label="Weight (%)"
-                            InputProps={{ inputProps: { min: 0, max: 100 } }}
-                            value={weight}
-                            onChange={(e) => {
-                              const val = parseInt(e.target.value, 10);
-                              if (!isNaN(val) && val >= 0 && val <= 100) {
-                                setEditingWeights((prev) => ({
-                                  ...prev,
-                                  [behaviour.id]: val,
-                                }));
-                              }
-                            }}
-                            disabled={!behaviour.active}
-                            sx={{ mb: 2 }}
-                          />
-                          <Box
-                            sx={{
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'flex-end',
-                              gap: 1,
-                            }}
-                          >
-                            {isEditing && (
-                              <Button
-                                variant="contained"
-                                size="small"
-                                startIcon={<SaveIcon />}
-                                onClick={() => {
-                                  const content =
-                                    editingBehaviours[behaviour.id] ?? behaviour.content;
-                                  const title = editingTitles[behaviour.id] ?? behaviour.title;
-                                  const ks =
-                                    editingKnowledgeSources[behaviour.id] ??
-                                    behaviour.knowledgeSource;
-                                  const oc = editingOutcomes[behaviour.id] ?? behaviour.outcome;
-                                  const qp =
-                                    editingQueryPrompts[behaviour.id] ??
-                                    behaviour.queryPrompt ??
-                                    undefined;
-                                  const w = editingWeights[behaviour.id] ?? behaviour.weight;
-                                  if (content && content.trim()) {
-                                    updateBehaviour.mutate(
-                                      {
-                                        botId: bot.id,
-                                        behaviourId: behaviour.id,
-                                        content: content.trim(),
-                                        title: title?.trim(),
-                                        knowledgeSource: ks,
-                                        outcome: oc,
-                                        queryPrompt: qp,
-                                        weight: w,
-                                      },
-                                      {
-                                        onSuccess: () => {
-                                          setEditingBehaviours((prev) => {
-                                            const next = { ...prev };
-                                            delete next[behaviour.id];
-                                            return next;
-                                          });
-                                          setEditingTitles((prev) => {
-                                            const next = { ...prev };
-                                            delete next[behaviour.id];
-                                            return next;
-                                          });
-                                          setEditingKnowledgeSources((prev) => {
-                                            const next = { ...prev };
-                                            delete next[behaviour.id];
-                                            return next;
-                                          });
-                                          setEditingOutcomes((prev) => {
-                                            const next = { ...prev };
-                                            delete next[behaviour.id];
-                                            return next;
-                                          });
-                                          setEditingQueryPrompts((prev) => {
-                                            const next = { ...prev };
-                                            delete next[behaviour.id];
-                                            return next;
-                                          });
-                                          setEditingWeights((prev) => {
-                                            const next = { ...prev };
-                                            delete next[behaviour.id];
-                                            return next;
-                                          });
-                                          showSnackbar('Behaviour saved', 'success');
-                                        },
-                                        onError: () =>
-                                          showSnackbar('Failed to save behaviour', 'error'),
-                                      },
-                                    );
-                                  }
-                                }}
-                                disabled={updateBehaviour.isPending}
-                              >
-                                Save
-                              </Button>
-                            )}
-                            <Button
-                              variant="outlined"
-                              size="small"
-                              color="error"
-                              startIcon={<DeleteIcon />}
-                              onClick={() => {
-                                deleteBehaviour.mutate(
-                                  { botId: bot.id, behaviourId: behaviour.id },
-                                  {
-                                    onSuccess: () => {
-                                      if (expanded === behaviour.id) setExpanded(false);
-                                    },
-                                  },
-                                );
-                              }}
-                              disabled={deleteBehaviour.isPending}
-                            >
-                              Delete
-                            </Button>
-                          </Box>
-                        </AccordionDetails>
-                      </Accordion>
-                    );
-                  })}
-
-                  {canAddBehaviour && (
-                    <Box sx={{ mt: 2, p: 2, border: 1, borderColor: 'divider', borderRadius: 1 }}>
-                      <Typography variant="subtitle2" sx={{ mb: 1 }}>
-                        Add New Behaviour
-                      </Typography>
-                      <TextField
-                        fullWidth
-                        size="small"
-                        label="Title"
-                        value={newBehaviourTitle}
-                        onChange={(e) => setNewBehaviourTitle(e.target.value)}
-                        sx={{ mb: 1 }}
-                      />
-                      <TextField
-                        fullWidth
-                        multiline
-                        minRows={2}
-                        size="small"
-                        label="Prompt"
-                        value={newBehaviourContent}
-                        onChange={(e) => setNewBehaviourContent(e.target.value)}
-                        sx={{ mb: 1 }}
-                      />
-                      <Button
-                        variant="contained"
-                        size="small"
-                        startIcon={<AddIcon />}
-                        onClick={() => {
-                          if (newBehaviourContent.trim()) {
-                            const newCount = activeBehaviours.length + 1;
-                            const equalWeight = Math.floor(100 / newCount);
-                            createBehaviour.mutate(
-                              {
-                                botId: bot.id,
-                                content: newBehaviourContent.trim(),
-                                title: newBehaviourTitle.trim() || undefined,
-                                weight: equalWeight,
-                              },
-                              {
-                                onSuccess: () => {
-                                  setNewBehaviourContent('');
-                                  setNewBehaviourTitle('');
-                                },
-                              },
-                            );
-                          }
-                        }}
-                        disabled={!newBehaviourContent.trim() || createBehaviour.isPending}
-                      >
-                        Add
-                      </Button>
-                    </Box>
-                  )}
-                </>
-              )}
+                <Tab label="Prompt & Settings" />
+                <Tab label="Behaviours" />
+                <Tab label="Judges & Tips" />
+              </Tabs>
             </Box>
+
+            {activeTab === 0 && renderPromptSettingsTab()}
+            {activeTab === 1 && renderBehavioursTab()}
+            {activeTab === 2 && renderJudgesTipsTab()}
           </Grid>
 
-          {/* RIGHT column — sticky test run + judges + tips */}
+          {/* Right column: persistent test run sidebar */}
           <Grid item xs={12} md={5}>
-            <Box sx={{ position: 'sticky', top: 16 }}>
-              {/* Test Run Panel */}
-              <Card sx={{ mb: 2 }}>
-                <CardContent>
-                  <Typography variant="subtitle2" gutterBottom>
-                    Test Run
-                  </Typography>
-                  <FormControl fullWidth size="small" sx={{ mb: 1.5 }}>
-                    <InputLabel>Behaviour</InputLabel>
-                    <Select
-                      value={selectedBehaviourId}
-                      label="Behaviour"
-                      onChange={(e) => setSelectedBehaviourId(e.target.value)}
-                    >
-                      {behaviours
-                        ?.filter((b) => b.active)
-                        .map((b) => (
-                          <MenuItem key={b.id} value={b.id}>
-                            {b.title || 'Untitled'}
-                          </MenuItem>
-                        ))}
-                    </Select>
-                  </FormControl>
-                  <Button
-                    variant="contained"
-                    size="small"
-                    fullWidth
-                    startIcon={testRunLoading ? <CircularProgress size={16} /> : <PlayArrowIcon />}
-                    onClick={handleTestRun}
-                    disabled={!selectedBehaviourId || testRunLoading}
-                  >
-                    {testRunLoading ? 'Generating...' : 'Generate'}
-                  </Button>
-
-                  {testRunError && (
-                    <Typography color="error" variant="body2" sx={{ mt: 1 }}>
-                      {testRunError}
-                    </Typography>
-                  )}
-
-                  {testRunResult && (
-                    <Box sx={{ mt: 2 }}>
-                      <Card variant="outlined">
-                        <CardContent sx={{ py: 1.5, '&:last-child': { pb: 1.5 } }}>
-                          <Typography variant="body2" sx={{ whiteSpace: 'pre-wrap' }}>
-                            {testRunResult.content}
-                          </Typography>
-                        </CardContent>
-                      </Card>
-                      {/* Process visualisation for like_post results */}
-                      {(() => {
-                        if (!testRunResult.metadata) return null;
-                        try {
-                          const parsed = JSON.parse(testRunResult.metadata) as {
-                            outcome?: string;
-                            processSteps?: ProcessStep[];
-                          };
-                          if (
-                            parsed.outcome === 'like_post' &&
-                            Array.isArray(parsed.processSteps) &&
-                            parsed.processSteps.length > 0
-                          ) {
-                            return (
-                              <Box sx={{ mt: 2 }}>
-                                <Typography variant="subtitle2" sx={{ mb: 1 }}>
-                                  Process Visualisation
-                                </Typography>
-                                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
-                                  {parsed.processSteps.map(
-                                    (step: ProcessStep, idx: number, arr: ProcessStep[]) => (
-                                      <Box key={idx}>
-                                        <StepCard step={step} index={idx} />
-                                        {idx < arr.length - 1 && (
-                                          <Box
-                                            sx={{
-                                              display: 'flex',
-                                              justifyContent: 'center',
-                                              py: 0.5,
-                                            }}
-                                          >
-                                            <ArrowDownwardIcon color="action" />
-                                          </Box>
-                                        )}
-                                      </Box>
-                                    ),
-                                  )}
-                                </Box>
-                              </Box>
-                            );
-                          }
-                          return null;
-                        } catch {
-                          return null;
-                        }
-                      })()}
-                      <Box sx={{ display: 'flex', gap: 1, mt: 1, justifyContent: 'flex-end' }}>
-                        <Button
-                          size="small"
-                          variant="outlined"
-                          onClick={() => {
-                            void navigate({ to: '/posts' });
-                          }}
-                        >
-                          Keep (View Posts)
-                        </Button>
-                        <Button
-                          size="small"
-                          color="error"
-                          variant="outlined"
-                          onClick={() => {
-                            deletePost.mutate(testRunResult.postId);
-                            setTestRunResult(null);
-                          }}
-                        >
-                          Discard
-                        </Button>
-                      </Box>
-                    </Box>
-                  )}
-                </CardContent>
-              </Card>
-
-              {/* Judges compact list */}
-              <Card sx={{ mb: 2 }}>
-                <CardContent sx={{ py: 1.5, '&:last-child': { pb: 1.5 } }}>
-                  <Typography variant="subtitle2" gutterBottom>
-                    Judges {botJudges ? `(${botJudges.length}/5)` : ''}
-                  </Typography>
-                  {botJudges && botJudges.length > 0 ? (
-                    <List dense disablePadding>
-                      {botJudges.map((bj, index) => (
-                        <div key={bj.id}>
-                          {index > 0 && <Divider />}
-                          <ListItem
-                            disablePadding
-                            secondaryAction={
-                              <IconButton
-                                edge="end"
-                                size="small"
-                                onClick={() =>
-                                  removeJudge.mutate(
-                                    { botId: bot.id, judgeId: bj.judgeId },
-                                    {
-                                      onSuccess: () =>
-                                        showSnackbar(`Removed "${bj.judge.name}"`, 'success'),
-                                      onError: () => showSnackbar('Failed to remove', 'error'),
-                                    },
-                                  )
-                                }
-                                disabled={removeJudge.isPending}
-                              >
-                                <DeleteIcon fontSize="small" />
-                              </IconButton>
-                            }
-                          >
-                            <ListItemText
-                              primary={bj.judge.name}
-                              primaryTypographyProps={{ variant: 'body2' }}
-                            />
-                          </ListItem>
-                        </div>
-                      ))}
-                    </List>
-                  ) : (
-                    <Typography variant="body2" color="text.secondary">
-                      No judges assigned
-                    </Typography>
-                  )}
-                  {allJudges && botJudges && botJudges.length < 5 && (
-                    <Select
-                      size="small"
-                      displayEmpty
-                      value=""
-                      onChange={(e) => {
-                        const judgeId = e.target.value as string;
-                        if (!judgeId) return;
-                        assignJudge.mutate(
-                          { botId: bot.id, judgeId },
-                          {
-                            onSuccess: () => showSnackbar('Judge assigned', 'success'),
-                            onError: () => showSnackbar('Failed to assign', 'error'),
-                          },
-                        );
-                      }}
-                      fullWidth
-                      disabled={assignJudge.isPending}
-                      sx={{ mt: 1 }}
-                    >
-                      <MenuItem value="" disabled>
-                        Add a judge...
-                      </MenuItem>
-                      {allJudges
-                        .filter((j) => !botJudges.some((bj) => bj.judgeId === j.id))
-                        .map((j) => (
-                          <MenuItem key={j.id} value={j.id}>
-                            {j.name}
-                          </MenuItem>
-                        ))}
-                    </Select>
-                  )}
-                </CardContent>
-              </Card>
-
-              {/* Tips compact list */}
-              <Card>
-                <CardContent sx={{ py: 1.5, '&:last-child': { pb: 1.5 } }}>
-                  <Typography variant="subtitle2" gutterBottom>
-                    Memory Tips {tips ? `(${tips.length}/10)` : ''}
-                  </Typography>
-                  {tips && tips.length > 0 ? (
-                    <List dense disablePadding>
-                      {tips.map((tip, index) => (
-                        <div key={tip.id}>
-                          {index > 0 && <Divider />}
-                          <ListItem disablePadding>
-                            <ListItemText
-                              primary={tip.content}
-                              primaryTypographyProps={{ variant: 'body2' }}
-                            />
-                          </ListItem>
-                        </div>
-                      ))}
-                    </List>
-                  ) : (
-                    <Typography variant="body2" color="text.secondary">
-                      No tips yet
-                    </Typography>
-                  )}
-                </CardContent>
-              </Card>
-            </Box>
+            {renderTestRunSidebar()}
           </Grid>
         </Grid>
 
