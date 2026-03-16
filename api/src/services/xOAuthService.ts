@@ -62,7 +62,7 @@ export const xOAuthService = {
       response_type: 'code',
       client_id: getClientId(),
       redirect_uri: getCallbackUrl(),
-      scope: 'tweet.read tweet.write users.read offline.access',
+      scope: 'tweet.read tweet.write users.read like.read like.write offline.access',
       state,
       code_challenge: codeChallenge,
       code_challenge_method: 'S256',

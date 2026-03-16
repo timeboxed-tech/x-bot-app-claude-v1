@@ -13,6 +13,7 @@ export const postRepository = {
     behaviourPrompt?: string | null;
     behaviourTitle?: string | null;
     generationPrompt?: string | null;
+    metadata?: string | null;
   }) {
     return prisma.post.create({
       data: {
@@ -24,6 +25,7 @@ export const postRepository = {
         behaviourPrompt: data.behaviourPrompt ?? null,
         behaviourTitle: data.behaviourTitle ?? null,
         generationPrompt: data.generationPrompt ?? null,
+        metadata: data.metadata ?? null,
       },
     });
   },
@@ -138,6 +140,7 @@ export const postRepository = {
       publishedAt?: Date | null;
       flagged?: boolean;
       flagReasons?: string[];
+      metadata?: string | null;
     },
   ) {
     return prisma.post.update({

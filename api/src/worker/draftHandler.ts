@@ -5,6 +5,7 @@ import { botBehaviourRepository } from '../repositories/botBehaviourRepository.j
 import { selectWeightedBehaviour } from '../controllers/botController.js';
 import { generateTweet, OUTCOME_PROMPT_KEY_MAP } from '../services/aiService.js';
 import { checkAndFlagPost } from '../services/urlValidationService.js';
+import { generateLikePostDraft } from '../services/likePostService.js';
 import { log } from './activityLog.js';
 
 /**
@@ -37,6 +38,13 @@ export async function handleDraftJob(jobId: string): Promise<void> {
       const recentPosts = await postRepository.findRecentByBotId(bot.id, 10);
       const behaviours = await botBehaviourRepository.findActiveByBotId(bot.id);
       const selectedBehaviour = behaviours.length > 0 ? selectWeightedBehaviour(behaviours) : null;
+
+      // Route like_post outcomes to the dedicated handler
+      if (selectedBehaviour?.outcome === 'like_post') {
+        await generateLikePostDraft(bot, selectedBehaviour, jobId);
+        drafted++;
+        continue;
+      }
 
       const effectiveSource =
         selectedBehaviour?.knowledgeSource && selectedBehaviour.knowledgeSource !== 'default'
