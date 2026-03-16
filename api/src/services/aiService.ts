@@ -163,10 +163,10 @@ export async function generateTweet(
   // Build user messages: behaviour prompt first (if provided), then the generation request
   const messages: Array<{ role: 'user' | 'assistant'; content: string }> = [];
   if (stylePrompt) {
-    messages.push({ role: 'user', content: `Write in this style: ${stylePrompt}` });
+    messages.push({ role: 'user', content: stylePrompt });
     messages.push({
       role: 'assistant',
-      content: 'Understood, I will write in that style.',
+      content: 'Understood.',
     });
   }
   messages.push({ role: 'user', content: 'Generate a tweet.' });
