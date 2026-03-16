@@ -17,6 +17,7 @@ import Tooltip from '@mui/material/Tooltip';
 import IconButton from '@mui/material/IconButton';
 import DeleteIcon from '@mui/icons-material/Delete';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
+import FileCopyOutlinedIcon from '@mui/icons-material/FileCopyOutlined';
 import CheckIcon from '@mui/icons-material/Check';
 import FlagIcon from '@mui/icons-material/Flag';
 import OutlinedFlagIcon from '@mui/icons-material/OutlinedFlag';
@@ -89,6 +90,7 @@ export default function PostCard({ post }: PostCardProps) {
   const [conversation, setConversation] = useState<ConversationMessage[]>([]);
   const [successMessage, setSuccessMessage] = useState('');
   const [promptCopied, setPromptCopied] = useState(false);
+  const [contentCopied, setContentCopied] = useState(false);
   const conversationEndRef = useRef<HTMLDivElement>(null);
 
   const updatePost = useUpdatePost();
@@ -145,6 +147,13 @@ export default function PostCard({ post }: PostCardProps) {
 
   const handleToggleFlag = () => {
     updatePost.mutate({ id: post.id, flagged: !post.flagged });
+  };
+
+  const handleCopyContent = () => {
+    navigator.clipboard.writeText(post.content).then(() => {
+      setContentCopied(true);
+      setTimeout(() => setContentCopied(false), 1500);
+    });
   };
 
   const handleCopyPrompt = () => {
@@ -309,9 +318,25 @@ export default function PostCard({ post }: PostCardProps) {
             </Box>
           </Box>
         ) : (
-          <Typography variant="body1" sx={{ mb: 2, whiteSpace: 'pre-wrap' }}>
-            {post.content}
-          </Typography>
+          <Box sx={{ position: 'relative', mb: 2 }}>
+            <Typography variant="body1" sx={{ whiteSpace: 'pre-wrap', pr: 4 }}>
+              {post.content}
+            </Typography>
+            <Tooltip title={contentCopied ? 'Copied!' : 'Copy post'}>
+              <IconButton
+                size="small"
+                onClick={handleCopyContent}
+                sx={{ position: 'absolute', top: -4, right: -4, p: 0.25 }}
+                color={contentCopied ? 'success' : 'default'}
+              >
+                {contentCopied ? (
+                  <CheckIcon fontSize="small" />
+                ) : (
+                  <FileCopyOutlinedIcon fontSize="small" />
+                )}
+              </IconButton>
+            </Tooltip>
+          </Box>
         )}
 
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, flexWrap: 'wrap' }}>
