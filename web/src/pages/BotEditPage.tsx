@@ -271,6 +271,28 @@ export default function BotEditPage() {
                       />
                     </AccordionSummary>
                     <AccordionDetails>
+                      <FormControl fullWidth size="small" sx={{ mb: 2 }}>
+                        <InputLabel>Outcome</InputLabel>
+                        <Select
+                          value={
+                            editingOutcomes[behaviour.id] !== undefined
+                              ? editingOutcomes[behaviour.id]
+                              : behaviour.outcome
+                          }
+                          label="Outcome"
+                          onChange={(e) =>
+                            setEditingOutcomes((prev) => ({
+                              ...prev,
+                              [behaviour.id]: e.target.value,
+                            }))
+                          }
+                        >
+                          <MenuItem value="write_post">Write Post</MenuItem>
+                          <MenuItem value="reply_to_post">Reply to Post</MenuItem>
+                          <MenuItem value="like_post">Like Post</MenuItem>
+                          <MenuItem value="follow_account">Follow Account</MenuItem>
+                        </Select>
+                      </FormControl>
                       <TextField
                         fullWidth
                         size="small"
@@ -343,28 +365,6 @@ export default function BotEditPage() {
                           <MenuItem value="default">Use Bot Default</MenuItem>
                           <MenuItem value="ai">AI Only</MenuItem>
                           <MenuItem value="ai+web">AI + Web Search</MenuItem>
-                        </Select>
-                      </FormControl>
-                      <FormControl fullWidth size="small" sx={{ mb: 2 }}>
-                        <InputLabel>Outcome</InputLabel>
-                        <Select
-                          value={
-                            editingOutcomes[behaviour.id] !== undefined
-                              ? editingOutcomes[behaviour.id]
-                              : behaviour.outcome
-                          }
-                          label="Outcome"
-                          onChange={(e) =>
-                            setEditingOutcomes((prev) => ({
-                              ...prev,
-                              [behaviour.id]: e.target.value,
-                            }))
-                          }
-                        >
-                          <MenuItem value="write_post">Write Post</MenuItem>
-                          <MenuItem value="reply_to_post">Reply to Post</MenuItem>
-                          <MenuItem value="like_post">Like Post</MenuItem>
-                          <MenuItem value="follow_account">Follow Account</MenuItem>
                         </Select>
                       </FormControl>
                       <TextField
