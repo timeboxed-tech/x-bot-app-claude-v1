@@ -21,8 +21,10 @@ import FileCopyOutlinedIcon from '@mui/icons-material/FileCopyOutlined';
 import CheckIcon from '@mui/icons-material/Check';
 import FlagIcon from '@mui/icons-material/Flag';
 import OutlinedFlagIcon from '@mui/icons-material/OutlinedFlag';
+import RateReviewIcon from '@mui/icons-material/RateReview';
 import VisibilityIcon from '@mui/icons-material/Visibility';
 import ProcessVisualisationDialog, { type ProcessStep } from './ProcessVisualisationDialog';
+import EvaluationDialog from './EvaluationDialog';
 import type { Post, PostStatus } from '../hooks/usePosts';
 import {
   useUpdatePost,
@@ -112,6 +114,7 @@ export default function PostCard({ post }: PostCardProps) {
   const [showReviews, setShowReviews] = useState(false);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [processDialogOpen, setProcessDialogOpen] = useState(false);
+  const [evaluateDialogOpen, setEvaluateDialogOpen] = useState(false);
   const [publishError, setPublishError] = useState<string | null>(null);
 
   // Parse metadata for process steps
@@ -503,6 +506,11 @@ export default function PostCard({ post }: PostCardProps) {
                 >
                   {requestReview.isPending ? <CircularProgress size={16} /> : 'Ask Judges'}
                 </Button>
+                <Tooltip title="Evaluate">
+                  <IconButton size="small" onClick={() => setEvaluateDialogOpen(true)}>
+                    <RateReviewIcon fontSize="small" />
+                  </IconButton>
+                </Tooltip>
                 <Button
                   size="small"
                   variant="contained"
@@ -541,6 +549,11 @@ export default function PostCard({ post }: PostCardProps) {
             )}
             {post.status === 'approved' && (
               <>
+                <Tooltip title="Evaluate">
+                  <IconButton size="small" onClick={() => setEvaluateDialogOpen(true)}>
+                    <RateReviewIcon fontSize="small" />
+                  </IconButton>
+                </Tooltip>
                 <Button
                   size="small"
                   variant="contained"
@@ -711,6 +724,14 @@ export default function PostCard({ post }: PostCardProps) {
           steps={parsedMetadata!.processSteps!}
         />
       )}
+
+      {/* Evaluation Dialog */}
+      <EvaluationDialog
+        open={evaluateDialogOpen}
+        onClose={() => setEvaluateDialogOpen(false)}
+        postId={post.id}
+        postContent={post.content}
+      />
 
       {/* Tweak Dialog */}
       <Dialog open={tweakOpen} onClose={handleCloseTweak} maxWidth="sm" fullWidth>

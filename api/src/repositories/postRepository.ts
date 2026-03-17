@@ -187,6 +187,7 @@ export const postRepository = {
   async delete(id: string) {
     return prisma.$transaction([
       prisma.postReview.deleteMany({ where: { postId: id } }),
+      prisma.postEvaluation.deleteMany({ where: { postId: id } }),
       prisma.post.delete({ where: { id } }),
     ]);
   },
@@ -200,6 +201,7 @@ export const postRepository = {
     if (postIds.length === 0) return { count: 0 };
     return prisma.$transaction(async (tx: TxClient) => {
       await tx.postReview.deleteMany({ where: { postId: { in: postIds } } });
+      await tx.postEvaluation.deleteMany({ where: { postId: { in: postIds } } });
       return tx.post.deleteMany({ where: { id: { in: postIds } } });
     });
   },
@@ -213,6 +215,7 @@ export const postRepository = {
     if (postIds.length === 0) return { count: 0 };
     return prisma.$transaction(async (tx: TxClient) => {
       await tx.postReview.deleteMany({ where: { postId: { in: postIds } } });
+      await tx.postEvaluation.deleteMany({ where: { postId: { in: postIds } } });
       return tx.post.deleteMany({ where: { id: { in: postIds } } });
     });
   },

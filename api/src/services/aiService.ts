@@ -227,6 +227,25 @@ export async function tweakPost(
   return { message, content };
 }
 
+export async function evaluatePost(
+  messages: Array<{ role: 'user' | 'assistant'; content: string }>,
+  postContent: string,
+  generationPrompt?: string | null,
+): Promise<string> {
+  const client = getClient();
+  if (!client) {
+    throw new Error('AI service not configured — set ANTHROPIC_API_KEY');
+  }
+
+  const systemPrompt = `You are a concise post quality evaluator. Given the original prompt, generated content, and user feedback, provide brief explanation and concrete suggestions. Keep responses under 200 words.
+
+Post content:
+${postContent}
+${generationPrompt ? `\nGeneration prompt:\n${generationPrompt}` : ''}`;
+
+  return callClaudeWithMessages(client, systemPrompt, messages, 400);
+}
+
 export async function generateTips(
   conversation: Array<{ role: string; content: string }>,
 ): Promise<string[]> {

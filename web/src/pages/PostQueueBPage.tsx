@@ -24,9 +24,11 @@ import ScheduleIcon from '@mui/icons-material/Schedule';
 import DeleteIcon from '@mui/icons-material/Delete';
 import FlagIcon from '@mui/icons-material/Flag';
 import OutlinedFlagIcon from '@mui/icons-material/OutlinedFlag';
+import RateReviewIcon from '@mui/icons-material/RateReview';
 import RestoreIcon from '@mui/icons-material/Restore';
 import VisibilityIcon from '@mui/icons-material/Visibility';
 import AppHeader from '../components/AppHeader';
+import EvaluationDialog from '../components/EvaluationDialog';
 import ProcessVisualisationDialog, {
   type ProcessStep,
 } from '../components/ProcessVisualisationDialog';
@@ -80,6 +82,7 @@ export default function PostQueueBPage() {
   const [contentCopied, setContentCopied] = useState<string | null>(null);
   const [promptCopied, setPromptCopied] = useState<string | null>(null);
   const [processDialogPostId, setProcessDialogPostId] = useState<string | null>(null);
+  const [evaluatePostId, setEvaluatePostId] = useState<string | null>(null);
 
   const [publishingId, setPublishingId] = useState<string | null>(null);
   const [publishError, setPublishError] = useState<string | null>(null);
@@ -574,6 +577,11 @@ export default function PostQueueBPage() {
                         <Box sx={{ display: 'flex', gap: 1, mt: 2, flexWrap: 'wrap' }}>
                           {post.status === 'draft' && (
                             <>
+                              <Tooltip title="Evaluate">
+                                <IconButton size="small" onClick={() => setEvaluatePostId(post.id)}>
+                                  <RateReviewIcon fontSize="small" />
+                                </IconButton>
+                              </Tooltip>
                               <Button
                                 size="small"
                                 variant="contained"
@@ -643,6 +651,11 @@ export default function PostQueueBPage() {
                           )}
                           {post.status === 'approved' && (
                             <>
+                              <Tooltip title="Evaluate">
+                                <IconButton size="small" onClick={() => setEvaluatePostId(post.id)}>
+                                  <RateReviewIcon fontSize="small" />
+                                </IconButton>
+                              </Tooltip>
                               <Button
                                 size="small"
                                 variant="contained"
@@ -794,6 +807,15 @@ export default function PostQueueBPage() {
                           open={processDialogPostId === post.id}
                           onClose={() => setProcessDialogPostId(null)}
                           steps={parsedMetadata!.processSteps!}
+                        />
+                      )}
+                      {/* Evaluation Dialog */}
+                      {(post.status === 'draft' || post.status === 'approved') && (
+                        <EvaluationDialog
+                          open={evaluatePostId === post.id}
+                          onClose={() => setEvaluatePostId(null)}
+                          postId={post.id}
+                          postContent={post.content}
                         />
                       )}
                     </Collapse>

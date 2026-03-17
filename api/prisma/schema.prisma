@@ -77,9 +77,10 @@ model Post {
   generationPrompt String?  @db.Text
   metadata         String?  @db.Text
 
-  bot     Bot          @relation(fields: [botId], references: [id])
-  job     Job?         @relation(fields: [jobId], references: [id])
-  reviews PostReview[]
+  bot         Bot              @relation(fields: [botId], references: [id])
+  job         Job?             @relation(fields: [jobId], references: [id])
+  reviews     PostReview[]
+  evaluations PostEvaluation[]
 
   @@index([botId, status])
   @@index([status, scheduledAt])
@@ -164,6 +165,16 @@ model PostReview {
 
   post  Post  @relation(fields: [postId], references: [id])
   judge Judge @relation(fields: [judgeId], references: [id])
+}
+
+model PostEvaluation {
+  id        String   @id @default(uuid()) @db.Uuid
+  postId    String   @db.Uuid
+  messages  String   @db.Text
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  post Post @relation(fields: [postId], references: [id])
 }
 
 model SystemPrompt {

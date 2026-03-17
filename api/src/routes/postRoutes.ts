@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { postController } from '../controllers/postController.js';
 import { postReviewController } from '../controllers/postReviewController.js';
+import { evaluationController } from '../controllers/evaluationController.js';
 import { authMiddleware } from '../middleware/auth.js';
 
 const router = Router();
@@ -21,5 +22,9 @@ router.post('/:id/accept-tweak', postController.acceptTweak);
 router.post('/:id/review', postReviewController.review);
 router.get('/:id/reviews', postReviewController.list);
 router.delete('/:id/reviews/:reviewId', postReviewController.remove);
+
+// Evaluation routes
+router.post('/:id/evaluate', evaluationController.evaluate);
+router.get('/:id/evaluations', evaluationController.list);
 
 export default router;

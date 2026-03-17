@@ -16,6 +16,7 @@ export const queryKeys = {
     all: ['posts'] as const,
     counts: (showAll?: boolean) => ['posts', 'counts', showAll ?? false] as const,
     reviews: (postId: string) => ['posts', 'reviews', postId] as const,
+    evaluations: (postId: string) => ['posts', 'evaluations', postId] as const,
   },
   stats: {
     forBot: (botId: string) => ['stats', 'bot', botId] as const,
