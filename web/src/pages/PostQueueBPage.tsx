@@ -169,7 +169,7 @@ export default function PostQueueBPage() {
             <CardContent sx={{ p: 0, '&:last-child': { pb: 0 } }}>
               {posts.map((post, index) => {
                 const isExpanded = expandedId === post.id;
-                // Parse metadata for like_post process steps
+                // Parse metadata for process steps
                 const parsedMetadata = (() => {
                   if (!post.metadata) return null;
                   try {
@@ -177,11 +177,7 @@ export default function PostQueueBPage() {
                       outcome?: string;
                       processSteps?: ProcessStep[];
                     };
-                    if (
-                      parsed.outcome === 'like_post' &&
-                      Array.isArray(parsed.processSteps) &&
-                      parsed.processSteps.length > 0
-                    ) {
+                    if (Array.isArray(parsed.processSteps) && parsed.processSteps.length > 0) {
                       return parsed;
                     }
                     return null;
@@ -551,7 +547,7 @@ export default function PostQueueBPage() {
                             </Tooltip>
                           )}
                           {hasProcessSteps && (
-                            <Tooltip title="View like post process">
+                            <Tooltip title="View process">
                               <IconButton
                                 size="small"
                                 onClick={() => setProcessDialogPostId(post.id)}

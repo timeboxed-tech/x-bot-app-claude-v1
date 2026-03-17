@@ -114,7 +114,7 @@ export default function PostCard({ post }: PostCardProps) {
   const [processDialogOpen, setProcessDialogOpen] = useState(false);
   const [publishError, setPublishError] = useState<string | null>(null);
 
-  // Parse metadata for like_post process steps
+  // Parse metadata for process steps
   const parsedMetadata = (() => {
     if (!post.metadata) return null;
     try {
@@ -122,7 +122,7 @@ export default function PostCard({ post }: PostCardProps) {
         outcome?: string;
         processSteps?: ProcessStep[];
       };
-      if (parsed.outcome === 'like_post' && Array.isArray(parsed.processSteps)) {
+      if (Array.isArray(parsed.processSteps)) {
         return parsed;
       }
       return null;
@@ -451,7 +451,7 @@ export default function PostCard({ post }: PostCardProps) {
             </Tooltip>
           )}
           {hasProcessSteps && (
-            <Tooltip title="View like post process">
+            <Tooltip title="View process">
               <IconButton
                 size="small"
                 onClick={() => setProcessDialogOpen(true)}

@@ -922,7 +922,7 @@ export default function BotEditBPage() {
                   </Typography>
                 </CardContent>
               </Card>
-              {/* Process visualisation for like_post results */}
+              {/* Process visualisation for results with processSteps */}
               {(() => {
                 if (!testRunResult.metadata) return null;
                 try {
@@ -930,11 +930,7 @@ export default function BotEditBPage() {
                     outcome?: string;
                     processSteps?: ProcessStep[];
                   };
-                  if (
-                    parsed.outcome === 'like_post' &&
-                    Array.isArray(parsed.processSteps) &&
-                    parsed.processSteps.length > 0
-                  ) {
+                  if (Array.isArray(parsed.processSteps) && parsed.processSteps.length > 0) {
                     return (
                       <Box sx={{ mt: 2 }}>
                         <Typography variant="subtitle2" sx={{ mb: 1 }}>
