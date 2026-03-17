@@ -25,6 +25,7 @@ import RateReviewIcon from '@mui/icons-material/RateReview';
 import VisibilityIcon from '@mui/icons-material/Visibility';
 import ProcessVisualisationDialog, { type ProcessStep } from './ProcessVisualisationDialog';
 import EvaluationDialog from './EvaluationDialog';
+import { AxiosError } from 'axios';
 import type { Post, PostStatus } from '../hooks/usePosts';
 import {
   useUpdatePost,
@@ -173,11 +174,10 @@ export default function PostCard({ post }: PostCardProps) {
     publishPost.mutate(post.id, {
       onError: (err: unknown) => {
         const message =
-          err instanceof Error
-            ? err.message
-            : typeof err === 'object' && err !== null && 'response' in err
-              ? ((err as { response?: { data?: { error?: string } } }).response?.data?.error ??
-                'Failed to publish')
+          err instanceof AxiosError && err.response?.data?.error
+            ? err.response.data.error
+            : err instanceof Error
+              ? err.message
               : 'Failed to publish';
         setPublishError(message);
       },

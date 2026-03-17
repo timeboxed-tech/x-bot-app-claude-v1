@@ -27,6 +27,7 @@ import OutlinedFlagIcon from '@mui/icons-material/OutlinedFlag';
 import RateReviewIcon from '@mui/icons-material/RateReview';
 import RestoreIcon from '@mui/icons-material/Restore';
 import VisibilityIcon from '@mui/icons-material/Visibility';
+import { AxiosError } from 'axios';
 import AppHeader from '../components/AppHeader';
 import EvaluationDialog from '../components/EvaluationDialog';
 import ProcessVisualisationDialog, {
@@ -284,16 +285,10 @@ export default function PostQueueBPage() {
                                     onSettled: () => setPublishingId(null),
                                     onError: (err: unknown) => {
                                       const message =
-                                        err instanceof Error
-                                          ? err.message
-                                          : typeof err === 'object' &&
-                                              err !== null &&
-                                              'response' in err
-                                            ? ((
-                                                err as {
-                                                  response?: { data?: { error?: string } };
-                                                }
-                                              ).response?.data?.error ?? 'Failed to publish')
+                                        err instanceof AxiosError && err.response?.data?.error
+                                          ? err.response.data.error
+                                          : err instanceof Error
+                                            ? err.message
                                             : 'Failed to publish';
                                       setPublishError(message);
                                     },
@@ -346,16 +341,10 @@ export default function PostQueueBPage() {
                                     onSettled: () => setPublishingId(null),
                                     onError: (err: unknown) => {
                                       const message =
-                                        err instanceof Error
-                                          ? err.message
-                                          : typeof err === 'object' &&
-                                              err !== null &&
-                                              'response' in err
-                                            ? ((
-                                                err as {
-                                                  response?: { data?: { error?: string } };
-                                                }
-                                              ).response?.data?.error ?? 'Failed to publish')
+                                        err instanceof AxiosError && err.response?.data?.error
+                                          ? err.response.data.error
+                                          : err instanceof Error
+                                            ? err.message
                                             : 'Failed to publish';
                                       setPublishError(message);
                                     },
@@ -408,16 +397,10 @@ export default function PostQueueBPage() {
                                     onSettled: () => setPublishingId(null),
                                     onError: (err: unknown) => {
                                       const message =
-                                        err instanceof Error
-                                          ? err.message
-                                          : typeof err === 'object' &&
-                                              err !== null &&
-                                              'response' in err
-                                            ? ((
-                                                err as {
-                                                  response?: { data?: { error?: string } };
-                                                }
-                                              ).response?.data?.error ?? 'Failed to publish')
+                                        err instanceof AxiosError && err.response?.data?.error
+                                          ? err.response.data.error
+                                          : err instanceof Error
+                                            ? err.message
                                             : 'Failed to publish';
                                       setPublishError(message);
                                     },
@@ -604,16 +587,10 @@ export default function PostQueueBPage() {
                                     onSettled: () => setPublishingId(null),
                                     onError: (err: unknown) => {
                                       const message =
-                                        err instanceof Error
-                                          ? err.message
-                                          : typeof err === 'object' &&
-                                              err !== null &&
-                                              'response' in err
-                                            ? ((
-                                                err as {
-                                                  response?: { data?: { error?: string } };
-                                                }
-                                              ).response?.data?.error ?? 'Failed to publish')
+                                        err instanceof AxiosError && err.response?.data?.error
+                                          ? err.response.data.error
+                                          : err instanceof Error
+                                            ? err.message
                                             : 'Failed to publish';
                                       setPublishError(message);
                                     },
@@ -667,16 +644,10 @@ export default function PostQueueBPage() {
                                     onSettled: () => setPublishingId(null),
                                     onError: (err: unknown) => {
                                       const message =
-                                        err instanceof Error
-                                          ? err.message
-                                          : typeof err === 'object' &&
-                                              err !== null &&
-                                              'response' in err
-                                            ? ((
-                                                err as {
-                                                  response?: { data?: { error?: string } };
-                                                }
-                                              ).response?.data?.error ?? 'Failed to publish')
+                                        err instanceof AxiosError && err.response?.data?.error
+                                          ? err.response.data.error
+                                          : err instanceof Error
+                                            ? err.message
                                             : 'Failed to publish';
                                       setPublishError(message);
                                     },
@@ -734,16 +705,10 @@ export default function PostQueueBPage() {
                                     onSettled: () => setPublishingId(null),
                                     onError: (err: unknown) => {
                                       const message =
-                                        err instanceof Error
-                                          ? err.message
-                                          : typeof err === 'object' &&
-                                              err !== null &&
-                                              'response' in err
-                                            ? ((
-                                                err as {
-                                                  response?: { data?: { error?: string } };
-                                                }
-                                              ).response?.data?.error ?? 'Failed to publish')
+                                        err instanceof AxiosError && err.response?.data?.error
+                                          ? err.response.data.error
+                                          : err instanceof Error
+                                            ? err.message
                                             : 'Failed to publish';
                                       setPublishError(message);
                                     },
