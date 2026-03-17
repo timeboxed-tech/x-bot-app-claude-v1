@@ -384,12 +384,21 @@ function BotEditAPage() {
                           <MenuItem value="follow_account">Follow Account</MenuItem>
                         </Select>
                       </FormControl>
-                      {((editingOutcomes[behaviour.id] !== undefined
+                      {(editingOutcomes[behaviour.id] !== undefined
                         ? editingOutcomes[behaviour.id]
-                        : behaviour.outcome) === 'like_post' ||
-                        (editingOutcomes[behaviour.id] !== undefined
-                          ? editingOutcomes[behaviour.id]
-                          : behaviour.outcome) === 'reply_to_post') && (
+                        : behaviour.outcome) === 'reply_to_post' && (
+                        <Typography
+                          variant="body2"
+                          color="info.main"
+                          sx={{ mb: 1, fontStyle: 'italic' }}
+                        >
+                          This behaviour only responds to posts that @mention your account or quote
+                          your tweets.
+                        </Typography>
+                      )}
+                      {(editingOutcomes[behaviour.id] !== undefined
+                        ? editingOutcomes[behaviour.id]
+                        : behaviour.outcome) === 'like_post' && (
                         <TextField
                           fullWidth
                           multiline

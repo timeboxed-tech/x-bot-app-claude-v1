@@ -1,5 +1,5 @@
 import Anthropic from '@anthropic-ai/sdk';
-import { searchTweets, SearchTweetResult } from './xApiService.js';
+import { getMentions, getAuthenticatedUserId, SearchTweetResult } from './xApiService.js';
 import { systemPromptRepository } from '../repositories/systemPromptRepository.js';
 import { postRepository } from '../repositories/postRepository.js';
 import { DEFAULT_SYSTEM_PROMPTS } from '../constants/defaultSystemPrompts.js';
@@ -35,38 +35,9 @@ function extractText(content: Anthropic.ContentBlock[]): string {
 }
 
 /**
- * Generate search queries from the behaviour's queryPrompt using AI.
+ * Use AI to select ONE mention to reply to and generate a reply.
  */
-async function generateSearchQueries(
-  client: Anthropic,
-  queryPrompt: string,
-  systemPrompt: string,
-): Promise<string[]> {
-  const response = await client.messages.create({
-    model: 'claude-sonnet-4-6',
-    max_tokens: 500,
-    system: systemPrompt,
-    messages: [
-      {
-        role: 'user',
-        content: `${queryPrompt}\n\nGenerate 5 short, broad search queries (1-3 words each) that would return popular, recent tweets related to the above topic. Avoid overly specific or long queries. Return ONLY the queries, one per line, no numbering or bullets.`,
-      },
-    ],
-  });
-
-  const text = extractText(response.content);
-  if (!text) throw new Error('Empty response from AI for search queries');
-
-  return text
-    .split('\n')
-    .map((line) => line.trim())
-    .filter((line) => line.length > 0 && line.length < 200);
-}
-
-/**
- * Use AI to select ONE post to reply to and generate a reply.
- */
-async function selectPostAndGenerateReply(
+async function selectMentionAndGenerateReply(
   client: Anthropic,
   candidates: SearchTweetResult[],
   behaviourPrompt: string,
@@ -75,10 +46,7 @@ async function selectPostAndGenerateReply(
 ): Promise<{ tweetId: string; replyText: string; reasoning: string; rawResponse: string }> {
   const candidateList = candidates
     .map((t, i) => {
-      const metrics = t.publicMetrics
-        ? ` [Likes: ${t.publicMetrics.likeCount}, RTs: ${t.publicMetrics.retweetCount}, Replies: ${t.publicMetrics.replyCount}]`
-        : '';
-      return `${i + 1}. @${t.authorUsername ?? 'unknown'} (ID: ${t.id}): "${t.text}"${metrics}`;
+      return `${i + 1}. @${t.authorUsername ?? 'unknown'} (ID: ${t.id}): "${t.text}"`;
     })
     .join('\n');
 
@@ -89,7 +57,7 @@ async function selectPostAndGenerateReply(
     messages: [
       {
         role: 'user',
-        content: `${behaviourPrompt}\n\nHere are candidate posts found on X. Select the ONE best post to reply to that aligns with the brand/persona described above. Then generate a reply (under 280 characters) that is conversational, authentic, and relevant to the original post. Do not use hashtags.\n\nCandidate posts:\n${candidateList}\n\nRespond in EXACTLY this format:\nTWEET_ID: <id>\nREPLY: <reply text>\nREASON: <why this tweet was selected and why this reply works>`,
+        content: `${behaviourPrompt}\n\nHere are recent mentions and quote tweets of our account. Select the ONE best mention to reply to that aligns with the brand/persona described above. Then generate a reply (under 280 characters) that is conversational, authentic, and relevant to the original post. Do not use hashtags.\n\nMentions:\n${candidateList}\n\nRespond in EXACTLY this format:\nTWEET_ID: <id>\nREPLY: <reply text>\nREASON: <why this mention was selected and why this reply works>`,
       },
     ],
   });
@@ -140,7 +108,7 @@ async function selectPostAndGenerateReply(
 }
 
 /**
- * Generate a reply_to_post draft: search X for relevant posts,
+ * Generate a reply_to_post draft: fetch mentions of the bot account,
  * select one to reply to, and generate a reply.
  */
 export async function generateReplyPostDraft(
@@ -168,110 +136,68 @@ export async function generateReplyPostDraft(
   type ProcessStep = { step: string; input: string; output: string };
   const processSteps: ProcessStep[] = [];
 
-  // Step 1: Generate search queries from queryPrompt
-  const queryPrompt = behaviour.queryPrompt || behaviour.content;
-  let queries: string[];
+  // Step 1: Get bot's user ID
+  let userId: string;
   try {
-    queries = await generateSearchQueries(client, queryPrompt, systemPrompt);
-    processSteps.push({
-      step: 'Query Prompt',
-      input: queryPrompt,
-      output: queries.join('\n'),
-    });
-    log(
-      'draft',
-      `Bot ${bot.xAccountHandle || bot.id}: generated ${queries.length} search queries for reply_to_post`,
-    );
+    const meResult = await getAuthenticatedUserId(bot.xAccessToken, bot.xAccessSecret, bot.id);
+    if (!meResult.success || !meResult.userId) {
+      log(
+        'draft',
+        `Bot ${bot.xAccountHandle || bot.id}: failed to get user ID — ${meResult.error ?? 'unknown'}`,
+        'error',
+      );
+      return null;
+    }
+    userId = meResult.userId;
   } catch (err) {
-    console.error('Failed to generate search queries for reply_to_post:', err);
     log(
       'draft',
-      `Bot ${bot.xAccountHandle || bot.id}: failed to generate search queries — ${err instanceof Error ? err.message : String(err)}`,
+      `Bot ${bot.xAccountHandle || bot.id}: failed to get user ID — ${err instanceof Error ? err.message : String(err)}`,
       'error',
     );
     return null;
   }
 
-  if (queries.length === 0) {
-    log(
-      'draft',
-      `Bot ${bot.xAccountHandle || bot.id}: no search queries generated, skipping reply_to_post`,
-      'warn',
-    );
-    return null;
-  }
-
-  // Step 2: Search X API for each query
-  const allTweets: SearchTweetResult[] = [];
-  const seenIds = new Set<string>();
-
-  const MIN_CANDIDATES = 5;
-
-  for (const query of queries.slice(0, 5)) {
-    try {
-      const searchQuery = `${query} -is:retweet`;
-      const result = await searchTweets(
-        searchQuery,
-        bot.xAccessToken,
-        bot.xAccessSecret,
-        bot.id,
-        20,
-      );
-      if (result.success && result.tweets) {
-        for (const tweet of result.tweets) {
-          if (!seenIds.has(tweet.id)) {
-            seenIds.add(tweet.id);
-            allTweets.push(tweet);
-          }
-        }
-      } else if (result.error) {
-        log(
-          'draft',
-          `Bot ${bot.xAccountHandle || bot.id}: search failed for query "${query}" — ${result.error}`,
-          'warn',
-        );
-      }
-    } catch (err) {
-      console.error(`Search failed for query "${query}":`, err);
+  // Step 2: Fetch recent mentions via X API
+  let mentions: SearchTweetResult[] = [];
+  try {
+    const result = await getMentions(userId, bot.xAccessToken, bot.xAccessSecret, bot.id, 20);
+    if (result.success && result.tweets) {
+      mentions = result.tweets;
+    } else if (result.error) {
       log(
         'draft',
-        `Bot ${bot.xAccountHandle || bot.id}: search error for query "${query}" — ${err instanceof Error ? err.message : String(err)}`,
-        'error',
+        `Bot ${bot.xAccountHandle || bot.id}: mentions fetch failed — ${result.error}`,
+        'warn',
       );
     }
-  }
-
-  if (allTweets.length === 0) {
+  } catch (err) {
+    console.error('Mentions fetch failed:', err);
     log(
       'draft',
-      `Bot ${bot.xAccountHandle || bot.id}: no tweets found from search, skipping reply_to_post`,
+      `Bot ${bot.xAccountHandle || bot.id}: mentions fetch error — ${err instanceof Error ? err.message : String(err)}`,
+      'error',
+    );
+  }
+
+  if (mentions.length === 0) {
+    log(
+      'draft',
+      `Bot ${bot.xAccountHandle || bot.id}: no recent mentions found, skipping reply_to_post`,
       'warn',
     );
     return null;
   }
 
-  if (allTweets.length < MIN_CANDIDATES) {
-    log(
-      'draft',
-      `Bot ${bot.xAccountHandle || bot.id}: only found ${allTweets.length} unique tweets (wanted at least ${MIN_CANDIDATES}), proceeding with available results`,
-      'warn',
-    );
-  }
+  log('draft', `Bot ${bot.xAccountHandle || bot.id}: found ${mentions.length} recent mentions`);
 
-  // Limit to top 15 candidates
-  const candidates = allTweets.slice(0, 15);
-  log(
-    'draft',
-    `Bot ${bot.xAccountHandle || bot.id}: found ${allTweets.length} unique tweets, using top ${candidates.length} as candidates`,
-  );
-
-  const tweetSummaries = candidates
+  const mentionSummaries = mentions
     .map((t) => `@${t.authorUsername ?? 'unknown'}: "${t.text}"`)
     .join('\n');
   processSteps.push({
-    step: 'X API Search',
-    input: queries.join(', '),
-    output: tweetSummaries,
+    step: 'Fetch Mentions',
+    input: `@${bot.xAccountHandle} (user ID: ${userId})`,
+    output: mentionSummaries,
   });
 
   // Step 3: AI selection + reply generation
@@ -279,9 +205,9 @@ export async function generateReplyPostDraft(
   let replyText: string;
   let reasoning: string;
   try {
-    const selectionResult = await selectPostAndGenerateReply(
+    const selectionResult = await selectMentionAndGenerateReply(
       client,
-      candidates,
+      mentions,
       behaviour.content,
       bot.prompt,
       systemPrompt,
@@ -295,7 +221,7 @@ export async function generateReplyPostDraft(
       output: selectionResult.rawResponse,
     });
   } catch (err) {
-    console.error('Failed to select post and generate reply:', err);
+    console.error('Failed to select mention and generate reply:', err);
     log(
       'draft',
       `Bot ${bot.xAccountHandle || bot.id}: AI selection/reply failed — ${err instanceof Error ? err.message : String(err)}`,
@@ -314,7 +240,7 @@ export async function generateReplyPostDraft(
   }
 
   // Step 4: Build draft content
-  const selectedTweet = candidates.find((t) => t.id === tweetId);
+  const selectedTweet = mentions.find((t) => t.id === tweetId);
   const replyToContent = selectedTweet?.text ?? '';
   const replyToAuthor = selectedTweet?.authorUsername ?? 'unknown';
 
@@ -344,8 +270,8 @@ export async function generateReplyPostDraft(
   const generationPrompt = JSON.stringify({
     outcome: 'reply_to_post',
     systemPromptKey: 'reply_generation',
-    queries,
-    candidateCount: candidates.length,
+    source: 'mentions',
+    mentionCount: mentions.length,
     reasoning,
   });
 

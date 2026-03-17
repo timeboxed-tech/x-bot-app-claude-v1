@@ -251,6 +251,113 @@ export async function getAuthenticatedUserId(
 }
 
 /**
+ * Get recent mentions for a user via X API v2.
+ * Returns tweets that @mention the authenticated user (including quote tweets).
+ */
+export async function getMentions(
+  userId: string,
+  accessToken: string,
+  refreshToken: string,
+  botId?: string,
+  maxResults: number = 20,
+): Promise<{ success: boolean; tweets?: SearchTweetResult[]; error?: string }> {
+  try {
+    let token = accessToken;
+
+    // Read configurable search time period
+    let hoursBack = 48;
+    try {
+      const dbConfig = await systemPromptRepository.findByKey('x_search_hours_back');
+      const raw = dbConfig?.content ?? DEFAULT_SYSTEM_PROMPTS['x_search_hours_back'] ?? '48';
+      const parsed = parseInt(raw, 10);
+      if (!isNaN(parsed) && parsed > 0) hoursBack = parsed;
+    } catch {
+      // fall back to default
+    }
+
+    const startTime = new Date(Date.now() - hoursBack * 60 * 60 * 1000).toISOString();
+
+    const params = new URLSearchParams({
+      max_results: String(Math.min(Math.max(maxResults, 5), 100)),
+      start_time: startTime,
+      'tweet.fields': 'created_at,author_id,text,conversation_id',
+      expansions: 'author_id',
+      'user.fields': 'username',
+    });
+
+    const mentionsUrl = `https://api.twitter.com/2/users/${userId}/mentions`;
+
+    let response = await fetch(`${mentionsUrl}?${params.toString()}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+
+    // If 401, try refreshing the token
+    if (response.status === 401 && refreshToken) {
+      try {
+        const refreshed = await xOAuthService.refreshAccessToken(refreshToken);
+        token = refreshed.accessToken;
+
+        if (botId) {
+          await botRepository.update(botId, {
+            xAccessToken: refreshed.accessToken,
+            xAccessSecret: refreshed.refreshToken,
+          });
+        }
+
+        response = await fetch(`${mentionsUrl}?${params.toString()}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+      } catch (refreshErr) {
+        const msg = refreshErr instanceof Error ? refreshErr.message : String(refreshErr);
+        return { success: false, error: `Token refresh failed: ${msg}` };
+      }
+    }
+
+    if (!response.ok) {
+      const text = await response.text();
+      return { success: false, error: `X API mentions error ${response.status}: ${text}` };
+    }
+
+    const data = (await response.json()) as {
+      data?: Array<{
+        id: string;
+        text: string;
+        author_id?: string;
+        created_at?: string;
+        conversation_id?: string;
+      }>;
+      includes?: {
+        users?: Array<{ id: string; username: string }>;
+      };
+    };
+
+    if (!data.data || data.data.length === 0) {
+      return { success: true, tweets: [] };
+    }
+
+    // Build username lookup from includes
+    const userMap = new Map<string, string>();
+    if (data.includes?.users) {
+      for (const user of data.includes.users) {
+        userMap.set(user.id, user.username);
+      }
+    }
+
+    const tweets: SearchTweetResult[] = data.data.map((t) => ({
+      id: t.id,
+      text: t.text,
+      authorId: t.author_id,
+      authorUsername: t.author_id ? userMap.get(t.author_id) : undefined,
+    }));
+
+    return { success: true, tweets };
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'Unknown error';
+    return { success: false, error: message };
+  }
+}
+
+/**
  * Reply to a tweet via X API v2.
  */
 export async function replyTweet(
