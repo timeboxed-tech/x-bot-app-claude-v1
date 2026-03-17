@@ -329,9 +329,12 @@ export async function generateReplyPostDraft(
   // Randomly decide whether to also like the post (50% chance)
   const alsoLike = Math.random() < 0.5;
 
+  const replyToAuthorId = selectedTweet?.authorId;
+
   const metadata = JSON.stringify({
     outcome: 'reply_to_post',
     replyToTweetId: tweetId,
+    replyToAuthorId,
     replyToContent,
     replyToAuthor,
     alsoLike,
