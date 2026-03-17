@@ -82,6 +82,7 @@ export default function BotEditBPage() {
   const [hoursEnd, setHoursEnd] = useState<string | null>(null);
   const [newBehaviourContent, setNewBehaviourContent] = useState('');
   const [newBehaviourTitle, setNewBehaviourTitle] = useState('');
+  const [newBehaviourOutcome, setNewBehaviourOutcome] = useState('write_post');
   const [editingBehaviours, setEditingBehaviours] = useState<Record<string, string>>({});
   const [editingTitles, setEditingTitles] = useState<Record<string, string>>({});
   const [editingKnowledgeSources, setEditingKnowledgeSources] = useState<Record<string, string>>(
@@ -699,6 +700,19 @@ export default function BotEditBPage() {
                 onChange={(e) => setNewBehaviourTitle(e.target.value)}
                 sx={{ mb: 1 }}
               />
+              <FormControl fullWidth size="small" sx={{ mb: 1 }}>
+                <InputLabel>Outcome</InputLabel>
+                <Select
+                  value={newBehaviourOutcome}
+                  label="Outcome"
+                  onChange={(e) => setNewBehaviourOutcome(e.target.value)}
+                >
+                  <MenuItem value="write_post">Write Post</MenuItem>
+                  <MenuItem value="reply_to_post">Reply to Post</MenuItem>
+                  <MenuItem value="like_post">Like Post</MenuItem>
+                  <MenuItem value="follow_account">Follow Account</MenuItem>
+                </Select>
+              </FormControl>
               <TextField
                 fullWidth
                 multiline
@@ -722,12 +736,14 @@ export default function BotEditBPage() {
                         botId: bot.id,
                         content: newBehaviourContent.trim(),
                         title: newBehaviourTitle.trim() || undefined,
+                        outcome: newBehaviourOutcome,
                         weight: equalWeight,
                       },
                       {
                         onSuccess: () => {
                           setNewBehaviourContent('');
                           setNewBehaviourTitle('');
+                          setNewBehaviourOutcome('write_post');
                         },
                       },
                     );
