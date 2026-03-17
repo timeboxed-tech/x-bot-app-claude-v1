@@ -1,4 +1,4 @@
-import { publishTweet, likeTweet, replyTweet } from './xApiService.js';
+import { publishTweet, likeTweet, replyTweet, followUser } from './xApiService.js';
 
 /**
  * Check if a post is a like_post outcome by inspecting its metadata.
@@ -65,12 +65,14 @@ export async function handleReplyToPostPublish(
   updatedMetadata?: string;
 }> {
   let replyToTweetId: string | undefined;
+  let replyToAuthorId: string | undefined;
 
-  // Get replyToTweetId from metadata
+  // Get replyToTweetId and replyToAuthorId from metadata
   if (post.metadata) {
     try {
       const meta = JSON.parse(post.metadata);
       replyToTweetId = meta.replyToTweetId;
+      replyToAuthorId = meta.replyToAuthorId;
     } catch {
       // fall through
     }
@@ -81,6 +83,29 @@ export async function handleReplyToPostPublish(
       success: false,
       error: 'No replyToTweetId found in post metadata',
     };
+  }
+
+  // Follow the tweet author before replying to avoid "not allowed to reply" errors
+  if (replyToAuthorId) {
+    try {
+      const followResult = await followUser(
+        replyToAuthorId,
+        bot.xAccessToken,
+        bot.xAccessSecret,
+        bot.id,
+      );
+      if (followResult.success) {
+        console.log(
+          `Bot ${bot.xAccountHandle}: followed user ${replyToAuthorId} before replying to tweet ${replyToTweetId}`,
+        );
+      } else {
+        console.error(
+          `Bot ${bot.xAccountHandle}: failed to follow user ${replyToAuthorId}: ${followResult.error}`,
+        );
+      }
+    } catch (err) {
+      console.error(`Bot ${bot.xAccountHandle}: error following user ${replyToAuthorId}:`, err);
+    }
   }
 
   // Check if we should also like the post

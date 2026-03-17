@@ -327,6 +327,74 @@ export async function replyTweet(
 }
 
 /**
+ * Follow a user via X API v2.
+ */
+export async function followUser(
+  userId: string,
+  accessToken: string,
+  refreshToken: string,
+  botId?: string,
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    let token = accessToken;
+
+    // First, get the authenticated user's ID
+    const meResult = await getAuthenticatedUserId(token, refreshToken, botId);
+    if (!meResult.success || !meResult.userId) {
+      return { success: false, error: `Failed to get user ID: ${meResult.error ?? 'unknown'}` };
+    }
+
+    const followUrl = `https://api.twitter.com/2/users/${meResult.userId}/following`;
+
+    let response = await fetch(followUrl, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ target_user_id: userId }),
+    });
+
+    // If 401, try refreshing the token
+    if (response.status === 401 && refreshToken) {
+      try {
+        const refreshed = await xOAuthService.refreshAccessToken(refreshToken);
+        token = refreshed.accessToken;
+
+        if (botId) {
+          await botRepository.update(botId, {
+            xAccessToken: refreshed.accessToken,
+            xAccessSecret: refreshed.refreshToken,
+          });
+        }
+
+        response = await fetch(followUrl, {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ target_user_id: userId }),
+        });
+      } catch (refreshErr) {
+        const msg = refreshErr instanceof Error ? refreshErr.message : String(refreshErr);
+        return { success: false, error: `Token refresh failed: ${msg}` };
+      }
+    }
+
+    if (!response.ok) {
+      const text = await response.text();
+      return { success: false, error: `X API follow error ${response.status}: ${text}` };
+    }
+
+    return { success: true };
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'Unknown error';
+    return { success: false, error: message };
+  }
+}
+
+/**
  * Like a tweet via X API v2.
  */
 export async function likeTweet(
