@@ -7,7 +7,12 @@ import { botRepository } from '../repositories/botRepository.js';
 import { botShareRepository } from '../repositories/botShareRepository.js';
 import { uuidSchema } from '../utils/validation.js';
 import { NotFoundError, ForbiddenError, ValidationError } from '../utils/errors.js';
-import { reviewPostWithJudge } from '../services/judgeAiService.js';
+import {
+  reviewPostWithJudge,
+  reviewLikePostWithJudge,
+  LikePostReviewContext,
+} from '../services/judgeAiService.js';
+import { isLikePostDraft } from '../services/publishService.js';
 
 const postIdParamSchema = z.object({
   id: uuidSchema,
@@ -72,16 +77,65 @@ export const postReviewController = {
       const bot = await botRepository.findById(post.botId);
       const judgeUseWebSearch = bot?.judgeKnowledgeSource === 'ai+web';
 
+      // Check if this is a like_post outcome
+      const isLikePost = isLikePostDraft(post);
+      let likePostContext: LikePostReviewContext | null = null;
+
+      if (isLikePost && post.metadata) {
+        try {
+          const meta = JSON.parse(post.metadata);
+          const selectedTweets: Array<{ id: string; authorUsername?: string; text: string }> =
+            meta.selectedTweets ?? [];
+
+          // Extract reasoning from processSteps or generationPrompt
+          let reasoning = '';
+          if (Array.isArray(meta.processSteps)) {
+            const behaviourStep = meta.processSteps.find(
+              (s: { step: string }) => s.step === 'Behaviour Prompt',
+            );
+            if (behaviourStep) {
+              reasoning = behaviourStep.output;
+            }
+          }
+          if (!reasoning && post.generationPrompt) {
+            try {
+              const gen = JSON.parse(post.generationPrompt);
+              reasoning = gen.reasoning ?? '';
+            } catch {
+              // ignore
+            }
+          }
+
+          if (selectedTweets.length > 0) {
+            likePostContext = {
+              botPrompt: bot?.prompt ?? '',
+              behaviourPrompt: post.behaviourPrompt ?? '',
+              selectedTweets,
+              reasoning,
+            };
+          }
+        } catch {
+          // Fall back to standard review if metadata parsing fails
+        }
+      }
+
       // Call AI for each judge in parallel
       const reviewPromises = botJudges.map(
         async (bj: { judgeId: string; judge: { name: string; prompt: string } }) => {
-          const result = await reviewPostWithJudge(
-            bj.judge.name,
-            bj.judge.prompt,
-            post.content,
-            recentContents,
-            judgeUseWebSearch,
-          );
+          const result = likePostContext
+            ? await reviewLikePostWithJudge(
+                bj.judge.name,
+                bj.judge.prompt,
+                likePostContext,
+                judgeUseWebSearch,
+              )
+            : await reviewPostWithJudge(
+                bj.judge.name,
+                bj.judge.prompt,
+                post.content,
+                recentContents,
+                judgeUseWebSearch,
+              );
           return {
             postId: id,
             judgeId: bj.judgeId,

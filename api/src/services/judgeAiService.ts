@@ -10,6 +10,28 @@ function getClient(): Anthropic | null {
 
 const FALLBACK_JUDGE_TEMPLATE = DEFAULT_SYSTEM_PROMPTS['judge_review'];
 
+const LIKE_POST_JUDGE_CRITERIA = `
+You are reviewing a like_post action — the AI selected posts to like on behalf of the account.
+Evaluate the selections on the following criteria:
+1. Relevance — do the liked posts align with the bot's stated interests and brand?
+2. Quality — are these high-quality, thoughtful posts worth engaging with?
+3. Recency — are the posts relatively recent and timely?
+4. Selection Reasoning — does the AI's reasoning for selecting these posts make sense?
+
+Provide a concise opinion (2-3 sentences max) and rate the overall selection 1-5.
+Format your response as: your opinion text, then on a new line exactly "Rating: X/5"`;
+
+export type LikePostReviewContext = {
+  botPrompt: string;
+  behaviourPrompt: string;
+  selectedTweets: Array<{
+    id: string;
+    authorUsername?: string;
+    text: string;
+  }>;
+  reasoning: string;
+};
+
 // Simple in-memory cache with 5-minute TTL
 const promptCache = new Map<string, { content: string; expiresAt: number }>();
 const CACHE_TTL_MS = 5 * 60 * 1000;
@@ -36,6 +58,10 @@ async function getCachedPrompt(key: string, fallback: string): Promise<string> {
 async function buildSystemPrompt(name: string, personalityPrompt: string): Promise<string> {
   const template = await getCachedPrompt('judge_review', FALLBACK_JUDGE_TEMPLATE);
   return template.replace('{name}', name).replace('{personalityPrompt}', personalityPrompt);
+}
+
+function buildLikePostSystemPrompt(name: string, personalityPrompt: string): string {
+  return `You are ${name}. ${personalityPrompt}.\n${LIKE_POST_JUDGE_CRITERIA}`;
 }
 
 function parseRating(response: string): { opinion: string; rating: number } {
@@ -83,6 +109,66 @@ export async function reviewPostWithJudge(
   const response = await client.messages.create({
     model: 'claude-sonnet-4-5',
     max_tokens: useWebSearch ? 1024 : 300,
+    system: systemPrompt,
+    messages: [{ role: 'user', content: userContent }],
+    ...(useWebSearch
+      ? {
+          tools: [
+            {
+              type: 'web_search_20250305',
+              name: 'web_search',
+              max_uses: 3,
+            } as Anthropic.Messages.WebSearchTool20250305,
+          ],
+        }
+      : {}),
+  });
+
+  const text = extractText(response.content);
+  if (!text) {
+    throw new Error('Unexpected response format from Claude API');
+  }
+
+  return parseRating(text);
+}
+
+export async function reviewLikePostWithJudge(
+  judgeName: string,
+  judgePrompt: string,
+  likeContext: LikePostReviewContext,
+  useWebSearch: boolean = false,
+): Promise<{ opinion: string; rating: number }> {
+  const client = getClient();
+  if (!client) {
+    return {
+      opinion: 'AI service not configured -- set ANTHROPIC_API_KEY',
+      rating: 3,
+    };
+  }
+
+  const systemPrompt = buildLikePostSystemPrompt(judgeName, judgePrompt);
+
+  const tweetList = likeContext.selectedTweets
+    .map((t, i) => `${i + 1}. @${t.authorUsername ?? 'unknown'}: "${t.text}"`)
+    .join('\n');
+
+  const userContent = `Today's date: ${new Date().toISOString().split('T')[0]}
+
+Bot's interests/prompt:
+${likeContext.botPrompt}
+
+Behaviour prompt that guided the selection:
+${likeContext.behaviourPrompt}
+
+Selected posts to like:
+${tweetList}
+
+AI's reasoning for selection:
+${likeContext.reasoning}`;
+
+  const response = await client.messages.create({
+    model: 'claude-sonnet-4-5',
+    max_tokens: useWebSearch ? 1024 : 400,
     system: systemPrompt,
     messages: [{ role: 'user', content: userContent }],
     ...(useWebSearch
