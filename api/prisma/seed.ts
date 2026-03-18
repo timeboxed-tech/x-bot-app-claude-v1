@@ -233,13 +233,14 @@ The actual revised tweet text here`,
     },
   });
 
-  await prisma.systemPrompt.upsert({
+  // Seed system configs (upsert to avoid duplicates)
+  await prisma.systemConfig.upsert({
     where: { key: 'x_search_hours_back' },
     update: {},
     create: {
       key: 'x_search_hours_back',
       name: 'X Search Time Period (hours)',
-      content: '48',
+      value: '48',
     },
   });
 

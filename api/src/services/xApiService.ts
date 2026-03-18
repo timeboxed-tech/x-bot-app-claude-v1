@@ -1,7 +1,6 @@
 import { xOAuthService } from './xOAuthService.js';
 import { botRepository } from '../repositories/botRepository.js';
-import { systemPromptRepository } from '../repositories/systemPromptRepository.js';
-import { DEFAULT_SYSTEM_PROMPTS } from '../constants/defaultSystemPrompts.js';
+import { systemConfigRepository } from '../repositories/systemConfigRepository.js';
 
 const TWITTER_TWEET_URL = 'https://api.twitter.com/2/tweets';
 const TWITTER_SEARCH_URL = 'https://api.twitter.com/2/tweets/search/recent';
@@ -102,8 +101,8 @@ export async function searchTweets(
     // Read configurable search time period
     let hoursBack = 48;
     try {
-      const dbConfig = await systemPromptRepository.findByKey('x_search_hours_back');
-      const raw = dbConfig?.content ?? DEFAULT_SYSTEM_PROMPTS['x_search_hours_back'] ?? '48';
+      const dbConfig = await systemConfigRepository.findByKey('x_search_hours_back');
+      const raw = dbConfig?.value ?? '48';
       const parsed = parseInt(raw, 10);
       if (!isNaN(parsed) && parsed > 0) hoursBack = parsed;
     } catch {
@@ -267,8 +266,8 @@ export async function getMentions(
     // Read configurable search time period
     let hoursBack = 48;
     try {
-      const dbConfig = await systemPromptRepository.findByKey('x_search_hours_back');
-      const raw = dbConfig?.content ?? DEFAULT_SYSTEM_PROMPTS['x_search_hours_back'] ?? '48';
+      const dbConfig = await systemConfigRepository.findByKey('x_search_hours_back');
+      const raw = dbConfig?.value ?? '48';
       const parsed = parseInt(raw, 10);
       if (!isNaN(parsed) && parsed > 0) hoursBack = parsed;
     } catch {

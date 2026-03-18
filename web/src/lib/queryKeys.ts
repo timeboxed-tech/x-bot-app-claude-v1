@@ -33,4 +33,7 @@ export const queryKeys = {
   jobConfigs: {
     list: ['jobConfigs', 'list'] as const,
   },
+  systemConfigs: {
+    list: ['systemConfigs', 'list'] as const,
+  },
 } as const;

@@ -24,6 +24,11 @@ const adminLinks = [
     description: 'Configure scheduled job parameters',
     path: '/job-config',
   },
+  {
+    label: 'System Config',
+    description: 'Manage non-prompt configuration values',
+    path: '/system-config',
+  },
 ];
 
 export default function AdminPage() {
