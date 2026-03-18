@@ -15,11 +15,25 @@ type UpdatePostInput = {
 export const postService = {
   async listPosts(
     userId: string | undefined,
-    options: { status?: string; page: number; pageSize: number },
+    options: { status?: string; page: number; pageSize: number; botId?: string },
   ) {
+    const { botId, ...restOptions } = options;
+
+    if (botId) {
+      // Filter to a specific bot (still scoped to user's bots if not admin)
+      if (userId) {
+        const { bots } = await botRepository.findByUserId(userId, 1, 1000);
+        const userBotIds = bots.map((b: { id: string }) => b.id);
+        if (!userBotIds.includes(botId)) {
+          return { posts: [], total: 0 };
+        }
+      }
+      return postRepository.findByBotIds([botId], restOptions);
+    }
+
     if (!userId) {
       // Admin show-all: no bot scoping
-      return postRepository.findAll(options);
+      return postRepository.findAll(restOptions);
     }
 
     const { bots } = await botRepository.findByUserId(userId, 1, 1000);
@@ -29,7 +43,7 @@ export const postService = {
       return { posts: [], total: 0 };
     }
 
-    return postRepository.findByBotIds(botIds, options);
+    return postRepository.findByBotIds(botIds, restOptions);
   },
 
   async updatePost(postId: string, userId: string, input: UpdatePostInput) {
@@ -200,7 +214,19 @@ export const postService = {
     await postRepository.delete(postId);
   },
 
-  async getPostCounts(userId: string | undefined) {
+  async getPostCounts(userId: string | undefined, botId?: string) {
+    if (botId) {
+      // Filter counts to a specific bot (still scoped to user's bots if not admin)
+      if (userId) {
+        const { bots } = await botRepository.findByUserId(userId, 1, 1000);
+        const userBotIds = bots.map((b: { id: string }) => b.id);
+        if (!userBotIds.includes(botId)) {
+          return { draft: 0, approved: 0, scheduled: 0, published: 0, discarded: 0, total: 0 };
+        }
+      }
+      return postRepository.countsByStatus([botId]);
+    }
+
     if (!userId) {
       return postRepository.countsByStatus();
     }

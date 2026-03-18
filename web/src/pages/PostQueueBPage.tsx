@@ -28,12 +28,15 @@ import RateReviewIcon from '@mui/icons-material/RateReview';
 import RestoreIcon from '@mui/icons-material/Restore';
 import VisibilityIcon from '@mui/icons-material/Visibility';
 import { AxiosError } from 'axios';
+import MenuItem from '@mui/material/MenuItem';
+import Select from '@mui/material/Select';
 import AppHeader from '../components/AppHeader';
 import EvaluationDialog from '../components/EvaluationDialog';
 import ProcessVisualisationDialog, {
   type ProcessStep,
 } from '../components/ProcessVisualisationDialog';
 import { useAuth } from '../hooks/useAuth';
+import { useAllBots } from '../hooks/useBot';
 import {
   usePosts,
   usePostCounts,
@@ -87,9 +90,12 @@ export default function PostQueueBPage() {
 
   const [publishingId, setPublishingId] = useState<string | null>(null);
   const [publishError, setPublishError] = useState<string | null>(null);
+  const [selectedBotId, setSelectedBotId] = useState<string>('');
 
-  const { data: counts } = usePostCounts(showAll);
-  const { data, isLoading } = usePosts(activeFilter, page, 15, showAll);
+  const { data: allBots } = useAllBots(showAll && !!user?.isAdmin);
+
+  const { data: counts } = usePostCounts(showAll, selectedBotId || undefined);
+  const { data, isLoading } = usePosts(activeFilter, page, 15, showAll, selectedBotId || undefined);
   const updatePost = useUpdatePost();
   const deletePost = useDeletePost();
   const publishPost = usePublishPost();
@@ -125,6 +131,30 @@ export default function PostQueueBPage() {
             />
           )}
         </Box>
+
+        {/* Bot filter */}
+        {allBots && allBots.length > 1 && (
+          <Box sx={{ mb: 2 }}>
+            <Select
+              size="small"
+              value={selectedBotId}
+              onChange={(e) => {
+                setSelectedBotId(e.target.value);
+                setPage(1);
+              }}
+              displayEmpty
+              sx={{ minWidth: 200 }}
+            >
+              <MenuItem value="">All Bots</MenuItem>
+              {allBots.map((b) => (
+                <MenuItem key={b.id} value={b.id}>
+                  @{b.xAccountHandle || b.id.slice(0, 8)}
+                  {b.user && b.userId !== user?.id ? ` (${b.user.name})` : ''}
+                </MenuItem>
+              ))}
+            </Select>
+          </Box>
+        )}
 
         {/* Chip filters */}
         <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', mb: 3 }}>

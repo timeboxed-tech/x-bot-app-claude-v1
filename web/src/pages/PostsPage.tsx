@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import Container from '@mui/material/Container';
 import FormControlLabel from '@mui/material/FormControlLabel';
+import MenuItem from '@mui/material/MenuItem';
+import Select from '@mui/material/Select';
 import Switch from '@mui/material/Switch';
 import Typography from '@mui/material/Typography';
 import Tabs from '@mui/material/Tabs';
@@ -11,6 +13,7 @@ import Skeleton from '@mui/material/Skeleton';
 import AppHeader from '../components/AppHeader';
 import PostCard from '../components/PostCard';
 import { useAuth } from '../hooks/useAuth';
+import { useAllBots } from '../hooks/useBot';
 import Dialog from '@mui/material/Dialog';
 import DialogTitle from '@mui/material/DialogTitle';
 import DialogContent from '@mui/material/DialogContent';
@@ -56,14 +59,23 @@ function PostsAPage() {
   const [tabIndex, setTabIndex] = useState(0);
   const [page, setPage] = useState(1);
   const [showAll, setShowAll] = useState(false);
+  const [selectedBotId, setSelectedBotId] = useState<string>('');
 
   const [deleteAllOpen, setDeleteAllOpen] = useState(false);
   const deleteAllDiscarded = useDeleteAllDiscarded();
 
-  const { data: counts } = usePostCounts(showAll);
+  const { data: allBots } = useAllBots(showAll && !!user?.isAdmin);
+
+  const { data: counts } = usePostCounts(showAll, selectedBotId || undefined);
 
   const currentTab = TAB_CONFIG[tabIndex];
-  const { data, isLoading } = usePosts(currentTab.status, page, 10, showAll);
+  const { data, isLoading } = usePosts(
+    currentTab.status,
+    page,
+    10,
+    showAll,
+    selectedBotId || undefined,
+  );
   const isDiscardedTab = currentTab.status === 'discarded';
 
   const posts = data?.data ?? [];
@@ -98,6 +110,29 @@ function PostsAPage() {
             />
           )}
         </Box>
+
+        {allBots && allBots.length > 1 && (
+          <Box sx={{ mb: 2 }}>
+            <Select
+              size="small"
+              value={selectedBotId}
+              onChange={(e) => {
+                setSelectedBotId(e.target.value);
+                setPage(1);
+              }}
+              displayEmpty
+              sx={{ minWidth: 200 }}
+            >
+              <MenuItem value="">All Bots</MenuItem>
+              {allBots.map((b) => (
+                <MenuItem key={b.id} value={b.id}>
+                  @{b.xAccountHandle || b.id.slice(0, 8)}
+                  {b.user && b.userId !== user?.id ? ` (${b.user.name})` : ''}
+                </MenuItem>
+              ))}
+            </Select>
+          </Box>
+        )}
 
         <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 3 }}>
           <Tabs
