@@ -119,6 +119,9 @@ export async function generateReplyPostDraft(
 ) {
   const client = getClient();
   if (!client) {
+    console.error(
+      `[replyPostService] Bot ${bot.xAccountHandle || bot.id}: ANTHROPIC_API_KEY not set, cannot generate reply`,
+    );
     log('draft', `Bot ${bot.xAccountHandle || bot.id}: AI service not configured`, 'error');
     return null;
   }
@@ -142,6 +145,9 @@ export async function generateReplyPostDraft(
   try {
     const meResult = await getAuthenticatedUserId(bot.xAccessToken, bot.xAccessSecret, bot.id);
     if (!meResult.success || !meResult.userId) {
+      console.error(
+        `[replyPostService] Bot ${bot.xAccountHandle || bot.id}: failed to get user ID — ${meResult.error ?? 'unknown'}`,
+      );
       log(
         'draft',
         `Bot ${bot.xAccountHandle || bot.id}: failed to get user ID — ${meResult.error ?? 'unknown'}`,
@@ -151,6 +157,9 @@ export async function generateReplyPostDraft(
     }
     userId = meResult.userId;
   } catch (err) {
+    console.error(
+      `[replyPostService] Bot ${bot.xAccountHandle || bot.id}: failed to get user ID — ${err instanceof Error ? err.message : String(err)}`,
+    );
     log(
       'draft',
       `Bot ${bot.xAccountHandle || bot.id}: failed to get user ID — ${err instanceof Error ? err.message : String(err)}`,
@@ -182,6 +191,9 @@ export async function generateReplyPostDraft(
   }
 
   if (mentions.length === 0) {
+    console.error(
+      `[replyPostService] Bot ${bot.xAccountHandle || bot.id}: no recent mentions found, skipping reply_to_post`,
+    );
     log(
       'draft',
       `Bot ${bot.xAccountHandle || bot.id}: no recent mentions found, skipping reply_to_post`,
@@ -242,6 +254,9 @@ export async function generateReplyPostDraft(
   });
 
   if (mentions.length === 0) {
+    console.error(
+      `[replyPostService] Bot ${bot.xAccountHandle || bot.id}: all ${totalBeforeDedup} mentions already replied to, skipping`,
+    );
     log(
       'draft',
       `Bot ${bot.xAccountHandle || bot.id}: all ${totalBeforeDedup} mentions already replied to, skipping`,
@@ -281,6 +296,9 @@ export async function generateReplyPostDraft(
   }
 
   if (!tweetId || !replyText) {
+    console.error(
+      `[replyPostService] Bot ${bot.xAccountHandle || bot.id}: AI did not return a valid tweet ID or reply (tweetId=${tweetId || 'empty'}, replyText=${replyText ? 'present' : 'empty'})`,
+    );
     log(
       'draft',
       `Bot ${bot.xAccountHandle || bot.id}: AI did not return a valid tweet ID or reply, skipping`,

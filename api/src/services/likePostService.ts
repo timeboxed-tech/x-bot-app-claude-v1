@@ -135,6 +135,9 @@ export async function generateLikePostDraft(
 ) {
   const client = getClient();
   if (!client) {
+    console.error(
+      `[likePostService] Bot ${bot.xAccountHandle || bot.id}: ANTHROPIC_API_KEY not set, cannot generate like post`,
+    );
     log('draft', `Bot ${bot.xAccountHandle || bot.id}: AI service not configured`, 'error');
     return null;
   }
@@ -178,6 +181,9 @@ export async function generateLikePostDraft(
   }
 
   if (queries.length === 0) {
+    console.error(
+      `[likePostService] Bot ${bot.xAccountHandle || bot.id}: no search queries generated, skipping like_post`,
+    );
     log(
       'draft',
       `Bot ${bot.xAccountHandle || bot.id}: no search queries generated, skipping like_post`,
@@ -227,6 +233,9 @@ export async function generateLikePostDraft(
   }
 
   if (allTweets.length === 0) {
+    console.error(
+      `[likePostService] Bot ${bot.xAccountHandle || bot.id}: no tweets found from search, skipping like_post`,
+    );
     log(
       'draft',
       `Bot ${bot.xAccountHandle || bot.id}: no tweets found from search, skipping like_post`,
@@ -288,6 +297,9 @@ export async function generateLikePostDraft(
   }
 
   if (selectedIds.length === 0) {
+    console.error(
+      `[likePostService] Bot ${bot.xAccountHandle || bot.id}: AI selected no posts to like, skipping`,
+    );
     log(
       'draft',
       `Bot ${bot.xAccountHandle || bot.id}: AI selected no posts to like, skipping`,
