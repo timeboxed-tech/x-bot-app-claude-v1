@@ -9,6 +9,7 @@ import Container from '@mui/material/Container';
 import IconButton from '@mui/material/IconButton';
 import Rating from '@mui/material/Rating';
 import Skeleton from '@mui/material/Skeleton';
+import TextField from '@mui/material/TextField';
 import Tooltip from '@mui/material/Tooltip';
 import Typography from '@mui/material/Typography';
 import FormControlLabel from '@mui/material/FormControlLabel';
@@ -45,6 +46,12 @@ import {
   usePublishPost,
   type PostStatus,
 } from '../hooks/usePosts';
+import {
+  usePostReviews,
+  useRequestReview,
+  useDeleteReview,
+  type PostReview,
+} from '../hooks/useJudges';
 
 const STATUS_FILTERS: Array<{ label: string; status?: PostStatus }> = [
   { label: 'All' },
@@ -77,6 +84,68 @@ function timeAgo(dateStr: string): string {
   return new Date(dateStr).toLocaleDateString();
 }
 
+function PostReviewsSection({
+  postId,
+  onDeleteReview,
+  isDeleting,
+}: {
+  postId: string;
+  onDeleteReview: (params: { postId: string; reviewId: string }) => void;
+  isDeleting: boolean;
+}) {
+  const { data: reviews } = usePostReviews(postId);
+  const [showReviews, setShowReviews] = useState(false);
+
+  if (!reviews || reviews.length === 0) return null;
+
+  return (
+    <Box sx={{ mt: 2 }}>
+      <Button size="small" onClick={() => setShowReviews(!showReviews)} sx={{ mb: 1 }}>
+        {showReviews ? 'Hide Reviews' : `Show Reviews (${reviews.length})`}
+      </Button>
+      {showReviews && (
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+          {reviews.map((review: PostReview) => (
+            <Box
+              key={review.id}
+              sx={{
+                p: 1.5,
+                borderRadius: 1,
+                bgcolor: 'background.paper',
+              }}
+            >
+              <Box
+                sx={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  mb: 0.5,
+                }}
+              >
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                  <Typography variant="subtitle2">{review.judge.name}</Typography>
+                  <IconButton
+                    size="small"
+                    onClick={() => onDeleteReview({ postId, reviewId: review.id })}
+                    disabled={isDeleting}
+                    sx={{ p: 0.25 }}
+                  >
+                    <DeleteIcon fontSize="small" />
+                  </IconButton>
+                </Box>
+                <Rating value={review.rating} readOnly size="small" />
+              </Box>
+              <Typography variant="body2" sx={{ whiteSpace: 'pre-wrap' }}>
+                {review.opinion}
+              </Typography>
+            </Box>
+          ))}
+        </Box>
+      )}
+    </Box>
+  );
+}
+
 export default function PostQueueBPage() {
   const { user } = useAuth();
   const [activeFilter, setActiveFilter] = useState<PostStatus | undefined>('draft');
@@ -91,6 +160,8 @@ export default function PostQueueBPage() {
   const [publishingId, setPublishingId] = useState<string | null>(null);
   const [publishError, setPublishError] = useState<string | null>(null);
   const [selectedBotId, setSelectedBotId] = useState<string>('');
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editContent, setEditContent] = useState('');
 
   const { data: allBots } = useAllBots(showAll && !!user?.isAdmin);
 
@@ -99,6 +170,8 @@ export default function PostQueueBPage() {
   const updatePost = useUpdatePost();
   const deletePost = useDeletePost();
   const publishPost = usePublishPost();
+  const requestReview = useRequestReview();
+  const deleteReview = useDeleteReview();
 
   const posts = data?.data ?? [];
   const meta = data?.meta;
@@ -500,32 +573,79 @@ export default function PostQueueBPage() {
                           borderColor: 'divider',
                         }}
                       >
-                        <Box sx={{ position: 'relative' }}>
-                          <Typography variant="body1" sx={{ whiteSpace: 'pre-wrap', mb: 2, pr: 4 }}>
-                            {post.content}
-                          </Typography>
-                          <Tooltip
-                            title={contentCopied === post.id ? 'Copied!' : 'Copy post content'}
-                          >
-                            <IconButton
-                              size="small"
-                              onClick={() => {
-                                navigator.clipboard.writeText(post.content).then(() => {
-                                  setContentCopied(post.id);
-                                  setTimeout(() => setContentCopied(null), 1500);
-                                });
-                              }}
-                              sx={{ position: 'absolute', top: -4, right: -4, p: 0.25 }}
-                              color={contentCopied === post.id ? 'success' : 'default'}
+                        {editingId === post.id ? (
+                          <Box sx={{ mb: 2 }}>
+                            <TextField
+                              fullWidth
+                              multiline
+                              minRows={3}
+                              value={editContent}
+                              onChange={(e) => setEditContent(e.target.value)}
+                              disabled={updatePost.isPending}
+                              sx={{ mb: 1 }}
+                            />
+                            <Box sx={{ display: 'flex', gap: 1 }}>
+                              <Button
+                                size="small"
+                                variant="contained"
+                                onClick={() => {
+                                  updatePost.mutate(
+                                    { id: post.id, content: editContent },
+                                    {
+                                      onSuccess: () => {
+                                        setEditingId(null);
+                                      },
+                                    },
+                                  );
+                                }}
+                                disabled={updatePost.isPending}
+                              >
+                                Save
+                              </Button>
+                              <Button
+                                size="small"
+                                variant="outlined"
+                                onClick={() => {
+                                  setEditingId(null);
+                                  setEditContent('');
+                                }}
+                                disabled={updatePost.isPending}
+                              >
+                                Cancel
+                              </Button>
+                            </Box>
+                          </Box>
+                        ) : (
+                          <Box sx={{ position: 'relative' }}>
+                            <Typography
+                              variant="body1"
+                              sx={{ whiteSpace: 'pre-wrap', mb: 2, pr: 4 }}
                             >
-                              {contentCopied === post.id ? (
-                                <CheckIcon fontSize="small" />
-                              ) : (
-                                <FileCopyOutlinedIcon fontSize="small" />
-                              )}
-                            </IconButton>
-                          </Tooltip>
-                        </Box>
+                              {post.content}
+                            </Typography>
+                            <Tooltip
+                              title={contentCopied === post.id ? 'Copied!' : 'Copy post content'}
+                            >
+                              <IconButton
+                                size="small"
+                                onClick={() => {
+                                  navigator.clipboard.writeText(post.content).then(() => {
+                                    setContentCopied(post.id);
+                                    setTimeout(() => setContentCopied(null), 1500);
+                                  });
+                                }}
+                                sx={{ position: 'absolute', top: -4, right: -4, p: 0.25 }}
+                                color={contentCopied === post.id ? 'success' : 'default'}
+                              >
+                                {contentCopied === post.id ? (
+                                  <CheckIcon fontSize="small" />
+                                ) : (
+                                  <FileCopyOutlinedIcon fontSize="small" />
+                                )}
+                              </IconButton>
+                            </Tooltip>
+                          </Box>
+                        )}
                         <Box
                           sx={{
                             display: 'flex',
@@ -590,6 +710,32 @@ export default function PostQueueBPage() {
                         <Box sx={{ display: 'flex', gap: 1, mt: 2, flexWrap: 'wrap' }}>
                           {post.status === 'draft' && (
                             <>
+                              {editingId !== post.id && (
+                                <Button
+                                  size="small"
+                                  variant="outlined"
+                                  onClick={() => {
+                                    setEditingId(post.id);
+                                    setEditContent(post.content);
+                                  }}
+                                >
+                                  Edit
+                                </Button>
+                              )}
+                              <Button
+                                size="small"
+                                variant="outlined"
+                                onClick={() => {
+                                  requestReview.mutate(post.id);
+                                }}
+                                disabled={requestReview.isPending}
+                              >
+                                {requestReview.isPending ? (
+                                  <CircularProgress size={16} />
+                                ) : (
+                                  'Ask Judges'
+                                )}
+                              </Button>
                               <Tooltip title="Evaluate">
                                 <IconButton size="small" onClick={() => setEvaluatePostId(post.id)}>
                                   <RateReviewIcon fontSize="small" />
@@ -795,6 +941,12 @@ export default function PostQueueBPage() {
                             {publishError}
                           </Alert>
                         )}
+                        {/* Reviews Section */}
+                        <PostReviewsSection
+                          postId={post.id}
+                          onDeleteReview={(params) => deleteReview.mutate(params)}
+                          isDeleting={deleteReview.isPending}
+                        />
                       </Box>
                       {/* Process Visualisation Dialog for this post */}
                       {hasProcessSteps && (
