@@ -105,6 +105,7 @@ export default function BotEditBPage() {
     metadata?: string | null;
   } | null>(null);
   const [testRunError, setTestRunError] = useState<string | null>(null);
+  const [testRunMessage, setTestRunMessage] = useState<string | null>(null);
 
   const [snackbar, setSnackbar] = useState<SnackbarState>({
     open: false,
@@ -202,11 +203,16 @@ export default function BotEditBPage() {
     setTestRunLoading(true);
     setTestRunResult(null);
     setTestRunError(null);
+    setTestRunMessage(null);
     quickRunBehaviour.mutate(
       { botId: bot.id, behaviourId: selectedBehaviourId },
       {
         onSuccess: (data) => {
           setTestRunLoading(false);
+          if (!data.post) {
+            setTestRunMessage(data.message ?? 'No post generated');
+            return;
+          }
           setTestRunResult({
             postId: data.post.id,
             content: data.post.content,
@@ -919,6 +925,12 @@ export default function BotEditBPage() {
           {testRunError && (
             <Typography color="error" variant="body2" sx={{ mt: 1 }}>
               {testRunError}
+            </Typography>
+          )}
+
+          {testRunMessage && (
+            <Typography color="info.main" variant="body2" sx={{ mt: 1 }}>
+              {testRunMessage}
             </Typography>
           )}
 

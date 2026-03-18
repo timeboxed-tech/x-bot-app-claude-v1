@@ -195,8 +195,6 @@ export const botController = {
             );
             if (post) {
               posts.push(post);
-            } else {
-              errors.push('Reply post generation failed');
             }
           } catch (err) {
             const errorMessage = err instanceof Error ? err.message : 'Reply post generation error';
@@ -314,7 +312,9 @@ export const botController = {
           behaviour,
         );
         if (!post) {
-          res.status(500).json({ error: 'Reply post generation failed' });
+          res
+            .status(200)
+            .json({ data: { post: null, message: 'No recent mentions found to reply to' } });
           return;
         }
         res.status(201).json({ data: { post } });

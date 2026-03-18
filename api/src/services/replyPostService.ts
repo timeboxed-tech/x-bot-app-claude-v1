@@ -185,7 +185,6 @@ export async function generateReplyPostDraft(
     log(
       'draft',
       `Bot ${bot.xAccountHandle || bot.id}: no recent mentions found, skipping reply_to_post`,
-      'warn',
     );
     return null;
   }
@@ -245,7 +244,6 @@ export async function generateReplyPostDraft(
     log(
       'draft',
       `Bot ${bot.xAccountHandle || bot.id}: all ${totalBeforeDedup} mentions already replied to, skipping`,
-      'warn',
     );
     return null;
   }
