@@ -285,7 +285,7 @@ function DashboardAPage() {
                 {bot.minIntervalHours}h
               </Typography>
               <Typography variant="body2" color="text.secondary">
-                Active hours: {bot.preferredHoursStart}:00 - {bot.preferredHoursEnd}:00
+                Active hours: {bot.preferredHoursStart}:00 - {bot.preferredHoursEnd}:00 ({bot.timezone || 'UTC'})
               </Typography>
               <Typography
                 variant="body2"

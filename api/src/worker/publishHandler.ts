@@ -9,7 +9,6 @@ import {
 import { log } from './activityLog.js';
 
 const MAX_RETRIES = 3;
-const MAX_POSTS_PER_HOUR = 2;
 const RESCHEDULE_DELAY_MS = 30 * 60 * 1000; // 30 minutes
 
 // In-memory retry counter: postId -> failure count
@@ -47,33 +46,67 @@ export async function handlePublishJob(_jobId: string): Promise<void> {
 
     const bot = post.bot;
 
-    // Rate limit: max posts per hour per bot
-    const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
-    const publishedLastHour = await postRepository.countPublishedByBotSince(bot.id, oneHourAgo);
-    if (publishedLastHour >= MAX_POSTS_PER_HOUR) {
+    // Preferred hours check: only publish within the bot's active window (in bot's timezone)
+    if (bot.preferredHoursStart !== 0 || bot.preferredHoursEnd !== 24) {
+      const now = new Date();
+      const localTimeStr = now.toLocaleString('en-US', {
+        timeZone: bot.timezone || 'UTC',
+        hour: 'numeric',
+        minute: 'numeric',
+        hour12: false,
+      });
+      const [hourStr, minStr] = localTimeStr.split(':');
+      const currentHourLocal = parseInt(hourStr, 10) + parseInt(minStr, 10) / 60;
+      if (currentHourLocal < bot.preferredHoursStart || currentHourLocal >= bot.preferredHoursEnd) {
+        if (post.status === 'scheduled') {
+          const newScheduledAt = new Date(Date.now() + RESCHEDULE_DELAY_MS);
+          await postRepository.update(post.id, { scheduledAt: newScheduledAt });
+        }
+        log(
+          'publish',
+          `Bot ${bot.xAccountHandle || bot.id}: outside preferred hours (${bot.preferredHoursStart}-${bot.preferredHoursEnd} ${bot.timezone || 'UTC'}), skipping`,
+          'warn',
+        );
+        skippedInterval++;
+        continue;
+      }
+    }
+
+    // Daily rate limit: enforce postsPerDay from bot config
+    const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+    const publishedLast24h = await postRepository.countPublishedByBotSince(bot.id, twentyFourHoursAgo);
+    if (publishedLast24h >= bot.postsPerDay) {
       if (post.status === 'scheduled') {
         const newScheduledAt = new Date(Date.now() + RESCHEDULE_DELAY_MS);
         await postRepository.update(post.id, { scheduledAt: newScheduledAt });
       }
       log(
         'publish',
-        `Bot ${bot.xAccountHandle || bot.id}: rate limited (${publishedLastHour}/${MAX_POSTS_PER_HOUR}/hr), rescheduled`,
+        `Bot ${bot.xAccountHandle || bot.id}: daily limit reached (${publishedLast24h}/${bot.postsPerDay}/day), skipping`,
         'warn',
       );
       rateLimited++;
       continue;
     }
 
-    // For approved posts (with-approval mode): respect bot's posting frequency
-    if (post.status === 'approved') {
-      const lastPublished = await postRepository.findLastPublishedByBot(bot.id);
-      if (lastPublished?.publishedAt) {
-        const hoursSinceLastPublish =
-          (Date.now() - new Date(lastPublished.publishedAt).getTime()) / (1000 * 60 * 60);
-        if (hoursSinceLastPublish < bot.minIntervalHours) {
-          skippedInterval++;
-          continue;
+    // Min interval check with jitter: apply to all post types
+    const lastPublished = await postRepository.findLastPublishedByBot(bot.id);
+    if (lastPublished?.publishedAt) {
+      const hoursSinceLastPublish =
+        (Date.now() - new Date(lastPublished.publishedAt).getTime()) / (1000 * 60 * 60);
+      const jitteredInterval = bot.minIntervalHours * (0.85 + Math.random() * 0.3);
+      if (hoursSinceLastPublish < jitteredInterval) {
+        if (post.status === 'scheduled') {
+          const newScheduledAt = new Date(Date.now() + RESCHEDULE_DELAY_MS);
+          await postRepository.update(post.id, { scheduledAt: newScheduledAt });
         }
+        log(
+          'publish',
+          `Bot ${bot.xAccountHandle || bot.id}: too soon since last publish (${hoursSinceLastPublish.toFixed(2)}h < ${jitteredInterval.toFixed(2)}h interval), skipping`,
+          'warn',
+        );
+        skippedInterval++;
+        continue;
       }
     }
 

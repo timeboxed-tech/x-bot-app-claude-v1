@@ -16,6 +16,42 @@ import Chip from '@mui/material/Chip';
 import InputLabel from '@mui/material/InputLabel';
 import { z } from 'zod';
 
+const COMMON_TIMEZONES = [
+  'UTC',
+  'America/New_York',
+  'America/Chicago',
+  'America/Denver',
+  'America/Los_Angeles',
+  'America/Anchorage',
+  'Pacific/Honolulu',
+  'America/Toronto',
+  'America/Vancouver',
+  'America/Sao_Paulo',
+  'America/Argentina/Buenos_Aires',
+  'America/Mexico_City',
+  'Europe/London',
+  'Europe/Paris',
+  'Europe/Berlin',
+  'Europe/Madrid',
+  'Europe/Rome',
+  'Europe/Amsterdam',
+  'Europe/Zurich',
+  'Europe/Stockholm',
+  'Europe/Warsaw',
+  'Europe/Moscow',
+  'Europe/Istanbul',
+  'Asia/Dubai',
+  'Asia/Kolkata',
+  'Asia/Bangkok',
+  'Asia/Singapore',
+  'Asia/Shanghai',
+  'Asia/Tokyo',
+  'Asia/Seoul',
+  'Australia/Sydney',
+  'Australia/Melbourne',
+  'Pacific/Auckland',
+];
+
 const PLATFORMS = [
   { value: 'x', label: 'X (Twitter)', enabled: true },
   { value: 'linkedin', label: 'LinkedIn', enabled: false },
@@ -30,6 +66,7 @@ const botConfigSchema = z.object({
   minIntervalHours: z.number().int().min(1).max(15),
   preferredHoursStart: z.number().int().min(0).max(23),
   preferredHoursEnd: z.number().int().min(1).max(24),
+  timezone: z.string().min(1),
   knowledgeSource: z.enum(['ai', 'ai+web']),
   judgeKnowledgeSource: z.enum(['ai', 'ai+web']),
 });
@@ -51,6 +88,7 @@ const defaultValues: BotConfigValues = {
   minIntervalHours: 2,
   preferredHoursStart: 9,
   preferredHoursEnd: 18,
+  timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
   knowledgeSource: 'ai',
   judgeKnowledgeSource: 'ai',
 };
@@ -210,6 +248,29 @@ export default function BotSetupForm({
             </MenuItem>
           ))}
         </Select>
+      </FormControl>
+
+      <FormControl fullWidth>
+        <InputLabel>Timezone</InputLabel>
+        <Select
+          value={values.timezone}
+          label="Timezone"
+          onChange={(e) =>
+            setValues((v) => ({
+              ...v,
+              timezone: e.target.value as string,
+            }))
+          }
+        >
+          {COMMON_TIMEZONES.map((tz) => (
+            <MenuItem key={tz} value={tz}>
+              {tz.replace(/_/g, ' ')}
+            </MenuItem>
+          ))}
+        </Select>
+        <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5 }}>
+          Preferred hours will be interpreted in this timezone.
+        </Typography>
       </FormControl>
 
       <FormControl fullWidth>

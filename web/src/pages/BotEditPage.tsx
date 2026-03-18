@@ -189,6 +189,7 @@ function BotEditAPage() {
               minIntervalHours: bot.minIntervalHours,
               preferredHoursStart: bot.preferredHoursStart,
               preferredHoursEnd: bot.preferredHoursEnd,
+              timezone: bot.timezone || 'UTC',
               knowledgeSource: (bot.knowledgeSource as 'ai' | 'ai+web') ?? 'ai',
               judgeKnowledgeSource: (bot.judgeKnowledgeSource as 'ai' | 'ai+web') ?? 'ai',
             }}

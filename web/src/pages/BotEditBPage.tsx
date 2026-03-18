@@ -80,6 +80,7 @@ export default function BotEditBPage() {
   const [minInterval, setMinInterval] = useState<string | null>(null);
   const [hoursStart, setHoursStart] = useState<string | null>(null);
   const [hoursEnd, setHoursEnd] = useState<string | null>(null);
+  const [timezone, setTimezone] = useState<string | null>(null);
   const [newBehaviourContent, setNewBehaviourContent] = useState('');
   const [newBehaviourTitle, setNewBehaviourTitle] = useState('');
   const [newBehaviourOutcome, setNewBehaviourOutcome] = useState('write_post');
@@ -154,6 +155,7 @@ export default function BotEditBPage() {
   const currentMinInterval = minInterval ?? String(bot.minIntervalHours);
   const currentHoursStart = hoursStart ?? String(bot.preferredHoursStart);
   const currentHoursEnd = hoursEnd ?? String(bot.preferredHoursEnd);
+  const currentTimezone = timezone ?? (bot.timezone || 'UTC');
 
   const hasPromptChanges = prompt !== null && prompt !== bot.prompt;
   const hasSettingsChanges =
@@ -161,7 +163,8 @@ export default function BotEditBPage() {
     (postsPerDay !== null && postsPerDay !== String(bot.postsPerDay)) ||
     (minInterval !== null && minInterval !== String(bot.minIntervalHours)) ||
     (hoursStart !== null && hoursStart !== String(bot.preferredHoursStart)) ||
-    (hoursEnd !== null && hoursEnd !== String(bot.preferredHoursEnd));
+    (hoursEnd !== null && hoursEnd !== String(bot.preferredHoursEnd)) ||
+    (timezone !== null && timezone !== (bot.timezone || 'UTC'));
 
   const handleSaveBot = () => {
     const updates: Record<string, unknown> = { id: bot.id };
@@ -171,6 +174,7 @@ export default function BotEditBPage() {
     if (minInterval !== null) updates.minIntervalHours = parseInt(minInterval, 10);
     if (hoursStart !== null) updates.preferredHoursStart = parseInt(hoursStart, 10);
     if (hoursEnd !== null) updates.preferredHoursEnd = parseInt(hoursEnd, 10);
+    if (timezone !== null) updates.timezone = timezone;
     updateBot.mutate(updates as Parameters<typeof updateBot.mutate>[0], {
       onSuccess: () => {
         showSnackbar('Bot updated', 'success');
@@ -180,6 +184,7 @@ export default function BotEditBPage() {
         setMinInterval(null);
         setHoursStart(null);
         setHoursEnd(null);
+        setTimezone(null);
       },
       onError: () => showSnackbar('Failed to update bot', 'error'),
     });
@@ -344,6 +349,56 @@ export default function BotEditBPage() {
             onChange={(e) => setHoursEnd(e.target.value)}
             InputProps={{ inputProps: { min: 0, max: 23 } }}
           />
+        </Grid>
+        <Grid item xs={4}>
+          <FormControl fullWidth size="small">
+            <InputLabel>Timezone</InputLabel>
+            <Select
+              value={currentTimezone}
+              label="Timezone"
+              onChange={(e) => setTimezone(e.target.value as string)}
+            >
+              {[
+                'UTC',
+                'America/New_York',
+                'America/Chicago',
+                'America/Denver',
+                'America/Los_Angeles',
+                'America/Anchorage',
+                'Pacific/Honolulu',
+                'America/Toronto',
+                'America/Vancouver',
+                'America/Sao_Paulo',
+                'America/Argentina/Buenos_Aires',
+                'America/Mexico_City',
+                'Europe/London',
+                'Europe/Paris',
+                'Europe/Berlin',
+                'Europe/Madrid',
+                'Europe/Rome',
+                'Europe/Amsterdam',
+                'Europe/Zurich',
+                'Europe/Stockholm',
+                'Europe/Warsaw',
+                'Europe/Moscow',
+                'Europe/Istanbul',
+                'Asia/Dubai',
+                'Asia/Kolkata',
+                'Asia/Bangkok',
+                'Asia/Singapore',
+                'Asia/Shanghai',
+                'Asia/Tokyo',
+                'Asia/Seoul',
+                'Australia/Sydney',
+                'Australia/Melbourne',
+                'Pacific/Auckland',
+              ].map((tz) => (
+                <MenuItem key={tz} value={tz}>
+                  {tz.replace(/_/g, ' ')}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
         </Grid>
         <Grid item xs={12}>
           <FormControl fullWidth size="small">

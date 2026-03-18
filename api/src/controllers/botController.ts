@@ -20,6 +20,7 @@ const createBotSchema = z.object({
   minIntervalHours: z.number().int().min(1).max(15).default(2),
   preferredHoursStart: z.number().int().min(0).max(23).default(0),
   preferredHoursEnd: z.number().int().min(1).max(24).default(24),
+  timezone: z.string().min(1).max(50).default('UTC'),
   knowledgeSource: z.enum(['ai', 'ai+web']).default('ai'),
   judgeKnowledgeSource: z.enum(['ai', 'ai+web']).default('ai'),
 });
@@ -31,6 +32,7 @@ const updateBotSchema = z.object({
   minIntervalHours: z.number().int().min(1).max(15).optional(),
   preferredHoursStart: z.number().int().min(0).max(23).optional(),
   preferredHoursEnd: z.number().int().min(1).max(24).optional(),
+  timezone: z.string().min(1).max(50).optional(),
   knowledgeSource: z.enum(['ai', 'ai+web']).optional(),
   judgeKnowledgeSource: z.enum(['ai', 'ai+web']).optional(),
   active: z.boolean().optional(),

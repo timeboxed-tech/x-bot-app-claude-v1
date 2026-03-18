@@ -33,6 +33,7 @@ model Bot {
   minIntervalHours    Int      @default(2)
   preferredHoursStart Int      @default(0)
   preferredHoursEnd   Int      @default(24)
+  timezone            String   @default("UTC")
   knowledgeSource      String   @default("ai")
   judgeKnowledgeSource String   @default("ai")
   active              Boolean  @default(true)

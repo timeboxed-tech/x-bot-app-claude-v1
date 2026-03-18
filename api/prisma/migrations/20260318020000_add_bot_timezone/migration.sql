@@ -1,0 +1,2 @@
+-- AlterTable
+ALTER TABLE "Bot" ADD COLUMN "timezone" TEXT NOT NULL DEFAULT 'UTC';

@@ -19,6 +19,7 @@ export type Bot = {
   minIntervalHours: number;
   preferredHoursStart: number;
   preferredHoursEnd: number;
+  timezone: string;
   knowledgeSource: string;
   judgeKnowledgeSource: string;
   active: boolean;
@@ -43,6 +44,7 @@ type CreateBotInput = {
   minIntervalHours: number;
   preferredHoursStart: number;
   preferredHoursEnd: number;
+  timezone?: string;
   knowledgeSource?: string;
   judgeKnowledgeSource?: string;
 };
@@ -54,6 +56,7 @@ type UpdateBotInput = {
   minIntervalHours?: number;
   preferredHoursStart?: number;
   preferredHoursEnd?: number;
+  timezone?: string;
   knowledgeSource?: string;
   judgeKnowledgeSource?: string;
   active?: boolean;
