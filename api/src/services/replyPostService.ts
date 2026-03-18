@@ -1,5 +1,10 @@
 import Anthropic from '@anthropic-ai/sdk';
-import { getMentions, getAuthenticatedUserId, SearchTweetResult } from './xApiService.js';
+import {
+  getMentions,
+  getAuthenticatedUserId,
+  searchTweets,
+  SearchTweetResult,
+} from './xApiService.js';
 import { systemPromptRepository } from '../repositories/systemPromptRepository.js';
 import { postRepository } from '../repositories/postRepository.js';
 import { DEFAULT_SYSTEM_PROMPTS } from '../constants/defaultSystemPrompts.js';
@@ -168,7 +173,7 @@ export async function generateReplyPostDraft(
     return null;
   }
 
-  // Step 2: Fetch recent mentions via X API
+  // Step 2a: Fetch recent @mentions via X API
   let mentions: SearchTweetResult[] = [];
   try {
     const result = await getMentions(userId, bot.xAccessToken, bot.xAccessSecret, bot.id, 20);
@@ -190,27 +195,85 @@ export async function generateReplyPostDraft(
     );
   }
 
-  if (mentions.length === 0) {
-    console.error(
-      `[replyPostService] Bot ${bot.xAccountHandle || bot.id}: no recent mentions found, skipping reply_to_post`,
-    );
-    log(
-      'draft',
-      `Bot ${bot.xAccountHandle || bot.id}: no recent mentions found, skipping reply_to_post`,
-    );
-    return null;
-  }
-
-  log('draft', `Bot ${bot.xAccountHandle || bot.id}: found ${mentions.length} recent mentions`);
-
   const mentionSummaries = mentions
     .map((t) => `@${t.authorUsername ?? 'unknown'}: "${t.text}"`)
     .join('\n');
   processSteps.push({
-    step: 'Fetch Mentions',
+    step: 'Fetch Mentions (@mentions only)',
     input: `@${bot.xAccountHandle} (user ID: ${userId})`,
-    output: mentionSummaries,
+    output: mentionSummaries || '(none)',
   });
+
+  // Step 2b: Search for quote tweets of the bot's posts
+  let quoteTweets: SearchTweetResult[] = [];
+  if (bot.xAccountHandle) {
+    const quoteQuery = `url:x.com/${bot.xAccountHandle} -from:${bot.xAccountHandle}`;
+    try {
+      const quoteResult = await searchTweets(
+        quoteQuery,
+        bot.xAccessToken,
+        bot.xAccessSecret,
+        bot.id,
+        20,
+      );
+      if (quoteResult.success && quoteResult.tweets) {
+        quoteTweets = quoteResult.tweets;
+      } else if (quoteResult.error) {
+        log(
+          'draft',
+          `Bot ${bot.xAccountHandle || bot.id}: quote tweet search failed — ${quoteResult.error}`,
+          'warn',
+        );
+      }
+    } catch (err) {
+      console.error('Quote tweet search failed, continuing with mentions only:', err);
+      log(
+        'draft',
+        `Bot ${bot.xAccountHandle || bot.id}: quote tweet search error — ${err instanceof Error ? err.message : String(err)}`,
+        'warn',
+      );
+    }
+  }
+
+  const quoteSummaries = quoteTweets
+    .map((t) => `@${t.authorUsername ?? 'unknown'}: "${t.text}"`)
+    .join('\n');
+  processSteps.push({
+    step: 'Search Quote Tweets',
+    input: bot.xAccountHandle
+      ? `url:x.com/${bot.xAccountHandle} -from:${bot.xAccountHandle}`
+      : '(skipped — no handle configured)',
+    output: quoteSummaries || '(none)',
+  });
+
+  // Merge mentions and quote tweets, deduplicating by tweet ID
+  const seenIds = new Set<string>();
+  const candidates: SearchTweetResult[] = [];
+  for (const tweet of [...mentions, ...quoteTweets]) {
+    if (!seenIds.has(tweet.id)) {
+      seenIds.add(tweet.id);
+      candidates.push(tweet);
+    }
+  }
+
+  if (candidates.length === 0) {
+    console.error(
+      `[replyPostService] Bot ${bot.xAccountHandle || bot.id}: no recent mentions or quote tweets found, skipping reply_to_post`,
+    );
+    log(
+      'draft',
+      `Bot ${bot.xAccountHandle || bot.id}: no recent mentions or quote tweets found, skipping reply_to_post`,
+    );
+    return null;
+  }
+
+  log(
+    'draft',
+    `Bot ${bot.xAccountHandle || bot.id}: found ${mentions.length} mentions and ${quoteTweets.length} quote tweets (${candidates.length} unique candidates)`,
+  );
+
+  // Use candidates (merged set) from here on — reassign to mentions for downstream compatibility
+  mentions = candidates;
 
   // Step 2b: Dedup — filter out mentions we have already replied to (or have pending drafts for)
   const totalBeforeDedup = mentions.length;
@@ -336,8 +399,8 @@ export async function generateReplyPostDraft(
   const generationPrompt = JSON.stringify({
     outcome: 'reply_to_post',
     systemPromptKey: 'reply_generation',
-    source: 'mentions',
-    mentionCount: mentions.length,
+    source: 'mentions+quote_tweets',
+    candidateCount: mentions.length,
     reasoning,
   });
 
