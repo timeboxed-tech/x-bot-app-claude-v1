@@ -127,7 +127,8 @@ export type QuickRunResult = {
     content: string;
     metadata?: string | null;
     generationPrompt?: string | null;
-  };
+  } | null;
+  message?: string;
 };
 
 export function useQuickRunBehaviour() {

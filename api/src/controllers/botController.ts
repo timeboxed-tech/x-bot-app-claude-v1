@@ -198,11 +198,6 @@ export const botController = {
             );
             if (post) {
               posts.push(post);
-            } else {
-              console.error(
-                `Reply post generation returned null for bot ${bot.id} (attempt ${i + 1}/${count})`,
-              );
-              errors.push('Reply post generation failed — check server logs for details');
             }
           } catch (err) {
             const errorMessage = err instanceof Error ? err.message : 'Reply post generation error';
@@ -325,12 +320,9 @@ export const botController = {
           behaviour,
         );
         if (!post) {
-          console.error(
-            `Reply post generation returned null for bot ${bot.id}, behaviour ${behaviourId}`,
-          );
           res
-            .status(500)
-            .json({ error: 'Reply post generation failed — check server logs for details' });
+            .status(200)
+            .json({ data: { post: null, message: 'No recent mentions found to reply to' } });
           return;
         }
         res.status(201).json({ data: { post } });

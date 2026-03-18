@@ -82,6 +82,7 @@ function BotEditAPage() {
     metadata: string | null;
     generationPrompt: string | null;
     error: string | null;
+    message: string | null;
   }>({
     open: false,
     loading: false,
@@ -90,6 +91,7 @@ function BotEditAPage() {
     metadata: null,
     generationPrompt: null,
     error: null,
+    message: null,
   });
 
   const bot = bots.find((b) => b.id === botId);
@@ -324,11 +326,25 @@ function BotEditAPage() {
                               metadata: null,
                               generationPrompt: null,
                               error: null,
+                              message: null,
                             });
                             quickRunBehaviour.mutate(
                               { botId: bot.id, behaviourId: behaviour.id },
                               {
                                 onSuccess: (data) => {
+                                  if (!data.post) {
+                                    setQuickRunModal({
+                                      open: true,
+                                      loading: false,
+                                      postId: null,
+                                      content: null,
+                                      metadata: null,
+                                      generationPrompt: null,
+                                      error: null,
+                                      message: data.message ?? 'No post generated',
+                                    });
+                                    return;
+                                  }
                                   setQuickRunModal({
                                     open: true,
                                     loading: false,
@@ -337,10 +353,11 @@ function BotEditAPage() {
                                     metadata: data.post.metadata ?? null,
                                     generationPrompt: data.post.generationPrompt ?? null,
                                     error: null,
+                                    message: null,
                                   });
                                 },
                                 onError: (err: unknown) => {
-                                  const message =
+                                  const errMessage =
                                     err instanceof Error ? err.message : 'Generation failed';
                                   setQuickRunModal({
                                     open: true,
@@ -349,7 +366,8 @@ function BotEditAPage() {
                                     content: null,
                                     metadata: null,
                                     generationPrompt: null,
-                                    error: message,
+                                    error: errMessage,
+                                    message: null,
                                   });
                                 },
                               },
@@ -725,6 +743,7 @@ function BotEditAPage() {
             metadata: null,
             generationPrompt: null,
             error: null,
+            message: null,
           })
         }
         maxWidth="md"
@@ -740,6 +759,11 @@ function BotEditAPage() {
           {quickRunModal.error && (
             <Typography color="error" sx={{ py: 2 }}>
               {quickRunModal.error}
+            </Typography>
+          )}
+          {quickRunModal.message && (
+            <Typography color="info.main" sx={{ py: 2 }}>
+              {quickRunModal.message}
             </Typography>
           )}
           {quickRunModal.content && (
@@ -802,6 +826,7 @@ function BotEditAPage() {
                     metadata: null,
                     generationPrompt: null,
                     error: null,
+                    message: null,
                   });
                 }}
               >
@@ -817,6 +842,7 @@ function BotEditAPage() {
                     metadata: null,
                     generationPrompt: null,
                     error: null,
+                    message: null,
                   });
                   void navigate({ to: '/posts' });
                 }}
@@ -835,6 +861,7 @@ function BotEditAPage() {
                 metadata: null,
                 generationPrompt: null,
                 error: null,
+                message: null,
               })
             }
           >
