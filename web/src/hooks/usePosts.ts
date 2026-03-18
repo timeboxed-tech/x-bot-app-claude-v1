@@ -48,13 +48,16 @@ type PostCounts = {
   total: number;
 };
 
-export function usePostCounts(showAll = false) {
+export function usePostCounts(showAll = false, botId?: string) {
   return useQuery({
-    queryKey: queryKeys.posts.counts(showAll),
+    queryKey: queryKeys.posts.counts(showAll, botId),
     queryFn: async () => {
       const params: Record<string, string> = {};
       if (showAll) {
         params.showAll = 'true';
+      }
+      if (botId) {
+        params.botId = botId;
       }
       const response = await apiClient.get<{ data: PostCounts }>('/posts/counts', { params });
       return response.data.data;
@@ -62,9 +65,15 @@ export function usePostCounts(showAll = false) {
   });
 }
 
-export function usePosts(status?: string, page = 1, pageSize = 10, showAll = false) {
+export function usePosts(
+  status?: string,
+  page = 1,
+  pageSize = 10,
+  showAll = false,
+  botId?: string,
+) {
   return useQuery({
-    queryKey: queryKeys.posts.list(status, page, showAll),
+    queryKey: queryKeys.posts.list(status, page, showAll, botId),
     queryFn: async () => {
       const params: Record<string, string | number | boolean> = { page, pageSize };
       if (status) {
@@ -72,6 +81,9 @@ export function usePosts(status?: string, page = 1, pageSize = 10, showAll = fal
       }
       if (showAll) {
         params.showAll = 'true';
+      }
+      if (botId) {
+        params.botId = botId;
       }
       const response = await apiClient.get<PostListResponse>('/posts', {
         params,

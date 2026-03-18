@@ -11,10 +11,11 @@ export const queryKeys = {
     judges: (botId: string) => ['bots', 'judges', botId] as const,
   },
   posts: {
-    list: (status?: string, page?: number, showAll?: boolean) =>
-      ['posts', 'list', status ?? 'all', page ?? 1, showAll ?? false] as const,
+    list: (status?: string, page?: number, showAll?: boolean, botId?: string) =>
+      ['posts', 'list', status ?? 'all', page ?? 1, showAll ?? false, botId ?? 'all'] as const,
     all: ['posts'] as const,
-    counts: (showAll?: boolean) => ['posts', 'counts', showAll ?? false] as const,
+    counts: (showAll?: boolean, botId?: string) =>
+      ['posts', 'counts', showAll ?? false, botId ?? 'all'] as const,
     reviews: (postId: string) => ['posts', 'reviews', postId] as const,
     evaluations: (postId: string) => ['posts', 'evaluations', postId] as const,
   },

@@ -76,6 +76,22 @@ export const botRepository = {
     return { bots, total };
   },
 
+  async findAllPaginated(page: number, pageSize: number) {
+    const [bots, total] = await Promise.all([
+      prisma.bot.findMany({
+        select: {
+          ...botSelect,
+          user: { select: { id: true, email: true, name: true } },
+        },
+        skip: (page - 1) * pageSize,
+        take: pageSize,
+        orderBy: { createdAt: 'desc' },
+      }),
+      prisma.bot.count(),
+    ]);
+    return { bots, total };
+  },
+
   async update(id: string, data: UpdateBotInput) {
     return prisma.bot.update({
       where: { id },

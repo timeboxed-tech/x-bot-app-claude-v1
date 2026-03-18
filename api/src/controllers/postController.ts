@@ -10,6 +10,7 @@ import { NotFoundError, ForbiddenError, ValidationError } from '../utils/errors.
 const postListQuerySchema = paginationSchema.extend({
   status: z.string().optional(),
   showAll: z.string().optional(),
+  botId: z.string().uuid().optional(),
 });
 
 const postIdParamSchema = z.object({
@@ -50,7 +51,7 @@ export const postController = {
   async list(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const userId = req.userId!;
-      const { page, pageSize, status, showAll } = postListQuerySchema.parse(req.query);
+      const { page, pageSize, status, showAll, botId } = postListQuerySchema.parse(req.query);
 
       let scopeToUser = true;
       if (showAll === 'true') {
@@ -64,6 +65,7 @@ export const postController = {
         status,
         page,
         pageSize,
+        botId,
       });
 
       res.status(200).json({
@@ -78,7 +80,7 @@ export const postController = {
   async counts(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const userId = req.userId!;
-      const { showAll } = postListQuerySchema.parse(req.query);
+      const { showAll, botId } = postListQuerySchema.parse(req.query);
 
       let scopeToUser = true;
       if (showAll === 'true') {
@@ -88,7 +90,7 @@ export const postController = {
         }
       }
 
-      const counts = await postService.getPostCounts(scopeToUser ? userId : undefined);
+      const counts = await postService.getPostCounts(scopeToUser ? userId : undefined, botId);
       res.status(200).json({ data: counts });
     } catch (err) {
       next(err);

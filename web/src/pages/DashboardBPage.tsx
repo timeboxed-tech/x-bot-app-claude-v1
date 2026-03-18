@@ -7,7 +7,6 @@ import Chip from '@mui/material/Chip';
 import Container from '@mui/material/Container';
 import CircularProgress from '@mui/material/CircularProgress';
 import Grid from '@mui/material/Grid';
-import IconButton from '@mui/material/IconButton';
 import MenuItem from '@mui/material/MenuItem';
 import Select from '@mui/material/Select';
 import Skeleton from '@mui/material/Skeleton';
@@ -23,13 +22,10 @@ import Alert from '@mui/material/Alert';
 import ScheduleIcon from '@mui/icons-material/Schedule';
 import BarChartIcon from '@mui/icons-material/BarChart';
 import FlashOnIcon from '@mui/icons-material/FlashOn';
-import CheckCircleIcon from '@mui/icons-material/CheckCircle';
-import DeleteIcon from '@mui/icons-material/Delete';
 import AppHeader from '../components/AppHeader';
 import BotSetupForm from '../components/BotSetupForm';
 import { useBot, useCreateBot, useUpdateBot, useGenerateDrafts } from '../hooks/useBot';
 import { useAuth } from '../hooks/useAuth';
-import { usePosts, usePostCounts, useUpdatePost, useDeletePost } from '../hooks/usePosts';
 import { useStats } from '../hooks/useStats';
 import { apiClient } from '../lib/apiClient';
 import { useNavigate } from '@tanstack/react-router';
@@ -60,20 +56,7 @@ export default function DashboardBPage() {
   const bot = bots.length > 0 ? bots[Math.min(selectedBotIndex, bots.length - 1)] : null;
 
   const generateDrafts = useGenerateDrafts();
-  const updatePost = useUpdatePost();
-  const deletePost = useDeletePost();
   const { data: statsData } = useStats(bot?.id);
-  const { data: counts } = usePostCounts();
-  const { data: recentPublishedData, isLoading: recentPublishedLoading } = usePosts(
-    'published',
-    1,
-    5,
-  );
-  const { data: draftsData, isLoading: draftsLoading } = usePosts('draft', 1, 3);
-
-  const recentPublished = recentPublishedData?.data ?? [];
-  const drafts = draftsData?.data ?? [];
-  const draftCount = counts?.draft ?? 0;
 
   const showSnackbar = (
     message: string,
@@ -360,161 +343,6 @@ export default function DashboardBPage() {
             </Card>
           </Grid>
         </Grid>
-
-        {/* Recent Published */}
-        <Typography variant="h6" gutterBottom>
-          Recent Published
-        </Typography>
-        {recentPublishedLoading ? (
-          <Box sx={{ mb: 3 }}>
-            {[1, 2, 3].map((i) => (
-              <Skeleton
-                key={i}
-                variant="rectangular"
-                height={36}
-                sx={{ mb: 0.5, borderRadius: 1 }}
-              />
-            ))}
-          </Box>
-        ) : recentPublished.length === 0 ? (
-          <Card sx={{ mb: 3 }}>
-            <CardContent sx={{ py: 2, '&:last-child': { pb: 2 } }}>
-              <Typography variant="body2" color="text.secondary" textAlign="center">
-                No published posts yet
-              </Typography>
-            </CardContent>
-          </Card>
-        ) : (
-          <Card sx={{ mb: 3 }}>
-            <CardContent sx={{ p: 0, '&:last-child': { pb: 0 } }}>
-              {recentPublished.map((post, index) => (
-                <Box
-                  key={post.id}
-                  sx={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    px: 2,
-                    py: 1,
-                    borderBottom: index < recentPublished.length - 1 ? '1px solid' : 'none',
-                    borderColor: 'divider',
-                  }}
-                >
-                  <Typography
-                    variant="body2"
-                    sx={{
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis',
-                      whiteSpace: 'nowrap',
-                      flex: 1,
-                      mr: 2,
-                    }}
-                  >
-                    {post.content}
-                  </Typography>
-                  <Typography
-                    variant="caption"
-                    color="text.secondary"
-                    sx={{ whiteSpace: 'nowrap' }}
-                  >
-                    {post.publishedAt ? new Date(post.publishedAt).toLocaleDateString() : ''}
-                  </Typography>
-                </Box>
-              ))}
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Pending Drafts Preview */}
-        <Typography variant="h6" gutterBottom>
-          Pending Drafts ({draftCount})
-        </Typography>
-        {draftsLoading ? (
-          <Box sx={{ mb: 3 }}>
-            {[1, 2, 3].map((i) => (
-              <Skeleton
-                key={i}
-                variant="rectangular"
-                height={48}
-                sx={{ mb: 0.5, borderRadius: 1 }}
-              />
-            ))}
-          </Box>
-        ) : drafts.length === 0 ? (
-          <Card sx={{ mb: 3 }}>
-            <CardContent sx={{ py: 2, '&:last-child': { pb: 2 } }}>
-              <Typography variant="body2" color="text.secondary" textAlign="center">
-                No drafts pending
-              </Typography>
-            </CardContent>
-          </Card>
-        ) : (
-          <Card sx={{ mb: 3 }}>
-            <CardContent sx={{ p: 0, '&:last-child': { pb: 0 } }}>
-              {drafts.map((post, index) => (
-                <Box
-                  key={post.id}
-                  sx={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    px: 2,
-                    py: 1,
-                    borderBottom: index < drafts.length - 1 ? '1px solid' : 'none',
-                    borderColor: 'divider',
-                    gap: 1,
-                  }}
-                >
-                  <Typography
-                    variant="body2"
-                    sx={{
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis',
-                      whiteSpace: 'nowrap',
-                      flex: 1,
-                    }}
-                  >
-                    {post.content}
-                  </Typography>
-                  <IconButton
-                    size="small"
-                    color="success"
-                    onClick={() =>
-                      updatePost.mutate(
-                        { id: post.id, status: 'approved' },
-                        {
-                          onSuccess: () => showSnackbar('Post approved', 'success'),
-                          onError: () => showSnackbar('Failed to approve', 'error'),
-                        },
-                      )
-                    }
-                    disabled={updatePost.isPending}
-                  >
-                    <CheckCircleIcon fontSize="small" />
-                  </IconButton>
-                  <IconButton
-                    size="small"
-                    color="error"
-                    onClick={() =>
-                      deletePost.mutate(post.id, {
-                        onSuccess: () => showSnackbar('Post discarded', 'success'),
-                        onError: () => showSnackbar('Failed to discard', 'error'),
-                      })
-                    }
-                    disabled={deletePost.isPending}
-                  >
-                    <DeleteIcon fontSize="small" />
-                  </IconButton>
-                </Box>
-              ))}
-              {draftCount > 3 && (
-                <Box sx={{ textAlign: 'center', py: 1 }}>
-                  <Button size="small" onClick={() => void navigate({ to: '/posts' })}>
-                    View all {draftCount} drafts
-                  </Button>
-                </Box>
-              )}
-            </CardContent>
-          </Card>
-        )}
 
         {/* Toggle confirmation dialog */}
         <Dialog open={toggleConfirmOpen} onClose={() => setToggleConfirmOpen(false)}>

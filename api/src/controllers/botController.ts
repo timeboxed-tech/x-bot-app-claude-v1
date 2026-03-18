@@ -6,6 +6,7 @@ import { postRepository } from '../repositories/postRepository.js';
 import { botTipRepository } from '../repositories/botTipRepository.js';
 import { botBehaviourRepository } from '../repositories/botBehaviourRepository.js';
 import { paginationSchema, uuidSchema } from '../utils/validation.js';
+import { userRepository } from '../repositories/userRepository.js';
 import { checkAndFlagPost } from '../services/urlValidationService.js';
 import { generateLikePostDraft } from '../services/likePostService.js';
 import { generateReplyPostDraft } from '../services/replyPostService.js';
@@ -78,12 +79,24 @@ export const botController = {
   async list(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const userId = req.userId!;
+      const showAll = req.query.showAll === 'true';
       const { page, pageSize } = paginationSchema.parse(req.query);
-      const { bots, total } = await botService.listBots(userId, page, pageSize);
+
+      let result: { bots: unknown[]; total: number };
+      if (showAll) {
+        const user = await userRepository.findById(userId);
+        if (user?.isAdmin) {
+          result = await botService.listAllBots(page, pageSize);
+        } else {
+          result = await botService.listBots(userId, page, pageSize);
+        }
+      } else {
+        result = await botService.listBots(userId, page, pageSize);
+      }
 
       res.status(200).json({
-        data: bots,
-        meta: { page, pageSize, total },
+        data: result.bots,
+        meta: { page, pageSize, total: result.total },
       });
     } catch (err) {
       next(err);

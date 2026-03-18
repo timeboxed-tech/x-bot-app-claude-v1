@@ -61,6 +61,10 @@ export const botService = {
     return botRepository.findByUserId(userId, page, pageSize);
   },
 
+  async listAllBots(page: number, pageSize: number) {
+    return botRepository.findAllPaginated(page, pageSize);
+  },
+
   async getBot(botId: string, userId: string) {
     const bot = await botRepository.findById(botId);
     if (!bot) {

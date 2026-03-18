@@ -97,6 +97,20 @@ export function useBot() {
   };
 }
 
+export function useAllBots(showAll: boolean) {
+  return useQuery({
+    queryKey: ['bots', 'list', showAll ? 'all' : 'user'],
+    queryFn: async () => {
+      const params: Record<string, string> = {};
+      if (showAll) {
+        params.showAll = 'true';
+      }
+      const response = await apiClient.get<BotListResponse>('/bots', { params });
+      return response.data.data;
+    },
+  });
+}
+
 export function useCreateBot() {
   const queryClient = useQueryClient();
 
