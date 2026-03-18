@@ -193,6 +193,31 @@ export default function BotEditBPage() {
   const behaviourCount = behaviours?.length ?? 0;
   const canAddBehaviour = behaviourCount < 10;
 
+  function distributeEqually() {
+    if (activeBehaviours.length === 0) return;
+    const equalWeight = Math.floor(100 / activeBehaviours.length);
+    const remainder = 100 - equalWeight * activeBehaviours.length;
+    const newWeights: Record<string, number> = {};
+    activeBehaviours.forEach((b, i) => {
+      newWeights[b.id] = equalWeight + (i < remainder ? 1 : 0);
+    });
+    setEditingWeights((prev) => ({ ...prev, ...newWeights }));
+  }
+
+  function fillRemaining() {
+    if (activeBehaviours.length === 0) return;
+    if (totalWeight >= 100) return;
+    const gap = 100 - totalWeight;
+    const perBehaviour = Math.floor(gap / activeBehaviours.length);
+    const remainder = gap - perBehaviour * activeBehaviours.length;
+    const newWeights: Record<string, number> = {};
+    activeBehaviours.forEach((b, i) => {
+      const currentWeight = editingWeights[b.id] !== undefined ? editingWeights[b.id] : b.weight;
+      newWeights[b.id] = currentWeight + perBehaviour + (i < remainder ? 1 : 0);
+    });
+    setEditingWeights((prev) => ({ ...prev, ...newWeights }));
+  }
+
   const handleAccordionChange =
     (panel: string) => (_event: React.SyntheticEvent, isExpanded: boolean) => {
       setExpanded(isExpanded ? panel : false);
@@ -389,6 +414,19 @@ export default function BotEditBPage() {
               >
                 Weight: {totalWeight}%{totalWeight !== 100 ? ' (should be 100%)' : ''}
               </Typography>
+              <Box sx={{ display: 'flex', gap: 1 }}>
+                <Button size="small" variant="outlined" onClick={distributeEqually}>
+                  Distribute Equally
+                </Button>
+                <Button
+                  size="small"
+                  variant="outlined"
+                  onClick={fillRemaining}
+                  disabled={totalWeight >= 100}
+                >
+                  Fill Remaining
+                </Button>
+              </Box>
             </Box>
           )}
 
