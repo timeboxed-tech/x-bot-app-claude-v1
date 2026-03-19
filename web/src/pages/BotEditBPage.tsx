@@ -309,6 +309,7 @@ export default function BotEditBPage() {
             >
               <MenuItem value="auto">Auto</MenuItem>
               <MenuItem value="manual">Manual</MenuItem>
+              <MenuItem value="with-approval">With Approval</MenuItem>
             </Select>
           </FormControl>
         </Grid>
