@@ -278,6 +278,28 @@ The actual revised tweet text here`,
     },
   });
 
+  await prisma.jobConfig.upsert({
+    where: { jobType: 'post-generation' },
+    update: {},
+    create: {
+      jobType: 'post-generation',
+      intervalMs: 0,
+      enabled: true,
+      description: 'Generates a single draft post for one bot',
+    },
+  });
+
+  await prisma.jobConfig.upsert({
+    where: { jobType: 'post-publish' },
+    update: {},
+    create: {
+      jobType: 'post-publish',
+      intervalMs: 0,
+      enabled: true,
+      description: 'Publishes approved posts whose scheduled time has arrived',
+    },
+  });
+
   console.log('Seed data created successfully:');
   console.log(`  Users: ${user1.email}, ${user2.email}`);
   console.log(`  Bots: ${bot1.xAccountHandle}, ${bot2.xAccountHandle}`);
