@@ -306,21 +306,10 @@ export const postController = {
         throw new ValidationError('scheduledFor must be within 7 days');
       }
 
-      // Transaction: approve + enqueue post-publish
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      await prisma.$transaction(async (tx: any) => {
-        await tx.post.update({
-          where: { id: post.id },
-          data: { status: 'approved', scheduledAt },
-        });
-        await tx.job.create({
-          data: {
-            type: 'post-publish',
-            botId: post.bot.id,
-            scheduledAt,
-            status: 'pending',
-          },
-        });
+      // Approve and schedule — post-publish recurring job will pick it up
+      await postRepository.update(post.id, {
+        status: 'approved',
+        scheduledAt,
       });
 
       const updated = await postRepository.findById(id);

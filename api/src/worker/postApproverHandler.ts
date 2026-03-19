@@ -1,6 +1,5 @@
 import { prisma } from '../utils/prisma.js';
 import { postRepository } from '../repositories/postRepository.js';
-import { jobRepository } from '../repositories/jobRepository.js';
 import { findNextScheduledSlot } from '../services/scheduler.js';
 import { log } from './activityLog.js';
 
@@ -68,22 +67,13 @@ export async function handlePostApprover(_jobId: string): Promise<void> {
         continue;
       }
 
-      // Single transaction: approve post + enqueue post-publish job
-      await prisma.$transaction(async (tx) => {
-        await tx.post.update({
-          where: { id: draft.id },
-          data: {
-            status: 'approved',
-            scheduledAt: slot,
-          },
-        });
-
-        await jobRepository.createInTransaction(tx, {
-          type: 'post-publish',
-          botId: bot.id,
+      // Approve and schedule — post-publish recurring job will pick it up
+      await prisma.post.update({
+        where: { id: draft.id },
+        data: {
+          status: 'approved',
           scheduledAt: slot,
-          status: 'pending',
-        });
+        },
       });
 
       approved++;

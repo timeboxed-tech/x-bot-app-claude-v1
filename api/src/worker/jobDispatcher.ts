@@ -14,12 +14,12 @@ const FALLBACK_INTERVALS: Record<string, number> = {
   'scheduler-tick': 15 * 60 * 1000, // 15 min
   'post-generation': 0, // on-demand, no recurring
   'post-approver': 15 * 60 * 1000, // 15 min
-  'post-publish': 0, // on-demand, no recurring
+  'post-publish': 15 * 60 * 1000, // 15 min
   cleanup: 6 * 60 * 60 * 1000, // 6 hours
 };
 
 // Recurring job types that self-reschedule after completion
-const RECURRING_JOB_TYPES = ['scheduler-tick', 'post-approver', 'cleanup'];
+const RECURRING_JOB_TYPES = ['scheduler-tick', 'post-approver', 'post-publish', 'cleanup'];
 
 // Simple in-memory cache with 5-minute TTL
 const jobConfigCache = new Map<

@@ -294,7 +294,7 @@ The actual revised tweet text here`,
     update: {},
     create: {
       jobType: 'post-publish',
-      intervalMs: 0,
+      intervalMs: 900000,
       enabled: true,
       description: 'Publishes approved posts whose scheduled time has arrived',
     },
