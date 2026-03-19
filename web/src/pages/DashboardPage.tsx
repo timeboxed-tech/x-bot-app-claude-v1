@@ -76,6 +76,8 @@ function DashboardAPage() {
   const [shareEmail, setShareEmail] = useState('');
   const [connectLoading, setConnectLoading] = useState(false);
   const [toggleConfirmOpen, setToggleConfirmOpen] = useState(false);
+  const [manualDraftContent, setManualDraftContent] = useState('');
+  const [manualDraftLoading, setManualDraftLoading] = useState(false);
   const [snackbar, setSnackbar] = useState<SnackbarState>({
     open: false,
     message: '',
@@ -384,6 +386,42 @@ function DashboardAPage() {
           </Button>
           <Button variant="outlined" onClick={() => void navigate({ to: `/bots/${bot.id}/edit` })}>
             Edit Bot Config
+          </Button>
+        </Box>
+
+        {/* Manual Draft */}
+        <Box sx={{ display: 'flex', gap: 2, mb: 4, alignItems: 'flex-start' }}>
+          <TextField
+            size="small"
+            multiline
+            minRows={2}
+            maxRows={4}
+            placeholder="Type draft content..."
+            value={manualDraftContent}
+            onChange={(e) => setManualDraftContent(e.target.value)}
+            sx={{ flex: 1 }}
+          />
+          <Button
+            variant="contained"
+            disabled={!manualDraftContent.trim() || manualDraftLoading}
+            onClick={async () => {
+              if (!bot) return;
+              setManualDraftLoading(true);
+              try {
+                await apiClient.post(`/bots/${bot.id}/manual-draft`, {
+                  content: manualDraftContent.trim(),
+                });
+                showSnackbar('Draft created', 'success');
+                setManualDraftContent('');
+              } catch {
+                showSnackbar('Failed to create draft', 'error');
+              } finally {
+                setManualDraftLoading(false);
+              }
+            }}
+            sx={{ minWidth: 130, height: 40 }}
+          >
+            {manualDraftLoading ? <CircularProgress size={18} /> : 'Create Draft'}
           </Button>
         </Box>
 
