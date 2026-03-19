@@ -127,7 +127,11 @@ export async function generateReplyPostDraft(
     console.error(
       `[replyPostService] Bot ${bot.xAccountHandle || bot.id}: ANTHROPIC_API_KEY not set, cannot generate reply`,
     );
-    log('draft', `Bot ${bot.xAccountHandle || bot.id}: AI service not configured`, 'error');
+    log(
+      'post-generator',
+      `Bot ${bot.xAccountHandle || bot.id}: AI service not configured`,
+      'error',
+    );
     return null;
   }
 
@@ -154,7 +158,7 @@ export async function generateReplyPostDraft(
         `[replyPostService] Bot ${bot.xAccountHandle || bot.id}: failed to get user ID — ${meResult.error ?? 'unknown'}`,
       );
       log(
-        'draft',
+        'post-generator',
         `Bot ${bot.xAccountHandle || bot.id}: failed to get user ID — ${meResult.error ?? 'unknown'}`,
         'error',
       );
@@ -166,7 +170,7 @@ export async function generateReplyPostDraft(
       `[replyPostService] Bot ${bot.xAccountHandle || bot.id}: failed to get user ID — ${err instanceof Error ? err.message : String(err)}`,
     );
     log(
-      'draft',
+      'post-generator',
       `Bot ${bot.xAccountHandle || bot.id}: failed to get user ID — ${err instanceof Error ? err.message : String(err)}`,
       'error',
     );
@@ -181,7 +185,7 @@ export async function generateReplyPostDraft(
       mentions = result.tweets;
     } else if (result.error) {
       log(
-        'draft',
+        'post-generator',
         `Bot ${bot.xAccountHandle || bot.id}: mentions fetch failed — ${result.error}`,
         'warn',
       );
@@ -189,7 +193,7 @@ export async function generateReplyPostDraft(
   } catch (err) {
     console.error('Mentions fetch failed:', err);
     log(
-      'draft',
+      'post-generator',
       `Bot ${bot.xAccountHandle || bot.id}: mentions fetch error — ${err instanceof Error ? err.message : String(err)}`,
       'error',
     );
@@ -220,7 +224,7 @@ export async function generateReplyPostDraft(
         quoteTweets = quoteResult.tweets;
       } else if (quoteResult.error) {
         log(
-          'draft',
+          'post-generator',
           `Bot ${bot.xAccountHandle || bot.id}: quote tweet search failed — ${quoteResult.error}`,
           'warn',
         );
@@ -228,7 +232,7 @@ export async function generateReplyPostDraft(
     } catch (err) {
       console.error('Quote tweet search failed, continuing with mentions only:', err);
       log(
-        'draft',
+        'post-generator',
         `Bot ${bot.xAccountHandle || bot.id}: quote tweet search error — ${err instanceof Error ? err.message : String(err)}`,
         'warn',
       );
@@ -261,14 +265,14 @@ export async function generateReplyPostDraft(
       `[replyPostService] Bot ${bot.xAccountHandle || bot.id}: no recent mentions or quote tweets found, skipping reply_to_post`,
     );
     log(
-      'draft',
+      'post-generator',
       `Bot ${bot.xAccountHandle || bot.id}: no recent mentions or quote tweets found, skipping reply_to_post`,
     );
     return null;
   }
 
   log(
-    'draft',
+    'post-generator',
     `Bot ${bot.xAccountHandle || bot.id}: found ${mentions.length} mentions and ${quoteTweets.length} quote tweets (${candidates.length} unique candidates)`,
   );
 
@@ -320,7 +324,7 @@ export async function generateReplyPostDraft(
       `[replyPostService] Bot ${bot.xAccountHandle || bot.id}: all ${totalBeforeDedup} mentions already replied to, skipping`,
     );
     log(
-      'draft',
+      'post-generator',
       `Bot ${bot.xAccountHandle || bot.id}: all ${totalBeforeDedup} mentions already replied to, skipping`,
     );
     return null;
@@ -349,7 +353,7 @@ export async function generateReplyPostDraft(
   } catch (err) {
     console.error('Failed to select mention and generate reply:', err);
     log(
-      'draft',
+      'post-generator',
       `Bot ${bot.xAccountHandle || bot.id}: AI selection/reply failed — ${err instanceof Error ? err.message : String(err)}`,
       'error',
     );
@@ -361,7 +365,7 @@ export async function generateReplyPostDraft(
       `[replyPostService] Bot ${bot.xAccountHandle || bot.id}: AI did not return a valid tweet ID or reply (tweetId=${tweetId || 'empty'}, replyText=${replyText ? 'present' : 'empty'})`,
     );
     log(
-      'draft',
+      'post-generator',
       `Bot ${bot.xAccountHandle || bot.id}: AI did not return a valid tweet ID or reply, skipping`,
       'warn',
     );
@@ -413,7 +417,7 @@ export async function generateReplyPostDraft(
   });
 
   log(
-    'draft',
+    'post-generator',
     `Bot ${bot.xAccountHandle || bot.id}: created reply_to_post draft replying to tweet ${tweetId}`,
   );
 

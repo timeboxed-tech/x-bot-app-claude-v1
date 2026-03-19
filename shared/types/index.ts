@@ -2,12 +2,7 @@
 
 export type PostStatus = 'draft' | 'published' | 'discarded' | 'approved' | 'failed';
 export type PostMode = 'auto' | 'manual' | 'with-approval';
-export type JobType =
-  | 'scheduler-tick'
-  | 'post-generation'
-  | 'post-approver'
-  | 'post-publish'
-  | 'cleanup';
+export type JobType = 'post-generator' | 'post-approver' | 'post-publish' | 'cleanup';
 export type JobStatus = 'pending' | 'running' | 'completed' | 'failed' | 'cancelled';
 
 export interface User {

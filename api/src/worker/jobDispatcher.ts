@@ -2,7 +2,6 @@ import { v4 as uuidv4 } from 'uuid';
 import { jobRepository } from '../repositories/jobRepository.js';
 import { jobConfigRepository } from '../repositories/jobConfigRepository.js';
 import { handleSchedulerTick } from './schedulerTickHandler.js';
-import { handlePostGeneration } from './postGenerationHandler.js';
 import { handlePostApprover } from './postApproverHandler.js';
 import { handlePostPublish } from './postPublishHandler.js';
 import { handleCleanupJob } from './cleanupHandler.js';
@@ -11,15 +10,14 @@ import { log } from './activityLog.js';
 const POLL_INTERVAL_MS = parseInt(process.env.WORKER_POLL_INTERVAL_MS || '30000', 10);
 
 const FALLBACK_INTERVALS: Record<string, number> = {
-  'scheduler-tick': 15 * 60 * 1000, // 15 min
-  'post-generation': 0, // on-demand, no recurring
+  'post-generator': 15 * 60 * 1000, // 15 min
   'post-approver': 15 * 60 * 1000, // 15 min
   'post-publish': 15 * 60 * 1000, // 15 min
   cleanup: 6 * 60 * 60 * 1000, // 6 hours
 };
 
 // Recurring job types that self-reschedule after completion
-const RECURRING_JOB_TYPES = ['scheduler-tick', 'post-approver', 'post-publish', 'cleanup'];
+const RECURRING_JOB_TYPES = ['post-generator', 'post-approver', 'post-publish', 'cleanup'];
 
 // Simple in-memory cache with 5-minute TTL
 const jobConfigCache = new Map<
@@ -55,14 +53,10 @@ async function getCachedJobConfig(
 }
 
 const JOB_HANDLERS: Record<string, (jobId: string) => Promise<void>> = {
-  'scheduler-tick': handleSchedulerTick,
-  'post-generation': handlePostGeneration,
+  'post-generator': handleSchedulerTick,
   'post-approver': handlePostApprover,
   'post-publish': handlePostPublish,
   cleanup: handleCleanupJob,
-  // Backward compat: old job types gracefully handled until migration clears them
-  draft: handlePostGeneration,
-  publish: handlePostPublish,
 };
 
 let intervalHandle: ReturnType<typeof setInterval> | null = null;

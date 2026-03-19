@@ -2,12 +2,9 @@ export type LogEntry = {
   timestamp: string;
   worker:
     | 'dispatcher'
-    | 'draft'
-    | 'publish'
     | 'cleanup'
     | 'staleLockRecovery'
-    | 'scheduler-tick'
-    | 'post-generation'
+    | 'post-generator'
     | 'post-approver'
     | 'post-publish';
   message: string;

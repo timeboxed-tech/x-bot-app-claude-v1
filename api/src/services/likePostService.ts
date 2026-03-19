@@ -138,7 +138,11 @@ export async function generateLikePostDraft(
     console.error(
       `[likePostService] Bot ${bot.xAccountHandle || bot.id}: ANTHROPIC_API_KEY not set, cannot generate like post`,
     );
-    log('draft', `Bot ${bot.xAccountHandle || bot.id}: AI service not configured`, 'error');
+    log(
+      'post-generator',
+      `Bot ${bot.xAccountHandle || bot.id}: AI service not configured`,
+      'error',
+    );
     return null;
   }
 
@@ -167,13 +171,13 @@ export async function generateLikePostDraft(
       output: queries.join('\n'),
     });
     log(
-      'draft',
+      'post-generator',
       `Bot ${bot.xAccountHandle || bot.id}: generated ${queries.length} search queries for like_post`,
     );
   } catch (err) {
     console.error('Failed to generate search queries for like_post:', err);
     log(
-      'draft',
+      'post-generator',
       `Bot ${bot.xAccountHandle || bot.id}: failed to generate search queries — ${err instanceof Error ? err.message : String(err)}`,
       'error',
     );
@@ -185,7 +189,7 @@ export async function generateLikePostDraft(
       `[likePostService] Bot ${bot.xAccountHandle || bot.id}: no search queries generated, skipping like_post`,
     );
     log(
-      'draft',
+      'post-generator',
       `Bot ${bot.xAccountHandle || bot.id}: no search queries generated, skipping like_post`,
       'warn',
     );
@@ -217,7 +221,7 @@ export async function generateLikePostDraft(
         }
       } else if (result.error) {
         log(
-          'draft',
+          'post-generator',
           `Bot ${bot.xAccountHandle || bot.id}: search failed for query "${query}" — ${result.error}`,
           'warn',
         );
@@ -225,7 +229,7 @@ export async function generateLikePostDraft(
     } catch (err) {
       console.error(`Search failed for query "${query}":`, err);
       log(
-        'draft',
+        'post-generator',
         `Bot ${bot.xAccountHandle || bot.id}: search error for query "${query}" — ${err instanceof Error ? err.message : String(err)}`,
         'error',
       );
@@ -237,7 +241,7 @@ export async function generateLikePostDraft(
       `[likePostService] Bot ${bot.xAccountHandle || bot.id}: no tweets found from search, skipping like_post`,
     );
     log(
-      'draft',
+      'post-generator',
       `Bot ${bot.xAccountHandle || bot.id}: no tweets found from search, skipping like_post`,
       'warn',
     );
@@ -246,7 +250,7 @@ export async function generateLikePostDraft(
 
   if (allTweets.length < MIN_CANDIDATES) {
     log(
-      'draft',
+      'post-generator',
       `Bot ${bot.xAccountHandle || bot.id}: only found ${allTweets.length} unique tweets (wanted at least ${MIN_CANDIDATES}), proceeding with available results`,
       'warn',
     );
@@ -255,7 +259,7 @@ export async function generateLikePostDraft(
   // Limit to top 15 candidates to give AI more to choose from
   const candidates = allTweets.slice(0, 15);
   log(
-    'draft',
+    'post-generator',
     `Bot ${bot.xAccountHandle || bot.id}: found ${allTweets.length} unique tweets, using top ${candidates.length} as candidates`,
   );
 
@@ -289,7 +293,7 @@ export async function generateLikePostDraft(
   } catch (err) {
     console.error('Failed to select posts to like:', err);
     log(
-      'draft',
+      'post-generator',
       `Bot ${bot.xAccountHandle || bot.id}: AI selection failed — ${err instanceof Error ? err.message : String(err)}`,
       'error',
     );
@@ -301,7 +305,7 @@ export async function generateLikePostDraft(
       `[likePostService] Bot ${bot.xAccountHandle || bot.id}: AI selected no posts to like, skipping`,
     );
     log(
-      'draft',
+      'post-generator',
       `Bot ${bot.xAccountHandle || bot.id}: AI selected no posts to like, skipping`,
       'warn',
     );
@@ -364,7 +368,7 @@ export async function generateLikePostDraft(
   });
 
   log(
-    'draft',
+    'post-generator',
     `Bot ${bot.xAccountHandle || bot.id}: created like_post draft with ${selectedIds.length} tweets`,
   );
 

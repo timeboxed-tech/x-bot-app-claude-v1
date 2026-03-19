@@ -246,10 +246,10 @@ The actual revised tweet text here`,
 
   // Seed job configs (upsert to avoid duplicates)
   await prisma.jobConfig.upsert({
-    where: { jobType: 'scheduler-tick' },
+    where: { jobType: 'post-generator' },
     update: {},
     create: {
-      jobType: 'scheduler-tick',
+      jobType: 'post-generator',
       intervalMs: 900000,
       enabled: true,
       description: 'Checks each active bot pipeline and enqueues post generation when needed',
@@ -275,17 +275,6 @@ The actual revised tweet text here`,
       intervalMs: 21600000,
       enabled: true,
       description: 'Expires stale drafts, deletes old discarded posts and completed jobs',
-    },
-  });
-
-  await prisma.jobConfig.upsert({
-    where: { jobType: 'post-generation' },
-    update: {},
-    create: {
-      jobType: 'post-generation',
-      intervalMs: 0,
-      enabled: true,
-      description: 'Generates a single draft post for one bot',
     },
   });
 
