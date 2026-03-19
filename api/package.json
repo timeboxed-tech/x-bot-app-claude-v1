@@ -6,7 +6,7 @@
   "scripts": {
     "build": "tsc",
     "dev": "nodemon --exec tsx src/index.ts",
-    "start": "npx prisma migrate resolve --rolled-back 20260319030000_clean_old_jobs_seed_configs 2>/dev/null; npx prisma migrate deploy && node dist/index.js",
+    "start": "npx prisma migrate deploy && node dist/index.js",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
     "prisma:seed": "tsx prisma/seed.ts",
