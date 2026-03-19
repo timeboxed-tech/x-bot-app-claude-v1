@@ -60,6 +60,9 @@ const JOB_HANDLERS: Record<string, (jobId: string) => Promise<void>> = {
   'post-approver': handlePostApprover,
   'post-publish': handlePostPublish,
   cleanup: handleCleanupJob,
+  // Backward compat: old job types gracefully handled until migration clears them
+  draft: handlePostGeneration,
+  publish: handlePostPublish,
 };
 
 let intervalHandle: ReturnType<typeof setInterval> | null = null;
