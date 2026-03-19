@@ -99,18 +99,6 @@ export const postService = {
 
     if (input.rating !== undefined) {
       updateData.rating = input.rating;
-
-      // Auto-approve: when a draft post from a with-approval bot is rated 4 or 5 (and not flagged)
-      if (
-        input.rating !== null &&
-        input.rating >= 4 &&
-        post.bot.postMode === 'with-approval' &&
-        post.status === 'draft' &&
-        !post.flagged &&
-        !input.status // don't override an explicit status change
-      ) {
-        updateData.status = 'approved';
-      }
     }
 
     if (input.status === 'approved') {
