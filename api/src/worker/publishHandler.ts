@@ -19,8 +19,8 @@ const retryCounts = new Map<string, number>();
  * and publishes them based on rate limits and bot config.
  */
 export async function handlePublishJob(_jobId: string): Promise<void> {
-  // Gather both scheduled posts and approved posts (from with-approval bots)
-  const scheduledPosts = await postRepository.findScheduledReady(20);
+  // Gather both approved-scheduled posts and approved posts (from with-approval bots)
+  const scheduledPosts = await postRepository.findApprovedScheduledReady(20);
   const approvedPosts = await postRepository.findApprovedReady(20);
 
   const posts = [...scheduledPosts, ...approvedPosts];
@@ -37,8 +37,8 @@ export async function handlePublishJob(_jobId: string): Promise<void> {
   for (const post of posts) {
     const currentRetries = retryCounts.get(post.id) ?? 0;
     if (currentRetries >= MAX_RETRIES) {
-      log('publish', `Post ${post.id}: max retries reached, discarding`, 'warn');
-      await postRepository.update(post.id, { status: 'discarded' });
+      log('publish', `Post ${post.id}: max retries reached, marking as failed`, 'warn');
+      await postRepository.update(post.id, { status: 'failed' });
       retryCounts.delete(post.id);
       failed++;
       continue;
@@ -58,7 +58,7 @@ export async function handlePublishJob(_jobId: string): Promise<void> {
       const [hourStr, minStr] = localTimeStr.split(':');
       const currentHourLocal = parseInt(hourStr, 10) + parseInt(minStr, 10) / 60;
       if (currentHourLocal < bot.preferredHoursStart || currentHourLocal >= bot.preferredHoursEnd) {
-        if (post.status === 'scheduled') {
+        if (post.status === 'approved' && post.scheduledAt) {
           const newScheduledAt = new Date(Date.now() + RESCHEDULE_DELAY_MS);
           await postRepository.update(post.id, { scheduledAt: newScheduledAt });
         }
@@ -76,7 +76,7 @@ export async function handlePublishJob(_jobId: string): Promise<void> {
     const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
     const publishedLast24h = await postRepository.countPublishedByBotSince(bot.id, twentyFourHoursAgo);
     if (publishedLast24h >= bot.postsPerDay) {
-      if (post.status === 'scheduled') {
+      if (post.status === 'approved' && post.scheduledAt) {
         const newScheduledAt = new Date(Date.now() + RESCHEDULE_DELAY_MS);
         await postRepository.update(post.id, { scheduledAt: newScheduledAt });
       }
@@ -96,7 +96,7 @@ export async function handlePublishJob(_jobId: string): Promise<void> {
         (Date.now() - new Date(lastPublished.publishedAt).getTime()) / (1000 * 60 * 60);
       const jitteredInterval = bot.minIntervalHours * (0.85 + Math.random() * 0.3);
       if (hoursSinceLastPublish < jitteredInterval) {
-        if (post.status === 'scheduled') {
+        if (post.status === 'approved' && post.scheduledAt) {
           const newScheduledAt = new Date(Date.now() + RESCHEDULE_DELAY_MS);
           await postRepository.update(post.id, { scheduledAt: newScheduledAt });
         }
@@ -137,7 +137,7 @@ export async function handlePublishJob(_jobId: string): Promise<void> {
           'error',
         );
         if (newCount >= MAX_RETRIES) {
-          await postRepository.update(post.id, { status: 'discarded' });
+          await postRepository.update(post.id, { status: 'failed' });
           retryCounts.delete(post.id);
         }
       }
@@ -165,7 +165,7 @@ export async function handlePublishJob(_jobId: string): Promise<void> {
           'error',
         );
         if (newCount >= MAX_RETRIES) {
-          await postRepository.update(post.id, { status: 'discarded' });
+          await postRepository.update(post.id, { status: 'failed' });
           retryCounts.delete(post.id);
         }
       }
@@ -192,7 +192,7 @@ export async function handlePublishJob(_jobId: string): Promise<void> {
         );
 
         if (newCount >= MAX_RETRIES) {
-          await postRepository.update(post.id, { status: 'discarded' });
+          await postRepository.update(post.id, { status: 'failed' });
           retryCounts.delete(post.id);
         }
       }

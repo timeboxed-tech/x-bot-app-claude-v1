@@ -57,16 +57,16 @@ const STATUS_FILTERS: Array<{ label: string; status?: PostStatus }> = [
   { label: 'All' },
   { label: 'Drafts', status: 'draft' },
   { label: 'Approved', status: 'approved' },
-  { label: 'Scheduled', status: 'scheduled' },
   { label: 'Published', status: 'published' },
+  { label: 'Failed', status: 'failed' },
   { label: 'Discarded', status: 'discarded' },
 ];
 
 const statusColors: Record<PostStatus, 'default' | 'info' | 'success' | 'error' | 'warning'> = {
   draft: 'default',
   approved: 'warning',
-  scheduled: 'info',
   published: 'success',
+  failed: 'error',
   discarded: 'error',
 };
 
@@ -410,7 +410,7 @@ export default function PostQueueBPage() {
                               <IconButton
                                 size="small"
                                 onClick={() =>
-                                  updatePost.mutate({ id: post.id, status: 'scheduled' })
+                                  updatePost.mutate({ id: post.id, status: 'approved' })
                                 }
                                 disabled={updatePost.isPending || publishPost.isPending}
                               >
@@ -466,56 +466,11 @@ export default function PostQueueBPage() {
                               <IconButton
                                 size="small"
                                 onClick={() =>
-                                  updatePost.mutate({ id: post.id, status: 'scheduled' })
+                                  updatePost.mutate({ id: post.id, status: 'approved' })
                                 }
                                 disabled={updatePost.isPending || publishPost.isPending}
                               >
                                 <ScheduleIcon fontSize="small" />
-                              </IconButton>
-                            </Tooltip>
-                            <Tooltip title="Discard">
-                              <IconButton
-                                size="small"
-                                color="error"
-                                onClick={() =>
-                                  updatePost.mutate({ id: post.id, status: 'discarded' })
-                                }
-                                disabled={updatePost.isPending || publishPost.isPending}
-                              >
-                                <DeleteIcon fontSize="small" />
-                              </IconButton>
-                            </Tooltip>
-                          </>
-                        )}
-                        {post.status === 'scheduled' && (
-                          <>
-                            <Tooltip title="Publish Now">
-                              <IconButton
-                                size="small"
-                                color="primary"
-                                onClick={() => {
-                                  setPublishError(null);
-                                  setPublishingId(post.id);
-                                  publishPost.mutate(post.id, {
-                                    onSettled: () => setPublishingId(null),
-                                    onError: (err: unknown) => {
-                                      const message =
-                                        err instanceof AxiosError && err.response?.data?.error
-                                          ? err.response.data.error
-                                          : err instanceof Error
-                                            ? err.message
-                                            : 'Failed to publish';
-                                      setPublishError(message);
-                                    },
-                                  });
-                                }}
-                                disabled={updatePost.isPending || publishPost.isPending}
-                              >
-                                {publishPost.isPending && publishingId === post.id ? (
-                                  <CircularProgress size={16} />
-                                ) : (
-                                  <SendIcon fontSize="small" />
-                                )}
                               </IconButton>
                             </Tooltip>
                             <Tooltip title="Discard">
@@ -784,7 +739,7 @@ export default function PostQueueBPage() {
                                 size="small"
                                 variant="outlined"
                                 onClick={() =>
-                                  updatePost.mutate({ id: post.id, status: 'scheduled' })
+                                  updatePost.mutate({ id: post.id, status: 'approved' })
                                 }
                                 disabled={updatePost.isPending || publishPost.isPending}
                               >
@@ -841,7 +796,7 @@ export default function PostQueueBPage() {
                                 size="small"
                                 variant="outlined"
                                 onClick={() =>
-                                  updatePost.mutate({ id: post.id, status: 'scheduled' })
+                                  updatePost.mutate({ id: post.id, status: 'approved' })
                                 }
                                 disabled={updatePost.isPending || publishPost.isPending}
                               >
@@ -855,48 +810,6 @@ export default function PostQueueBPage() {
                                 disabled={updatePost.isPending || publishPost.isPending}
                               >
                                 Back to Draft
-                              </Button>
-                              <Button
-                                size="small"
-                                color="error"
-                                onClick={() =>
-                                  updatePost.mutate({ id: post.id, status: 'discarded' })
-                                }
-                                disabled={updatePost.isPending || publishPost.isPending}
-                              >
-                                Discard
-                              </Button>
-                            </>
-                          )}
-                          {post.status === 'scheduled' && (
-                            <>
-                              <Button
-                                size="small"
-                                variant="contained"
-                                color="primary"
-                                onClick={() => {
-                                  setPublishError(null);
-                                  setPublishingId(post.id);
-                                  publishPost.mutate(post.id, {
-                                    onSettled: () => setPublishingId(null),
-                                    onError: (err: unknown) => {
-                                      const message =
-                                        err instanceof AxiosError && err.response?.data?.error
-                                          ? err.response.data.error
-                                          : err instanceof Error
-                                            ? err.message
-                                            : 'Failed to publish';
-                                      setPublishError(message);
-                                    },
-                                  });
-                                }}
-                                disabled={updatePost.isPending || publishPost.isPending}
-                              >
-                                {publishPost.isPending && publishingId === post.id ? (
-                                  <CircularProgress size={16} />
-                                ) : (
-                                  'Publish Now'
-                                )}
                               </Button>
                               <Button
                                 size="small"

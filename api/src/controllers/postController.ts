@@ -20,7 +20,7 @@ const postIdParamSchema = z.object({
 const updatePostSchema = z.object({
   content: z.string().min(1, 'Content must not be empty').optional(),
   rating: z.number().int().min(1).max(5).nullable().optional(),
-  status: z.enum(['draft', 'scheduled', 'discarded', 'approved']).optional(),
+  status: z.enum(['draft', 'discarded', 'approved']).optional(),
   scheduledAt: z.string().datetime().nullable().optional(),
   flagged: z.boolean().optional(),
 });
@@ -166,10 +166,10 @@ export const postController = {
         throw new ForbiddenError('You do not have access to this post');
       }
 
-      const publishableStatuses = ['draft', 'approved', 'scheduled'];
+      const publishableStatuses = ['draft', 'approved'];
       if (!publishableStatuses.includes(post.status)) {
         throw new ValidationError(
-          `Cannot publish a post with status '${post.status}'. Post must be draft, approved, or scheduled.`,
+          `Cannot publish a post with status '${post.status}'. Post must be draft or approved.`,
         );
       }
 

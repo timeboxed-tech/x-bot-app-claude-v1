@@ -88,10 +88,10 @@ export const postRepository = {
     });
   },
 
-  async findScheduledReady(limit = 50) {
+  async findApprovedScheduledReady(limit = 50) {
     return prisma.post.findMany({
       where: {
-        status: 'scheduled',
+        status: 'approved',
         scheduledAt: { lte: new Date() },
         bot: { user: { archivedAt: null } },
       },
@@ -165,7 +165,7 @@ export const postRepository = {
       where: {
         botId,
         createdAt: { gte: since },
-        status: { in: ['draft', 'scheduled', 'published', 'approved'] },
+        status: { in: ['draft', 'published', 'approved'] },
       },
     });
   },
@@ -232,7 +232,7 @@ export const postRepository = {
 
   async countsByStatus(botIds?: string[]) {
     const where = botIds ? { botId: { in: botIds } } : {};
-    const statuses = ['draft', 'approved', 'scheduled', 'published', 'discarded'] as const;
+    const statuses = ['draft', 'approved', 'published', 'failed', 'discarded'] as const;
     const counts = await Promise.all(
       statuses.map((status) => prisma.post.count({ where: { ...where, status } })),
     );
@@ -240,8 +240,8 @@ export const postRepository = {
     return {
       draft: counts[0],
       approved: counts[1],
-      scheduled: counts[2],
-      published: counts[3],
+      published: counts[2],
+      failed: counts[3],
       discarded: counts[4],
       total,
     };
@@ -251,7 +251,7 @@ export const postRepository = {
     return prisma.post.findMany({
       where: {
         botId,
-        status: { in: ['draft', 'scheduled', 'published', 'approved'] },
+        status: { in: ['draft', 'published', 'approved'] },
       },
       select: { content: true },
       orderBy: { createdAt: 'desc' },

@@ -7,7 +7,7 @@ import { NotFoundError, ForbiddenError, ValidationError } from '../utils/errors.
 type UpdatePostInput = {
   content?: string;
   rating?: number | null;
-  status?: 'draft' | 'scheduled' | 'discarded' | 'approved';
+  status?: 'draft' | 'discarded' | 'approved';
   scheduledAt?: string | null;
   flagged?: boolean;
 };
@@ -56,8 +56,8 @@ export const postService = {
     }
 
     // Validate status transitions
-    if (post.status === 'published') {
-      throw new ForbiddenError('Cannot modify a published post');
+    if (post.status === 'published' || post.status === 'failed') {
+      throw new ForbiddenError('Cannot modify a published or failed post');
     }
     if (post.status === 'discarded' && input.status !== 'draft') {
       throw new ForbiddenError('Discarded posts can only be reinstated to draft');
@@ -115,9 +115,9 @@ export const postService = {
 
     if (input.status === 'approved') {
       updateData.status = 'approved';
-    } else if (input.status === 'scheduled') {
-      updateData.status = 'scheduled';
-      updateData.scheduledAt = input.scheduledAt ? new Date(input.scheduledAt) : new Date();
+      if (input.scheduledAt) {
+        updateData.scheduledAt = new Date(input.scheduledAt);
+      }
     } else if (input.status === 'discarded') {
       updateData.status = 'discarded';
     } else if (input.status === 'draft') {
@@ -221,7 +221,7 @@ export const postService = {
         const { bots } = await botRepository.findByUserId(userId, 1, 1000);
         const userBotIds = bots.map((b: { id: string }) => b.id);
         if (!userBotIds.includes(botId)) {
-          return { draft: 0, approved: 0, scheduled: 0, published: 0, discarded: 0, total: 0 };
+          return { draft: 0, approved: 0, published: 0, failed: 0, discarded: 0, total: 0 };
         }
       }
       return postRepository.countsByStatus([botId]);
@@ -235,7 +235,7 @@ export const postService = {
     const botIds = bots.map((b: { id: string }) => b.id);
 
     if (botIds.length === 0) {
-      return { draft: 0, approved: 0, scheduled: 0, published: 0, discarded: 0, total: 0 };
+      return { draft: 0, approved: 0, published: 0, failed: 0, discarded: 0, total: 0 };
     }
 
     return postRepository.countsByStatus(botIds);
@@ -263,11 +263,11 @@ export const postService = {
 function getAllowedTransitions(currentStatus: string): string[] {
   switch (currentStatus) {
     case 'draft':
-      return ['scheduled', 'discarded', 'approved'];
+      return ['approved', 'discarded'];
     case 'approved':
-      return ['scheduled', 'discarded', 'draft'];
-    case 'scheduled':
-      return ['discarded'];
+      return ['discarded', 'draft'];
+    case 'failed':
+      return [];
     case 'discarded':
       return ['draft'];
     default:

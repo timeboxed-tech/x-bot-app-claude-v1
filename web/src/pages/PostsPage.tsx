@@ -31,15 +31,11 @@ const TAB_CONFIG = [
     emptyMessage: 'No approved posts',
   },
   {
-    label: 'Scheduled',
-    status: 'scheduled',
-    emptyMessage: 'No scheduled posts',
-  },
-  {
     label: 'Published',
     status: 'published',
     emptyMessage: 'No published posts',
   },
+  { label: 'Failed', status: 'failed', emptyMessage: 'No failed posts' },
   {
     label: 'Discarded',
     status: 'discarded',

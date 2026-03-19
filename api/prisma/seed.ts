@@ -124,7 +124,7 @@ async function main() {
       jobId: job2.id,
       content:
         'The best code review feedback is the one that teaches something new, not just catches bugs.',
-      status: 'scheduled',
+      status: 'approved',
       rating: 5,
       scheduledAt: oneHourFromNow,
     },
