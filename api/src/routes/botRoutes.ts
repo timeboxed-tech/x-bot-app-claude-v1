@@ -4,6 +4,7 @@ import { botShareController } from '../controllers/botShareController.js';
 import { botTipController } from '../controllers/botTipController.js';
 import { botBehaviourController } from '../controllers/botBehaviourController.js';
 import { botJudgeController } from '../controllers/botJudgeController.js';
+import { postController } from '../controllers/postController.js';
 import { authMiddleware } from '../middleware/auth.js';
 
 const router = Router();
@@ -38,6 +39,9 @@ router.post('/:id/behaviours', botBehaviourController.create);
 router.patch('/:id/behaviours/:behaviourId', botBehaviourController.update);
 router.delete('/:id/behaviours/:behaviourId', botBehaviourController.remove);
 router.patch('/:id/behaviours/:behaviourId/toggle', botBehaviourController.toggleActive);
+
+// Manual draft creation
+router.post('/:id/manual-draft', postController.createManualDraft);
 
 // Judge assignment routes
 router.get('/:id/judges', botJudgeController.list);

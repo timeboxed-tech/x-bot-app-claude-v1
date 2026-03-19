@@ -19,4 +19,11 @@ export const jobConfigRepository = {
       data,
     });
   },
+
+  async updateLastRunAt(jobType: string) {
+    return prisma.jobConfig.update({
+      where: { jobType },
+      data: { lastRunAt: new Date() },
+    });
+  },
 };

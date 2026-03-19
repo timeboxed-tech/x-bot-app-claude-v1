@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import { z } from 'zod';
 import { postService } from '../services/postService.js';
+import { botService } from '../services/botService.js';
 import { userRepository } from '../repositories/userRepository.js';
 import { postRepository } from '../repositories/postRepository.js';
 import { publishPostNow } from '../services/publishService.js';
@@ -197,6 +198,31 @@ export const postController = {
       res.status(200).json({
         data: updatedPost,
       });
+    } catch (err) {
+      next(err);
+    }
+  },
+
+  async createManualDraft(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const { id: botId } = z.object({ id: uuidSchema }).parse(req.params);
+      const { content } = z
+        .object({
+          content: z.string().min(1, 'Content is required').max(1000),
+        })
+        .parse(req.body);
+      const userId = req.userId!;
+
+      // Verify bot ownership (throws NotFoundError/ForbiddenError)
+      await botService.getBot(botId, userId);
+
+      const post = await postRepository.create({
+        botId,
+        content,
+        status: 'draft',
+      });
+
+      res.status(201).json({ data: post });
     } catch (err) {
       next(err);
     }

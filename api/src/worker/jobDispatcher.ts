@@ -143,6 +143,13 @@ async function processJobs(): Promise<void> {
         );
         await jobRepository.markFailed(job.id, errorMsg);
       } finally {
+        if (RECURRING_JOB_TYPES.includes(job.type)) {
+          try {
+            await jobConfigRepository.updateLastRunAt(job.type);
+          } catch {
+            /* ignore */
+          }
+        }
         try {
           await scheduleNextJob(job.type);
         } catch (schedErr) {

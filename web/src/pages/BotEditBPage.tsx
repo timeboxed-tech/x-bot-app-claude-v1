@@ -34,7 +34,9 @@ import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import PlayArrowIcon from '@mui/icons-material/PlayArrow';
 import SaveIcon from '@mui/icons-material/Save';
 import AddIcon from '@mui/icons-material/Add';
+import CreateIcon from '@mui/icons-material/Create';
 import AppHeader from '../components/AppHeader';
+import { apiClient } from '../lib/apiClient';
 import { StepCard, type ProcessStep } from '../components/ProcessVisualisationDialog';
 import { useBot, useUpdateBot, useBotTips } from '../hooks/useBot';
 import { useDeletePost } from '../hooks/usePosts';
@@ -107,6 +109,10 @@ export default function BotEditBPage() {
   } | null>(null);
   const [testRunError, setTestRunError] = useState<string | null>(null);
   const [testRunMessage, setTestRunMessage] = useState<string | null>(null);
+
+  // Manual draft state
+  const [manualDraftContent, setManualDraftContent] = useState('');
+  const [manualDraftLoading, setManualDraftLoading] = useState(false);
 
   const [snackbar, setSnackbar] = useState<SnackbarState>({
     open: false,
@@ -1102,6 +1108,51 @@ export default function BotEditBPage() {
               </Box>
             </Box>
           )}
+        </CardContent>
+      </Card>
+
+      {/* Manual Draft */}
+      <Card sx={{ mt: 2 }}>
+        <CardContent>
+          <Typography variant="subtitle2" gutterBottom>
+            Manual Draft
+          </Typography>
+          <TextField
+            fullWidth
+            multiline
+            minRows={2}
+            maxRows={4}
+            size="small"
+            placeholder="Type your draft content..."
+            value={manualDraftContent}
+            onChange={(e) => setManualDraftContent(e.target.value)}
+            sx={{ mb: 1.5 }}
+          />
+          <Button
+            variant="contained"
+            size="small"
+            fullWidth
+            startIcon={manualDraftLoading ? <CircularProgress size={16} /> : <CreateIcon />}
+            disabled={!manualDraftContent.trim() || manualDraftLoading}
+            onClick={async () => {
+              setManualDraftLoading(true);
+              try {
+                await apiClient.post(`/bots/${botId}/manual-draft`, {
+                  content: manualDraftContent.trim(),
+                });
+                showSnackbar('Draft created successfully', 'success');
+                setManualDraftContent('');
+              } catch (err: unknown) {
+                const message =
+                  err instanceof Error ? err.message : 'Failed to create draft';
+                showSnackbar(message, 'error');
+              } finally {
+                setManualDraftLoading(false);
+              }
+            }}
+          >
+            {manualDraftLoading ? 'Creating...' : 'Create Draft'}
+          </Button>
         </CardContent>
       </Card>
     </Box>

@@ -248,19 +248,19 @@ The actual revised tweet text here`,
   await prisma.jobConfig.upsert({
     where: { jobType: 'scheduler-tick' },
     update: {},
-    create: { jobType: 'scheduler-tick', intervalMs: 900000, enabled: true },
+    create: { jobType: 'scheduler-tick', intervalMs: 900000, enabled: true, description: 'Checks each active bot pipeline and enqueues post generation when needed' },
   });
 
   await prisma.jobConfig.upsert({
     where: { jobType: 'post-approver' },
     update: {},
-    create: { jobType: 'post-approver', intervalMs: 900000, enabled: true },
+    create: { jobType: 'post-approver', intervalMs: 900000, enabled: true, description: 'Auto-approves and schedules drafts for autonomous bots' },
   });
 
   await prisma.jobConfig.upsert({
     where: { jobType: 'cleanup' },
     update: {},
-    create: { jobType: 'cleanup', intervalMs: 21600000, enabled: true },
+    create: { jobType: 'cleanup', intervalMs: 21600000, enabled: true, description: 'Expires stale drafts, deletes old discarded posts and completed jobs' },
   });
 
   console.log('Seed data created successfully:');
