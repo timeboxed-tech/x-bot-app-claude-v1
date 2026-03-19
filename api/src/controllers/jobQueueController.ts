@@ -71,6 +71,7 @@ export const jobQueueController = {
         startedAt: Date | null;
         completedAt: Date | null;
         error: string | null;
+        result: string | null;
         createdAt: Date;
       }) => ({
         id: job.id,
@@ -81,6 +82,7 @@ export const jobQueueController = {
         ...(job.startedAt && { startedAt: job.startedAt }),
         ...(job.completedAt && { completedAt: job.completedAt }),
         error: job.error ?? null,
+        result: job.result ?? null,
         createdAt: job.createdAt,
       });
 

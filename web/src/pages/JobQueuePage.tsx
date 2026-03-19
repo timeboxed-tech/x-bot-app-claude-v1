@@ -112,8 +112,9 @@ const statusChipColors: Record<string, 'default' | 'info' | 'success' | 'error' 
 };
 
 const typeChipColors: Record<string, 'default' | 'primary' | 'secondary' | 'info'> = {
-  draft: 'primary',
-  publish: 'secondary',
+  'post-generator': 'primary',
+  'post-approver': 'info',
+  'post-publish': 'secondary',
   cleanup: 'default',
 };
 
@@ -126,6 +127,7 @@ type JobDetail = {
   startedAt?: string | null;
   completedAt?: string | null;
   error: string | null;
+  result: string | null;
   createdAt: string;
 };
 
@@ -150,6 +152,7 @@ function JobDetailDialog({ job, onClose }: { job: JobDetail | null; onClose: () 
       label: 'Duration',
       value: computeDuration(job.startedAt ?? null, job.completedAt ?? null),
     },
+    { label: 'Result', value: job.result ?? '-' },
   ];
 
   return (
@@ -216,7 +219,7 @@ function JobDetailDialog({ job, onClose }: { job: JobDetail | null; onClose: () 
   );
 }
 
-const JOB_TYPES = ['draft', 'publish', 'cleanup'] as const;
+const JOB_TYPES = ['post-generator', 'post-approver', 'post-publish', 'cleanup'] as const;
 
 export default function JobQueuePage() {
   const { data, isLoading, error } = useJobQueue();
@@ -375,13 +378,14 @@ export default function JobQueuePage() {
                 <TableCell>Started At</TableCell>
                 <TableCell>Completed At</TableCell>
                 <TableCell>Duration</TableCell>
+                <TableCell>Result</TableCell>
                 <TableCell>Error</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
               {data.recentJobs.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={6} align="center">
+                  <TableCell colSpan={7} align="center">
                     <Typography variant="body2" color="text.secondary" sx={{ py: 2 }}>
                       No recent jobs
                     </Typography>
@@ -420,6 +424,15 @@ export default function JobQueuePage() {
                     </TableCell>
                     <TableCell>
                       {computeDuration(job.startedAt ?? null, job.completedAt ?? null)}
+                    </TableCell>
+                    <TableCell sx={{ maxWidth: 250 }}>
+                      {job.result ? (
+                        <Typography variant="body2" noWrap>
+                          {job.result}
+                        </Typography>
+                      ) : (
+                        '-'
+                      )}
                     </TableCell>
                     <TableCell sx={{ maxWidth: 250 }}>
                       {job.error ? (
@@ -538,9 +551,9 @@ export default function JobQueuePage() {
                         size="small"
                         variant="outlined"
                         color={
-                          entry.worker === 'draft'
+                          entry.worker === 'post-generator'
                             ? 'primary'
-                            : entry.worker === 'publish'
+                            : entry.worker === 'post-publish'
                               ? 'success'
                               : entry.worker === 'dispatcher'
                                 ? 'info'

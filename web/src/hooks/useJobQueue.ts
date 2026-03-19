@@ -21,6 +21,7 @@ export type JobQueueStats = {
     startedAt?: string | null;
     completedAt?: string | null;
     error: string | null;
+    result: string | null;
     createdAt: string;
   }>;
   recentErrors: Array<{
@@ -31,6 +32,7 @@ export type JobQueueStats = {
     scheduledAt: string;
     completedAt?: string | null;
     error: string | null;
+    result: string | null;
     createdAt: string;
   }>;
   activityLog: Array<{

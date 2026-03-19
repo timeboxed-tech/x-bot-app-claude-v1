@@ -52,7 +52,7 @@ async function getCachedJobConfig(
   return { intervalMs: fallbackInterval, enabled: true };
 }
 
-const JOB_HANDLERS: Record<string, (jobId: string) => Promise<void>> = {
+const JOB_HANDLERS: Record<string, (jobId: string) => Promise<string | void>> = {
   'post-generator': handleSchedulerTick,
   'post-approver': handlePostApprover,
   'post-publish': handlePostPublish,
@@ -125,8 +125,8 @@ async function processJobs(): Promise<void> {
       if (!claimed) continue;
 
       try {
-        await handler(job.id);
-        await jobRepository.markCompleted(job.id);
+        const result = await handler(job.id);
+        await jobRepository.markCompleted(job.id, typeof result === 'string' ? result : undefined);
         log('dispatcher', `Job ${job.id} (${job.type}) completed`);
       } catch (err) {
         const errorMsg = err instanceof Error ? `${err.message}\n${err.stack}` : String(err);

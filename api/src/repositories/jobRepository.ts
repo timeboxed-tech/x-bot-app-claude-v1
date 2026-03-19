@@ -110,12 +110,13 @@ export const jobRepository = {
     return result.length > 0 ? result[0] : null;
   },
 
-  async markCompleted(jobId: string) {
+  async markCompleted(jobId: string, result?: string) {
     return prisma.job.update({
       where: { id: jobId },
       data: {
         status: 'completed',
         completedAt: new Date(),
+        result: result ?? null,
       },
     });
   },

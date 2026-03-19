@@ -16,7 +16,7 @@ const MAX_POSTS_PER_HOUR = 1;
  * with scheduledAt <= now and publishes them, respecting rate limits.
  * Skips bots that are rate-limited and moves to the next.
  */
-export async function handlePostPublish(_jobId: string): Promise<void> {
+export async function handlePostPublish(_jobId: string): Promise<string> {
   // Find all approved posts ready to publish across all bots
   const readyPosts = await prisma.post.findMany({
     where: {
@@ -30,7 +30,7 @@ export async function handlePostPublish(_jobId: string): Promise<void> {
   });
 
   if (readyPosts.length === 0) {
-    return;
+    return 'No posts ready to publish';
   }
 
   log('post-publish', `Found ${readyPosts.length} approved post(s) ready to publish`);
@@ -152,10 +152,7 @@ export async function handlePostPublish(_jobId: string): Promise<void> {
     }
   }
 
-  if (published > 0 || failed > 0 || skipped > 0) {
-    log(
-      'post-publish',
-      `Completed: ${published} published, ${skipped} skipped (rate limit), ${failed} failed`,
-    );
-  }
+  const message = `Published ${published}, skipped ${skipped} (rate limit), failed ${failed}`;
+  log('post-publish', message);
+  return message;
 }

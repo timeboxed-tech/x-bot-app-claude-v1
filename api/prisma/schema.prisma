@@ -124,6 +124,7 @@ model Job {
   startedAt      DateTime?
   completedAt    DateTime?
   error          String?   @db.Text
+  result         String?   @db.Text
   payload        String?   @db.Text
   idempotencyKey String?
   createdAt      DateTime  @default(now())

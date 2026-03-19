@@ -4,7 +4,7 @@ import { log } from './activityLog.js';
 
 const RETENTION_DAYS = 7;
 
-export async function handleCleanupJob(_jobId: string): Promise<void> {
+export async function handleCleanupJob(_jobId: string): Promise<string> {
   const cutoff = new Date(Date.now() - RETENTION_DAYS * 24 * 60 * 60 * 1000);
 
   // 1. Expire drafts older than 7 days -> discarded
@@ -40,4 +40,7 @@ export async function handleCleanupJob(_jobId: string): Promise<void> {
   // 3. Hard-delete old completed/failed/cancelled jobs
   const result = await jobRepository.deleteOldJobs(RETENTION_DAYS);
   log('cleanup', `Deleted ${result.count} old job(s)`);
+
+  const message = `Expired ${expiredDrafts.count} draft(s), deleted ${oldDiscarded.length} discarded post(s), deleted ${result.count} old job(s)`;
+  return message;
 }

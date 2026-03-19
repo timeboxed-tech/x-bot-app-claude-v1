@@ -8,7 +8,7 @@ import { log } from './activityLog.js';
  * Picks up drafts with no safety flags on auto-mode bots, finds a slot,
  * transitions to approved with scheduledAt, and enqueues a post-publish job.
  */
-export async function handlePostApprover(_jobId: string): Promise<void> {
+export async function handlePostApprover(_jobId: string): Promise<string> {
   // Find draft posts from auto-mode bots that are not flagged
   const drafts = await prisma.post.findMany({
     where: {
@@ -90,7 +90,9 @@ export async function handlePostApprover(_jobId: string): Promise<void> {
     }
   }
 
-  log('post-approver', `Completed: ${approved} approved, ${noSlot} no slot found`);
+  const message = `Approved ${approved} post(s) from ${drafts.length} draft(s), ${noSlot} no slot`;
+  log('post-approver', message);
+  return message;
 }
 
 async function getLastPublishedOrScheduledAt(botId: string): Promise<Date | null> {

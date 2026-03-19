@@ -13,7 +13,7 @@ import { log } from './activityLog.js';
  * Scheduler tick: for each active bot (with-approval or auto mode),
  * checks the pipeline count gate and generates a draft if needed.
  */
-export async function handleSchedulerTick(jobId: string): Promise<void> {
+export async function handleSchedulerTick(jobId: string): Promise<string> {
   const bots = await prisma.bot.findMany({
     where: {
       active: true,
@@ -62,7 +62,9 @@ export async function handleSchedulerTick(jobId: string): Promise<void> {
     }
   }
 
-  log('post-generator', `Completed: ${generated} generated, ${skipped} skipped`);
+  const message = `Generated ${generated} draft(s), skipped ${skipped} bot(s)`;
+  log('post-generator', message);
+  return message;
 }
 
 async function generateDraftForBot(
