@@ -44,9 +44,9 @@ import {
 const statusColors: Record<PostStatus, 'default' | 'info' | 'success' | 'error' | 'warning'> = {
   draft: 'default',
   approved: 'warning',
-  scheduled: 'info',
   published: 'success',
   discarded: 'error',
+  failed: 'error',
 };
 
 function formatDate(dateStr: string | null): string {
@@ -162,7 +162,7 @@ export default function PostCard({ post }: PostCardProps) {
   };
 
   const handleSchedule = () => {
-    updatePost.mutate({ id: post.id, status: 'scheduled' });
+    updatePost.mutate({ id: post.id, status: 'approved' });
   };
 
   const handleApprove = () => {
@@ -298,7 +298,6 @@ export default function PostCard({ post }: PostCardProps) {
   const ratingEnabled =
     post.status === 'draft' ||
     post.status === 'approved' ||
-    post.status === 'scheduled' ||
     post.status === 'published';
 
   return (
@@ -579,27 +578,6 @@ export default function PostCard({ post }: PostCardProps) {
                   disabled={updatePost.isPending || publishPost.isPending}
                 >
                   Back to Draft
-                </Button>
-                <Button
-                  size="small"
-                  color="error"
-                  onClick={handleDiscard}
-                  disabled={updatePost.isPending || publishPost.isPending}
-                >
-                  Discard
-                </Button>
-              </>
-            )}
-            {post.status === 'scheduled' && (
-              <>
-                <Button
-                  size="small"
-                  variant="contained"
-                  color="primary"
-                  onClick={handlePublishNow}
-                  disabled={updatePost.isPending || publishPost.isPending}
-                >
-                  {publishPost.isPending ? <CircularProgress size={16} /> : 'Publish Now'}
                 </Button>
                 <Button
                   size="small"

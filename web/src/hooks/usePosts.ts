@@ -2,7 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiClient } from '../lib/apiClient';
 import { queryKeys } from '../lib/queryKeys';
 
-export type PostStatus = 'draft' | 'scheduled' | 'published' | 'discarded' | 'approved';
+export type PostStatus = 'draft' | 'published' | 'discarded' | 'approved' | 'failed';
 
 export type Post = {
   id: string;
@@ -42,8 +42,8 @@ type UpdatePostInput = {
 type PostCounts = {
   draft: number;
   approved: number;
-  scheduled: number;
   published: number;
+  failed: number;
   discarded: number;
   total: number;
 };

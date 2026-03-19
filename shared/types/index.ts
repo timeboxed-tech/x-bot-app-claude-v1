@@ -1,6 +1,6 @@
 // Shared types matching the Prisma data model
 
-export type PostStatus = 'draft' | 'scheduled' | 'published' | 'discarded' | 'approved';
+export type PostStatus = 'draft' | 'published' | 'discarded' | 'approved' | 'failed';
 export type PostMode = 'auto' | 'manual' | 'with-approval';
 export type JobType = 'draft' | 'publish' | 'cleanup';
 export type JobStatus = 'pending' | 'running' | 'completed' | 'failed' | 'cancelled';
@@ -77,7 +77,7 @@ export interface UpdateBotRequest {
 export interface UpdatePostRequest {
   content?: string;
   rating?: number | null;
-  status?: 'scheduled' | 'discarded' | 'approved';
+  status?: 'discarded' | 'approved';
   scheduledAt?: Date;
 }
 

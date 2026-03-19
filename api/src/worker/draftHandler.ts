@@ -105,14 +105,14 @@ export async function handleDraftJob(jobId: string): Promise<void> {
 
       if (bot.postMode === 'auto' && !isFlagged) {
         await postRepository.update(post.id, {
-          status: 'scheduled',
+          status: 'approved',
           scheduledAt: new Date(),
         });
       }
       // with-approval mode: drafts stay as 'draft' — user must rate 4-5 to approve
 
       drafted++;
-      const status = bot.postMode === 'auto' && !isFlagged ? 'scheduled' : 'draft';
+      const status = bot.postMode === 'auto' && !isFlagged ? 'approved' : 'draft';
       log(
         'draft',
         `Bot ${bot.xAccountHandle || bot.id}: created ${status} post${isFlagged ? ' (flagged)' : ''}`,
@@ -156,7 +156,7 @@ async function shouldGenerateDraft(bot: {
   const lastPost = await prisma.post.findFirst({
     where: {
       botId: bot.id,
-      status: { in: ['draft', 'scheduled', 'published', 'approved'] },
+      status: { in: ['draft', 'published', 'approved'] },
     },
     orderBy: { createdAt: 'desc' },
     select: { createdAt: true },
