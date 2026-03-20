@@ -35,20 +35,11 @@ export async function logApiCall(entry: {
   error?: string | null;
 }): Promise<void> {
   try {
-    await prisma.apiLog.create({
-      data: {
-        provider: entry.provider,
-        method: entry.method,
-        url: entry.url,
-        requestHeaders: serializeHeaders(entry.requestHeaders),
-        requestBody: truncate(entry.requestBody),
-        responseStatus: entry.responseStatus ?? null,
-        responseHeaders: serializeHeaders(entry.responseHeaders),
-        responseBody: truncate(entry.responseBody),
-        durationMs: entry.durationMs ?? null,
-        error: entry.error ?? null,
-      },
-    });
+    // Use raw query so createdAt gets full microsecond precision from PostgreSQL clock
+    await prisma.$executeRaw`
+      INSERT INTO "ApiLog" ("id", "provider", "method", "url", "requestHeaders", "requestBody", "responseStatus", "responseHeaders", "responseBody", "durationMs", "error", "createdAt")
+      VALUES (gen_random_uuid(), ${entry.provider}, ${entry.method}, ${entry.url}, ${serializeHeaders(entry.requestHeaders)}, ${truncate(entry.requestBody)}, ${entry.responseStatus ?? null}::int, ${serializeHeaders(entry.responseHeaders)}, ${truncate(entry.responseBody)}, ${entry.durationMs ?? null}::int, ${entry.error ?? null}, clock_timestamp())
+    `;
   } catch {
     // Don't let logging failures break the app
     console.error('[apiLogger] Failed to log API call');
