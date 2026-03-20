@@ -103,8 +103,11 @@ export const postService = {
 
     if (input.status === 'approved') {
       updateData.status = 'approved';
+      // Set scheduledAt: use provided value, keep existing, or default to now
       if (input.scheduledAt) {
         updateData.scheduledAt = new Date(input.scheduledAt);
+      } else if (!post.scheduledAt) {
+        updateData.scheduledAt = new Date();
       }
     } else if (input.status === 'discarded') {
       updateData.status = 'discarded';
