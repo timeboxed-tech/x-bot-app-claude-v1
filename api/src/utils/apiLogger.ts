@@ -7,25 +7,16 @@ function truncate(str: string | null | undefined, maxLen = MAX_BODY_LENGTH): str
   return str.length > maxLen ? str.slice(0, maxLen) + '...[truncated]' : str;
 }
 
-function safeHeaders(headers: Record<string, string> | Headers | undefined): string | null {
+function serializeHeaders(headers: Record<string, string> | Headers | undefined): string | null {
   if (!headers) return null;
   const obj: Record<string, string> = {};
   if (headers instanceof Headers) {
     headers.forEach((value, key) => {
-      // Mask authorization headers
-      if (key.toLowerCase() === 'authorization') {
-        obj[key] = value.slice(0, 15) + '...';
-      } else {
-        obj[key] = value;
-      }
+      obj[key] = value;
     });
   } else {
     for (const [key, value] of Object.entries(headers)) {
-      if (key.toLowerCase() === 'authorization') {
-        obj[key] = value.slice(0, 15) + '...';
-      } else {
-        obj[key] = value;
-      }
+      obj[key] = value;
     }
   }
   return JSON.stringify(obj);
@@ -49,10 +40,10 @@ export async function logApiCall(entry: {
         provider: entry.provider,
         method: entry.method,
         url: entry.url,
-        requestHeaders: safeHeaders(entry.requestHeaders),
+        requestHeaders: serializeHeaders(entry.requestHeaders),
         requestBody: truncate(entry.requestBody),
         responseStatus: entry.responseStatus ?? null,
-        responseHeaders: safeHeaders(entry.responseHeaders),
+        responseHeaders: serializeHeaders(entry.responseHeaders),
         responseBody: truncate(entry.responseBody),
         durationMs: entry.durationMs ?? null,
         error: entry.error ?? null,
