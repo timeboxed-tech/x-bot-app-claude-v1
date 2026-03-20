@@ -26,6 +26,7 @@ import Tooltip from '@mui/material/Tooltip';
 import AppHeader from '../components/AppHeader';
 import { useJobConfigs, useUpdateJobConfig } from '../hooks/useJobConfig';
 import type { JobConfig } from '../hooks/useJobConfig';
+import { useJobQueue } from '../hooks/useJobQueue';
 import { useAuth } from '../hooks/useAuth';
 import { AxiosError } from 'axios';
 
@@ -46,9 +47,15 @@ function formatTimestamp(iso: string): string {
   return date.toLocaleString();
 }
 
-function getNextRun(config: JobConfig): string {
+function getNextRun(
+  config: JobConfig,
+  nextPending: Record<string, string | null> | undefined,
+): string {
   if (!config.enabled) return '\u2014';
+  const pendingAt = nextPending?.[config.jobType];
+  if (pendingAt) return formatTimestamp(pendingAt);
   if (!config.lastRunAt) return 'Pending';
+  // Fallback: derive from lastRunAt + interval
   const next = new Date(new Date(config.lastRunAt).getTime() + config.intervalMs);
   return formatTimestamp(next.toISOString());
 }
@@ -58,6 +65,7 @@ export default function JobConfigPage() {
   const isAdmin = user?.isAdmin ?? false;
 
   const { data: configs, isLoading, error } = useJobConfigs();
+  const { data: jobStats } = useJobQueue();
   const updateConfig = useUpdateJobConfig();
 
   const [editOpen, setEditOpen] = useState(false);
@@ -181,7 +189,7 @@ export default function JobConfigPage() {
                     <TableCell>
                       {config.lastRunAt ? formatTimestamp(config.lastRunAt) : 'Never'}
                     </TableCell>
-                    <TableCell>{getNextRun(config)}</TableCell>
+                    <TableCell>{getNextRun(config, jobStats?.nextPendingByType)}</TableCell>
                     <TableCell align="right">
                       <Tooltip title="Edit">
                         <IconButton size="small" onClick={() => handleOpenEdit(config)}>
