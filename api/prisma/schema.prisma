@@ -212,7 +212,7 @@ model ApiLog {
   responseBody    String?  @db.Text  // JSON (truncated if very large)
   durationMs      Int?
   error           String?  @db.Text
-  createdAt       DateTime @default(now())
+  createdAt       DateTime @default(now()) @db.Timestamptz(6)
 
   @@index([provider, createdAt])
   @@index([createdAt])
