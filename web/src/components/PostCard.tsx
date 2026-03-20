@@ -21,7 +21,6 @@ import FileCopyOutlinedIcon from '@mui/icons-material/FileCopyOutlined';
 import CheckIcon from '@mui/icons-material/Check';
 import FlagIcon from '@mui/icons-material/Flag';
 import OutlinedFlagIcon from '@mui/icons-material/OutlinedFlag';
-import RateReviewIcon from '@mui/icons-material/RateReview';
 import VisibilityIcon from '@mui/icons-material/Visibility';
 import ProcessVisualisationDialog, { type ProcessStep } from './ProcessVisualisationDialog';
 import EvaluationDialog from './EvaluationDialog';
@@ -463,50 +462,43 @@ export default function PostCard({ post }: PostCardProps) {
           )}
         </Box>
 
-        {post.status === 'approved' && post.scheduledAt && (
-          <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 0.5 }}>
-            Scheduled for: {formatDate(post.scheduledAt)}
+        <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', mb: 0.5 }}>
+          <Typography variant="caption" color="text.secondary">
+            Created: {formatDate(post.createdAt)}
           </Typography>
-        )}
-        {post.status === 'published' && (
-          <>
-            {post.scheduledAt && (
-              <Typography
-                variant="caption"
-                color="text.secondary"
-                sx={{ display: 'block', mb: 0.5 }}
-              >
-                Scheduled for: {formatDate(post.scheduledAt)}
-              </Typography>
-            )}
-            {post.publishedAt && (
-              <Typography
-                variant="caption"
-                color="text.secondary"
-                sx={{ display: 'block', mb: 0.5 }}
-              >
-                Published: {formatDate(post.publishedAt)}
-              </Typography>
-            )}
-          </>
-        )}
-        {post.status === 'failed' && (
-          <>
-            {post.scheduledAt && (
-              <Typography
-                variant="caption"
-                color="text.secondary"
-                sx={{ display: 'block', mb: 0.5 }}
-              >
-                Scheduled for: {formatDate(post.scheduledAt)}
-              </Typography>
-            )}
-            {post.flagReasons && post.flagReasons.length > 0 && (
-              <Typography variant="caption" color="error" sx={{ display: 'block', mb: 0.5 }}>
-                Reason: {post.flagReasons.join(', ')}
-              </Typography>
-            )}
-          </>
+          {post.status === 'approved' && post.scheduledAt && (
+            <Typography variant="caption" color="text.secondary">
+              Scheduled for: {formatDate(post.scheduledAt)}
+            </Typography>
+          )}
+          {post.status === 'published' && (
+            <>
+              {post.scheduledAt && (
+                <Typography variant="caption" color="text.secondary">
+                  Scheduled for: {formatDate(post.scheduledAt)}
+                </Typography>
+              )}
+              {post.publishedAt && (
+                <Typography variant="caption" color="text.secondary">
+                  Published: {formatDate(post.publishedAt)}
+                </Typography>
+              )}
+            </>
+          )}
+          {post.status === 'failed' && (
+            <>
+              {post.scheduledAt && (
+                <Typography variant="caption" color="text.secondary">
+                  Scheduled for: {formatDate(post.scheduledAt)}
+                </Typography>
+              )}
+            </>
+          )}
+        </Box>
+        {post.status === 'failed' && post.flagReasons && post.flagReasons.length > 0 && (
+          <Typography variant="caption" color="error" sx={{ display: 'block', mb: 0.5 }}>
+            Reason: {post.flagReasons.join(', ')}
+          </Typography>
         )}
 
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mt: 1 }}>
@@ -524,7 +516,7 @@ export default function PostCard({ post }: PostCardProps) {
                   Edit
                 </Button>
                 <Button size="small" variant="outlined" onClick={handleOpenTweak}>
-                  Tweak
+                  Tweak with AI
                 </Button>
                 <Button
                   size="small"
@@ -538,11 +530,9 @@ export default function PostCard({ post }: PostCardProps) {
                 >
                   {requestReview.isPending ? <CircularProgress size={16} /> : 'Ask Judges'}
                 </Button>
-                <Tooltip title="Evaluate">
-                  <IconButton size="small" onClick={() => setEvaluateDialogOpen(true)}>
-                    <RateReviewIcon fontSize="small" />
-                  </IconButton>
-                </Tooltip>
+                <Button size="small" variant="outlined" onClick={() => setEvaluateDialogOpen(true)}>
+                  Evaluate
+                </Button>
                 <Button
                   size="small"
                   variant="contained"
@@ -581,11 +571,9 @@ export default function PostCard({ post }: PostCardProps) {
             )}
             {post.status === 'approved' && (
               <>
-                <Tooltip title="Evaluate">
-                  <IconButton size="small" onClick={() => setEvaluateDialogOpen(true)}>
-                    <RateReviewIcon fontSize="small" />
-                  </IconButton>
-                </Tooltip>
+                <Button size="small" variant="outlined" onClick={() => setEvaluateDialogOpen(true)}>
+                  Evaluate
+                </Button>
                 <Button
                   size="small"
                   variant="contained"
@@ -746,7 +734,7 @@ export default function PostCard({ post }: PostCardProps) {
 
       {/* Tweak Dialog */}
       <Dialog open={tweakOpen} onClose={handleCloseTweak} maxWidth="sm" fullWidth>
-        <DialogTitle>Tweak Post</DialogTitle>
+        <DialogTitle>Tweak Post with AI</DialogTitle>
         <DialogContent>
           {successMessage && (
             <Alert severity="success" sx={{ mb: 2 }}>
