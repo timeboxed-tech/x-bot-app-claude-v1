@@ -1,6 +1,7 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { systemPromptRepository } from '../repositories/systemPromptRepository.js';
 import { DEFAULT_SYSTEM_PROMPTS } from '../constants/defaultSystemPrompts.js';
+import { logApiCall } from '../utils/apiLogger.js';
 
 type PromptMessage = {
   role: 'system' | 'user' | 'assistant';
@@ -63,11 +64,28 @@ async function callClaude(
   const messages = Array.isArray(promptOrMessages)
     ? promptOrMessages
     : [{ role: 'user' as const, content: promptOrMessages }];
+  const start = Date.now();
   const response = await client.messages.create({
     model: 'claude-sonnet-4-6',
     max_tokens: 300,
     system: systemPrompt,
     messages,
+  });
+  const durationMs = Date.now() - start;
+
+  void logApiCall({
+    provider: 'anthropic',
+    method: 'POST',
+    url: 'https://api.anthropic.com/v1/messages',
+    requestBody: JSON.stringify({
+      model: 'claude-sonnet-4-6',
+      max_tokens: 300,
+      system: systemPrompt,
+      messages,
+    }),
+    responseStatus: 200,
+    responseBody: JSON.stringify(response),
+    durationMs,
   });
 
   const text = extractText(response.content);
@@ -84,18 +102,37 @@ async function callClaudeWithWebSearch(
   const messages = Array.isArray(promptOrMessages)
     ? promptOrMessages
     : [{ role: 'user' as const, content: promptOrMessages }];
+  const tools = [
+    {
+      type: 'web_search_20250305',
+      name: 'web_search',
+      max_uses: 3,
+    } as Anthropic.Messages.WebSearchTool20250305,
+  ];
+  const start = Date.now();
   const response = await client.messages.create({
     model: 'claude-sonnet-4-6',
     max_tokens: 1024,
     system: systemPrompt,
     messages,
-    tools: [
-      {
-        type: 'web_search_20250305',
-        name: 'web_search',
-        max_uses: 3,
-      } as Anthropic.Messages.WebSearchTool20250305,
-    ],
+    tools,
+  });
+  const durationMs = Date.now() - start;
+
+  void logApiCall({
+    provider: 'anthropic',
+    method: 'POST',
+    url: 'https://api.anthropic.com/v1/messages',
+    requestBody: JSON.stringify({
+      model: 'claude-sonnet-4-6',
+      max_tokens: 1024,
+      system: systemPrompt,
+      messages,
+      tools,
+    }),
+    responseStatus: 200,
+    responseBody: JSON.stringify(response),
+    durationMs,
   });
 
   const text = extractText(response.content);
@@ -110,11 +147,28 @@ async function callClaudeWithMessages(
   messages: Array<{ role: 'user' | 'assistant'; content: string }>,
   maxTokens = 300,
 ): Promise<string> {
+  const start = Date.now();
   const response = await client.messages.create({
     model: 'claude-sonnet-4-6',
     max_tokens: maxTokens,
     system: systemPrompt,
     messages,
+  });
+  const durationMs = Date.now() - start;
+
+  void logApiCall({
+    provider: 'anthropic',
+    method: 'POST',
+    url: 'https://api.anthropic.com/v1/messages',
+    requestBody: JSON.stringify({
+      model: 'claude-sonnet-4-6',
+      max_tokens: maxTokens,
+      system: systemPrompt,
+      messages,
+    }),
+    responseStatus: 200,
+    responseBody: JSON.stringify(response),
+    durationMs,
   });
 
   const text = extractText(response.content);

@@ -21,6 +21,7 @@ import SystemPromptsPage from '../pages/SystemPromptsPage';
 import JobConfigPage from '../pages/JobConfigPage';
 import SystemConfigPage from '../pages/SystemConfigPage';
 import AdminPage from '../pages/AdminPage';
+import ApiLogsPage from '../pages/ApiLogsPage';
 
 async function checkAuth(): Promise<boolean> {
   try {
@@ -162,6 +163,18 @@ const adminRoute = createRoute({
   component: AdminPage,
 });
 
+const apiLogsRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/api-logs',
+  beforeLoad: async () => {
+    const authenticated = await checkAuth();
+    if (!authenticated) {
+      throw redirect({ to: '/login' });
+    }
+  },
+  component: ApiLogsPage,
+});
+
 const botEditRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/bots/$botId/edit',
@@ -192,6 +205,7 @@ const routeTree = rootRoute.addChildren([
   loginRoute,
   dashboardRoute,
   adminRoute,
+  apiLogsRoute,
   botEditRoute,
   postsRoute,
   jobsRoute,

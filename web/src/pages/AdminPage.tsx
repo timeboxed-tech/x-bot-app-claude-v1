@@ -29,6 +29,11 @@ const adminLinks = [
     description: 'Manage non-prompt configuration values',
     path: '/system-config',
   },
+  {
+    label: 'API Logs',
+    description: 'Review external API call history',
+    path: '/api-logs',
+  },
 ];
 
 export default function AdminPage() {

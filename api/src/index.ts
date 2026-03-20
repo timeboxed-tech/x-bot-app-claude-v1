@@ -20,6 +20,7 @@ import systemPromptRoutes from './routes/systemPromptRoutes.js';
 import jobConfigRoutes from './routes/jobConfigRoutes.js';
 import systemConfigRoutes from './routes/systemConfigRoutes.js';
 import exportRoutes from './routes/exportRoutes.js';
+import apiLogRoutes from './routes/apiLogRoutes.js';
 import * as jobDispatcher from './worker/jobDispatcher.js';
 import * as staleLockRecovery from './worker/staleLockRecovery.js';
 
@@ -52,6 +53,7 @@ app.use('/api/system-prompts', systemPromptRoutes);
 app.use('/api/job-configs', jobConfigRoutes);
 app.use('/api/system-configs', systemConfigRoutes);
 app.use('/api/export', exportRoutes);
+app.use('/api/api-logs', apiLogRoutes);
 
 // 404 handler for unknown routes
 app.use(notFoundHandler);

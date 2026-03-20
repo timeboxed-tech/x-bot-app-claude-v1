@@ -200,6 +200,24 @@ model SystemConfig {
   createdAt DateTime @default(now())
 }
 
+model ApiLog {
+  id              String   @id @default(uuid()) @db.Uuid
+  provider        String   // 'x', 'anthropic', 'url-validation'
+  method          String   // 'GET', 'POST', etc.
+  url             String   @db.Text
+  requestHeaders  String?  @db.Text  // JSON
+  requestBody     String?  @db.Text  // JSON
+  responseStatus  Int?
+  responseHeaders String?  @db.Text  // JSON
+  responseBody    String?  @db.Text  // JSON (truncated if very large)
+  durationMs      Int?
+  error           String?  @db.Text
+  createdAt       DateTime @default(now())
+
+  @@index([provider, createdAt])
+  @@index([createdAt])
+}
+
 model JobConfig {
   id          String    @id @default(uuid()) @db.Uuid
   jobType     String    @unique

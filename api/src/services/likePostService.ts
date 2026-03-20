@@ -4,6 +4,7 @@ import { systemPromptRepository } from '../repositories/systemPromptRepository.j
 import { postRepository } from '../repositories/postRepository.js';
 import { DEFAULT_SYSTEM_PROMPTS } from '../constants/defaultSystemPrompts.js';
 import { log } from '../worker/activityLog.js';
+import { logApiCall } from '../utils/apiLogger.js';
 
 type BotForLikePost = {
   id: string;
@@ -42,16 +43,34 @@ async function generateSearchQueries(
   queryPrompt: string,
   systemPrompt: string,
 ): Promise<string[]> {
+  const queryMessages = [
+    {
+      role: 'user' as const,
+      content: `${queryPrompt}\n\nGenerate 5 short, broad search queries (1-3 words each) that would return popular, recent tweets related to the above topic. Avoid overly specific or long queries. Return ONLY the queries, one per line, no numbering or bullets.`,
+    },
+  ];
+  const queryStart = Date.now();
   const response = await client.messages.create({
     model: 'claude-sonnet-4-6',
     max_tokens: 500,
     system: systemPrompt,
-    messages: [
-      {
-        role: 'user',
-        content: `${queryPrompt}\n\nGenerate 5 short, broad search queries (1-3 words each) that would return popular, recent tweets related to the above topic. Avoid overly specific or long queries. Return ONLY the queries, one per line, no numbering or bullets.`,
-      },
-    ],
+    messages: queryMessages,
+  });
+  const queryDurationMs = Date.now() - queryStart;
+
+  void logApiCall({
+    provider: 'anthropic',
+    method: 'POST',
+    url: 'https://api.anthropic.com/v1/messages',
+    requestBody: JSON.stringify({
+      model: 'claude-sonnet-4-6',
+      max_tokens: 500,
+      system: systemPrompt,
+      messages: queryMessages,
+    }),
+    responseStatus: 200,
+    responseBody: JSON.stringify(response),
+    durationMs: queryDurationMs,
   });
 
   const text = extractText(response.content);
@@ -82,16 +101,35 @@ async function selectPostsToLike(
     })
     .join('\n');
 
+  const selectMessages = [
+    {
+      role: 'user' as const,
+      content: `${behaviourPrompt}\n\nHere are candidate posts found on X. Select 3 to 5 posts that best align with the brand/persona described above and would be most strategic to like. For each selection, explain briefly why.\n\nCandidate posts:\n${candidateList}\n\nRespond in this format:\nSELECTED: <tweet_id_1>, <tweet_id_2>, ...\nREASONING:\n1. [tweet_id]: reason\n2. [tweet_id]: reason\n...`,
+    },
+  ];
+  const selectSystem = `${systemPrompt}\n\n${botPrompt}`;
+  const selectStart = Date.now();
   const response = await client.messages.create({
     model: 'claude-sonnet-4-6',
     max_tokens: 800,
-    system: `${systemPrompt}\n\n${botPrompt}`,
-    messages: [
-      {
-        role: 'user',
-        content: `${behaviourPrompt}\n\nHere are candidate posts found on X. Select 3 to 5 posts that best align with the brand/persona described above and would be most strategic to like. For each selection, explain briefly why.\n\nCandidate posts:\n${candidateList}\n\nRespond in this format:\nSELECTED: <tweet_id_1>, <tweet_id_2>, ...\nREASONING:\n1. [tweet_id]: reason\n2. [tweet_id]: reason\n...`,
-      },
-    ],
+    system: selectSystem,
+    messages: selectMessages,
+  });
+  const selectDurationMs = Date.now() - selectStart;
+
+  void logApiCall({
+    provider: 'anthropic',
+    method: 'POST',
+    url: 'https://api.anthropic.com/v1/messages',
+    requestBody: JSON.stringify({
+      model: 'claude-sonnet-4-6',
+      max_tokens: 800,
+      system: selectSystem,
+      messages: selectMessages,
+    }),
+    responseStatus: 200,
+    responseBody: JSON.stringify(response),
+    durationMs: selectDurationMs,
   });
 
   const text = extractText(response.content);

@@ -1,6 +1,7 @@
 import { xOAuthService } from './xOAuthService.js';
 import { botRepository } from '../repositories/botRepository.js';
 import { systemConfigRepository } from '../repositories/systemConfigRepository.js';
+import { loggedFetch } from '../utils/apiLogger.js';
 
 const TWITTER_TWEET_URL = 'https://api.twitter.com/2/tweets';
 const TWITTER_SEARCH_URL = 'https://api.twitter.com/2/tweets/search/recent';
@@ -15,7 +16,7 @@ export async function publishTweet(
   try {
     let token = accessToken;
 
-    let response = await fetch(TWITTER_TWEET_URL, {
+    let response = await loggedFetch('x', TWITTER_TWEET_URL, {
       method: 'POST',
       headers: {
         Authorization: `Bearer ${token}`,
@@ -39,7 +40,7 @@ export async function publishTweet(
         }
 
         // Retry with new token
-        response = await fetch(TWITTER_TWEET_URL, {
+        response = await loggedFetch('x', TWITTER_TWEET_URL, {
           method: 'POST',
           headers: {
             Authorization: `Bearer ${token}`,
@@ -120,7 +121,7 @@ export async function searchTweets(
       'user.fields': 'username',
     });
 
-    let response = await fetch(`${TWITTER_SEARCH_URL}?${params.toString()}`, {
+    let response = await loggedFetch('x', `${TWITTER_SEARCH_URL}?${params.toString()}`, {
       headers: { Authorization: `Bearer ${token}` },
     });
 
@@ -137,7 +138,7 @@ export async function searchTweets(
           });
         }
 
-        response = await fetch(`${TWITTER_SEARCH_URL}?${params.toString()}`, {
+        response = await loggedFetch('x', `${TWITTER_SEARCH_URL}?${params.toString()}`, {
           headers: { Authorization: `Bearer ${token}` },
         });
       } catch (refreshErr) {
@@ -211,7 +212,7 @@ export async function getAuthenticatedUserId(
   try {
     let token = accessToken;
 
-    let response = await fetch(TWITTER_ME_URL, {
+    let response = await loggedFetch('x', TWITTER_ME_URL, {
       headers: { Authorization: `Bearer ${token}` },
     });
 
@@ -227,7 +228,7 @@ export async function getAuthenticatedUserId(
           });
         }
 
-        response = await fetch(TWITTER_ME_URL, {
+        response = await loggedFetch('x', TWITTER_ME_URL, {
           headers: { Authorization: `Bearer ${token}` },
         });
       } catch (refreshErr) {
@@ -286,7 +287,7 @@ export async function getMentions(
 
     const mentionsUrl = `https://api.twitter.com/2/users/${userId}/mentions`;
 
-    let response = await fetch(`${mentionsUrl}?${params.toString()}`, {
+    let response = await loggedFetch('x', `${mentionsUrl}?${params.toString()}`, {
       headers: { Authorization: `Bearer ${token}` },
     });
 
@@ -303,7 +304,7 @@ export async function getMentions(
           });
         }
 
-        response = await fetch(`${mentionsUrl}?${params.toString()}`, {
+        response = await loggedFetch('x', `${mentionsUrl}?${params.toString()}`, {
           headers: { Authorization: `Bearer ${token}` },
         });
       } catch (refreshErr) {
@@ -374,7 +375,7 @@ export async function replyTweet(
       reply: { in_reply_to_tweet_id: replyToTweetId },
     });
 
-    let response = await fetch(TWITTER_TWEET_URL, {
+    let response = await loggedFetch('x', TWITTER_TWEET_URL, {
       method: 'POST',
       headers: {
         Authorization: `Bearer ${token}`,
@@ -398,7 +399,7 @@ export async function replyTweet(
         }
 
         // Retry with new token
-        response = await fetch(TWITTER_TWEET_URL, {
+        response = await loggedFetch('x', TWITTER_TWEET_URL, {
           method: 'POST',
           headers: {
             Authorization: `Bearer ${token}`,
@@ -452,7 +453,7 @@ export async function followUser(
 
     const followUrl = `https://api.twitter.com/2/users/${meResult.userId}/following`;
 
-    let response = await fetch(followUrl, {
+    let response = await loggedFetch('x', followUrl, {
       method: 'POST',
       headers: {
         Authorization: `Bearer ${token}`,
@@ -474,7 +475,7 @@ export async function followUser(
           });
         }
 
-        response = await fetch(followUrl, {
+        response = await loggedFetch('x', followUrl, {
           method: 'POST',
           headers: {
             Authorization: `Bearer ${token}`,
@@ -520,7 +521,7 @@ export async function likeTweet(
 
     const likeUrl = `https://api.twitter.com/2/users/${meResult.userId}/likes`;
 
-    let response = await fetch(likeUrl, {
+    let response = await loggedFetch('x', likeUrl, {
       method: 'POST',
       headers: {
         Authorization: `Bearer ${token}`,
@@ -542,7 +543,7 @@ export async function likeTweet(
           });
         }
 
-        response = await fetch(likeUrl, {
+        response = await loggedFetch('x', likeUrl, {
           method: 'POST',
           headers: {
             Authorization: `Bearer ${token}`,

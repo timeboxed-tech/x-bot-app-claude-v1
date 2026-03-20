@@ -1,4 +1,5 @@
 import { postRepository } from '../repositories/postRepository.js';
+import { loggedFetch } from '../utils/apiLogger.js';
 
 const URL_REGEX = /https?:\/\/[^\s)>\]"]+/g;
 const REQUEST_TIMEOUT_MS = 5000;
@@ -22,7 +23,7 @@ export async function validateUrls(urls: string[]): Promise<UrlValidationResult[
 async function validateSingleUrl(url: string): Promise<UrlValidationResult> {
   try {
     const headers = { 'User-Agent': USER_AGENT };
-    const response = await fetch(url, {
+    const response = await loggedFetch('url-validation', url, {
       method: 'HEAD',
       headers,
       signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
@@ -31,7 +32,7 @@ async function validateSingleUrl(url: string): Promise<UrlValidationResult> {
 
     // If HEAD is not allowed, fallback to GET
     if (response.status === 405) {
-      const getResponse = await fetch(url, {
+      const getResponse = await loggedFetch('url-validation', url, {
         method: 'GET',
         headers,
         signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
