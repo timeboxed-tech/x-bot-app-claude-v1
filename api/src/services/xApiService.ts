@@ -105,7 +105,7 @@ export async function searchTweets(
       const dbConfig = await systemConfigRepository.findByKey('x_search_hours_back');
       const raw = dbConfig?.value ?? '48';
       const parsed = parseInt(raw, 10);
-      if (!isNaN(parsed) && parsed > 0) hoursBack = parsed;
+      if (!isNaN(parsed) && parsed > 0) hoursBack = Math.min(parsed, 168); // X API max 7 days
     } catch {
       // fall back to default
     }
@@ -270,7 +270,7 @@ export async function getMentions(
       const dbConfig = await systemConfigRepository.findByKey('x_search_hours_back');
       const raw = dbConfig?.value ?? '48';
       const parsed = parseInt(raw, 10);
-      if (!isNaN(parsed) && parsed > 0) hoursBack = parsed;
+      if (!isNaN(parsed) && parsed > 0) hoursBack = Math.min(parsed, 168); // X API max 7 days
     } catch {
       // fall back to default
     }
