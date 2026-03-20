@@ -1,6 +1,7 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { systemPromptRepository } from '../repositories/systemPromptRepository.js';
 import { DEFAULT_SYSTEM_PROMPTS } from '../constants/defaultSystemPrompts.js';
+import { logApiCall } from '../utils/apiLogger.js';
 
 function getClient(): Anthropic | null {
   const apiKey = process.env.ANTHROPIC_API_KEY;
@@ -106,22 +107,40 @@ export async function reviewPostWithJudge(
       ? `Today's date: ${new Date().toISOString().split('T')[0]}\n\nTweet to review:\n${postContent}\n\nRecent posts from this account for context (consider repetition):\n${recentPosts.map((p) => '- ' + p).join('\n')}`
       : `Today's date: ${new Date().toISOString().split('T')[0]}\n\nTweet to review:\n${postContent}`;
 
+  const maxTokens = useWebSearch ? 1024 : 300;
+  const tools = useWebSearch
+    ? [
+        {
+          type: 'web_search_20250305',
+          name: 'web_search',
+          max_uses: 3,
+        } as Anthropic.Messages.WebSearchTool20250305,
+      ]
+    : undefined;
+  const start = Date.now();
   const response = await client.messages.create({
     model: 'claude-sonnet-4-5',
-    max_tokens: useWebSearch ? 1024 : 300,
+    max_tokens: maxTokens,
     system: systemPrompt,
     messages: [{ role: 'user', content: userContent }],
-    ...(useWebSearch
-      ? {
-          tools: [
-            {
-              type: 'web_search_20250305',
-              name: 'web_search',
-              max_uses: 3,
-            } as Anthropic.Messages.WebSearchTool20250305,
-          ],
-        }
-      : {}),
+    ...(tools ? { tools } : {}),
+  });
+  const durationMs = Date.now() - start;
+
+  void logApiCall({
+    provider: 'anthropic',
+    method: 'POST',
+    url: 'https://api.anthropic.com/v1/messages',
+    requestBody: JSON.stringify({
+      model: 'claude-sonnet-4-5',
+      max_tokens: maxTokens,
+      system: systemPrompt,
+      messages: [{ role: 'user', content: userContent }],
+      ...(tools ? { tools } : {}),
+    }),
+    responseStatus: 200,
+    responseBody: JSON.stringify(response),
+    durationMs,
   });
 
   const text = extractText(response.content);
@@ -166,22 +185,40 @@ ${tweetList}
 AI's reasoning for selection:
 ${likeContext.reasoning}`;
 
+  const likeMaxTokens = useWebSearch ? 1024 : 400;
+  const likeTools = useWebSearch
+    ? [
+        {
+          type: 'web_search_20250305',
+          name: 'web_search',
+          max_uses: 3,
+        } as Anthropic.Messages.WebSearchTool20250305,
+      ]
+    : undefined;
+  const likeStart = Date.now();
   const response = await client.messages.create({
     model: 'claude-sonnet-4-5',
-    max_tokens: useWebSearch ? 1024 : 400,
+    max_tokens: likeMaxTokens,
     system: systemPrompt,
     messages: [{ role: 'user', content: userContent }],
-    ...(useWebSearch
-      ? {
-          tools: [
-            {
-              type: 'web_search_20250305',
-              name: 'web_search',
-              max_uses: 3,
-            } as Anthropic.Messages.WebSearchTool20250305,
-          ],
-        }
-      : {}),
+    ...(likeTools ? { tools: likeTools } : {}),
+  });
+  const likeDurationMs = Date.now() - likeStart;
+
+  void logApiCall({
+    provider: 'anthropic',
+    method: 'POST',
+    url: 'https://api.anthropic.com/v1/messages',
+    requestBody: JSON.stringify({
+      model: 'claude-sonnet-4-5',
+      max_tokens: likeMaxTokens,
+      system: systemPrompt,
+      messages: [{ role: 'user', content: userContent }],
+      ...(likeTools ? { tools: likeTools } : {}),
+    }),
+    responseStatus: 200,
+    responseBody: JSON.stringify(response),
+    durationMs: likeDurationMs,
   });
 
   const text = extractText(response.content);

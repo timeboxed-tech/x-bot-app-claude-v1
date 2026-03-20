@@ -10,6 +10,7 @@ import { postRepository } from '../repositories/postRepository.js';
 import { DEFAULT_SYSTEM_PROMPTS } from '../constants/defaultSystemPrompts.js';
 import { log } from '../worker/activityLog.js';
 import { prisma } from '../utils/prisma.js';
+import { logApiCall } from '../utils/apiLogger.js';
 
 type BotForReplyPost = {
   id: string;
@@ -56,16 +57,35 @@ async function selectMentionAndGenerateReply(
     })
     .join('\n');
 
+  const replyMessages = [
+    {
+      role: 'user' as const,
+      content: `${behaviourPrompt}\n\nHere are recent mentions and quote tweets of our account. Select the ONE best mention to reply to that aligns with the brand/persona described above. Then generate a reply (under 280 characters) that is conversational, authentic, and relevant to the original post. Do not use hashtags.\n\nMentions:\n${candidateList}\n\nRespond in EXACTLY this format:\nTWEET_ID: <id>\nREPLY: <reply text>\nREASON: <why this mention was selected and why this reply works>`,
+    },
+  ];
+  const replySystem = `${systemPrompt}\n\n${botPrompt}`;
+  const replyStart = Date.now();
   const response = await client.messages.create({
     model: 'claude-sonnet-4-6',
     max_tokens: 800,
-    system: `${systemPrompt}\n\n${botPrompt}`,
-    messages: [
-      {
-        role: 'user',
-        content: `${behaviourPrompt}\n\nHere are recent mentions and quote tweets of our account. Select the ONE best mention to reply to that aligns with the brand/persona described above. Then generate a reply (under 280 characters) that is conversational, authentic, and relevant to the original post. Do not use hashtags.\n\nMentions:\n${candidateList}\n\nRespond in EXACTLY this format:\nTWEET_ID: <id>\nREPLY: <reply text>\nREASON: <why this mention was selected and why this reply works>`,
-      },
-    ],
+    system: replySystem,
+    messages: replyMessages,
+  });
+  const replyDurationMs = Date.now() - replyStart;
+
+  void logApiCall({
+    provider: 'anthropic',
+    method: 'POST',
+    url: 'https://api.anthropic.com/v1/messages',
+    requestBody: JSON.stringify({
+      model: 'claude-sonnet-4-6',
+      max_tokens: 800,
+      system: replySystem,
+      messages: replyMessages,
+    }),
+    responseStatus: 200,
+    responseBody: JSON.stringify(response),
+    durationMs: replyDurationMs,
   });
 
   const text = extractText(response.content);

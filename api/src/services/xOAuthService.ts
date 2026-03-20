@@ -1,5 +1,6 @@
 import crypto from 'node:crypto';
 import { config } from '../config/index.js';
+import { loggedFetch } from '../utils/apiLogger.js';
 
 const TWITTER_AUTHORIZE_URL = 'https://twitter.com/i/oauth2/authorize';
 const TWITTER_TOKEN_URL = 'https://api.twitter.com/2/oauth2/token';
@@ -94,7 +95,7 @@ export const xOAuthService = {
     const basicAuth = Buffer.from(`${clientId}:${clientSecret}`).toString('base64');
 
     // Exchange authorization code for tokens
-    const tokenResponse = await fetch(TWITTER_TOKEN_URL, {
+    const tokenResponse = await loggedFetch('x', TWITTER_TOKEN_URL, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded',
@@ -124,7 +125,7 @@ export const xOAuthService = {
     }
 
     // Fetch user info to get screen name
-    const meResponse = await fetch(TWITTER_ME_URL, {
+    const meResponse = await loggedFetch('x', TWITTER_ME_URL, {
       headers: {
         Authorization: `Bearer ${tokenData.access_token}`,
       },
@@ -153,7 +154,7 @@ export const xOAuthService = {
     const clientSecret = getClientSecret();
     const basicAuth = Buffer.from(`${clientId}:${clientSecret}`).toString('base64');
 
-    const response = await fetch(TWITTER_TOKEN_URL, {
+    const response = await loggedFetch('x', TWITTER_TOKEN_URL, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded',
