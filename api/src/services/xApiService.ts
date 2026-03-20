@@ -25,8 +25,8 @@ export async function publishTweet(
       body: JSON.stringify({ text: content }),
     });
 
-    // If 401, try refreshing the token
-    if (response.status === 401 && refreshToken) {
+    // If 401 or 403, try refreshing the token (expired tokens can return either)
+    if ((response.status === 401 || response.status === 403) && refreshToken) {
       try {
         const refreshed = await xOAuthService.refreshAccessToken(refreshToken);
         token = refreshed.accessToken;
@@ -125,8 +125,8 @@ export async function searchTweets(
       headers: { Authorization: `Bearer ${token}` },
     });
 
-    // If 401, try refreshing the token
-    if (response.status === 401 && refreshToken) {
+    // If 401 or 403, try refreshing the token (expired tokens can return either)
+    if ((response.status === 401 || response.status === 403) && refreshToken) {
       try {
         const refreshed = await xOAuthService.refreshAccessToken(refreshToken);
         token = refreshed.accessToken;
@@ -291,8 +291,8 @@ export async function getMentions(
       headers: { Authorization: `Bearer ${token}` },
     });
 
-    // If 401, try refreshing the token
-    if (response.status === 401 && refreshToken) {
+    // If 401 or 403, try refreshing the token (expired tokens can return either)
+    if ((response.status === 401 || response.status === 403) && refreshToken) {
       try {
         const refreshed = await xOAuthService.refreshAccessToken(refreshToken);
         token = refreshed.accessToken;
@@ -384,8 +384,8 @@ export async function replyTweet(
       body,
     });
 
-    // If 401, try refreshing the token
-    if (response.status === 401 && refreshToken) {
+    // If 401 or 403, try refreshing the token (expired tokens can return either)
+    if ((response.status === 401 || response.status === 403) && refreshToken) {
       try {
         const refreshed = await xOAuthService.refreshAccessToken(refreshToken);
         token = refreshed.accessToken;
@@ -462,8 +462,8 @@ export async function followUser(
       body: JSON.stringify({ target_user_id: userId }),
     });
 
-    // If 401, try refreshing the token
-    if (response.status === 401 && refreshToken) {
+    // If 401 or 403, try refreshing the token (expired tokens can return either)
+    if ((response.status === 401 || response.status === 403) && refreshToken) {
       try {
         const refreshed = await xOAuthService.refreshAccessToken(refreshToken);
         token = refreshed.accessToken;
@@ -530,8 +530,8 @@ export async function likeTweet(
       body: JSON.stringify({ tweet_id: tweetId }),
     });
 
-    // If 401, try refreshing the token
-    if (response.status === 401 && refreshToken) {
+    // If 401 or 403, try refreshing the token (expired tokens can return either)
+    if ((response.status === 401 || response.status === 403) && refreshToken) {
       try {
         const refreshed = await xOAuthService.refreshAccessToken(refreshToken);
         token = refreshed.accessToken;
