@@ -58,8 +58,11 @@ export const postService = {
     }
 
     // Validate status transitions
-    if (post.status === 'published' || post.status === 'failed') {
-      throw new ForbiddenError('Cannot modify a published or failed post');
+    if (post.status === 'published') {
+      throw new ForbiddenError('Cannot modify a published post');
+    }
+    if (post.status === 'failed' && input.status !== 'draft') {
+      throw new ForbiddenError('Failed posts can only be moved back to draft');
     }
     if (post.status === 'discarded' && input.status !== 'draft') {
       throw new ForbiddenError('Discarded posts can only be reinstated to draft');
@@ -320,7 +323,7 @@ function getAllowedTransitions(currentStatus: string): string[] {
     case 'approved':
       return ['discarded', 'draft'];
     case 'failed':
-      return [];
+      return ['draft'];
     case 'discarded':
       return ['draft'];
     default:

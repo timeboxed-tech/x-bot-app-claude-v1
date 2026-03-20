@@ -610,6 +610,16 @@ export default function PostCard({ post }: PostCardProps) {
                 </Button>
               </>
             )}
+            {post.status === 'failed' && (
+              <Button
+                size="small"
+                variant="outlined"
+                onClick={() => updatePost.mutate({ id: post.id, status: 'draft' })}
+                disabled={updatePost.isPending}
+              >
+                Move to Draft
+              </Button>
+            )}
             {post.status === 'discarded' && (
               <>
                 <Button

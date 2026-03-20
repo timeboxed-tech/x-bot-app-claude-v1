@@ -151,7 +151,11 @@ export async function handlePostPublish(_jobId: string): Promise<string> {
         `Post ${post.id} publish failed: ${err instanceof Error ? err.message : String(err)}`,
         'error',
       );
-      await postRepository.update(post.id, { status: 'failed' });
+      const reason = err instanceof Error ? err.message : String(err);
+      await postRepository.update(post.id, {
+        status: 'failed',
+        flagReasons: [...((post.flagReasons as string[]) || []), `Publish failed: ${reason}`],
+      });
       failed++;
     }
   }

@@ -498,6 +498,17 @@ export default function PostQueueBPage() {
                             </IconButton>
                           </Tooltip>
                         )}
+                        {post.status === 'failed' && (
+                          <Tooltip title="Move to Draft">
+                            <IconButton
+                              size="small"
+                              onClick={() => updatePost.mutate({ id: post.id, status: 'draft' })}
+                              disabled={updatePost.isPending}
+                            >
+                              <RestoreIcon fontSize="small" />
+                            </IconButton>
+                          </Tooltip>
+                        )}
                         <Tooltip title={post.flagged ? 'Unflag' : 'Flag'}>
                           <IconButton
                             size="small"
@@ -845,6 +856,16 @@ export default function PostQueueBPage() {
                                 Discard
                               </Button>
                             </>
+                          )}
+                          {post.status === 'failed' && (
+                            <Button
+                              size="small"
+                              variant="outlined"
+                              onClick={() => updatePost.mutate({ id: post.id, status: 'draft' })}
+                              disabled={updatePost.isPending}
+                            >
+                              Move to Draft
+                            </Button>
                           )}
                           {post.status === 'discarded' && (
                             <>
