@@ -648,15 +648,38 @@ export default function PostQueueBPage() {
                               </IconButton>
                             </Tooltip>
                           )}
-                          {post.scheduledAt && (
+                          {post.status === 'approved' && post.scheduledAt && (
                             <Typography variant="caption" color="text.secondary">
-                              Scheduled: {new Date(post.scheduledAt).toLocaleString()}
+                              Scheduled for: {new Date(post.scheduledAt).toLocaleString()}
                             </Typography>
                           )}
-                          {post.publishedAt && (
-                            <Typography variant="caption" color="text.secondary">
-                              Published: {new Date(post.publishedAt).toLocaleString()}
-                            </Typography>
+                          {post.status === 'published' && (
+                            <>
+                              {post.scheduledAt && (
+                                <Typography variant="caption" color="text.secondary">
+                                  Scheduled for: {new Date(post.scheduledAt).toLocaleString()}
+                                </Typography>
+                              )}
+                              {post.publishedAt && (
+                                <Typography variant="caption" color="text.secondary">
+                                  Published: {new Date(post.publishedAt).toLocaleString()}
+                                </Typography>
+                              )}
+                            </>
+                          )}
+                          {post.status === 'failed' && (
+                            <>
+                              {post.scheduledAt && (
+                                <Typography variant="caption" color="text.secondary">
+                                  Scheduled for: {new Date(post.scheduledAt).toLocaleString()}
+                                </Typography>
+                              )}
+                              {post.flagReasons && post.flagReasons.length > 0 && (
+                                <Typography variant="caption" color="error">
+                                  Reason: {post.flagReasons.join(', ')}
+                                </Typography>
+                              )}
+                            </>
                           )}
                           <Typography variant="caption" color="text.secondary">
                             Created: {new Date(post.createdAt).toLocaleString()}
