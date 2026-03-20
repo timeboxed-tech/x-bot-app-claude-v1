@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import { z } from 'zod';
+import { prisma } from '../utils/prisma.js';
 import { jobConfigRepository } from '../repositories/jobConfigRepository.js';
 import { userRepository } from '../repositories/userRepository.js';
 import { uuidSchema } from '../utils/validation.js';
@@ -51,6 +52,23 @@ export const jobConfigController = {
 
       const config = await jobConfigRepository.update(id, body);
       invalidateJobConfigCache(found.jobType);
+
+      // Reschedule pending jobs of this type to match new interval
+      if (body.intervalMs !== undefined && config.lastRunAt) {
+        const newScheduledAt = new Date(new Date(config.lastRunAt).getTime() + body.intervalMs);
+        // If the new scheduled time is in the past, schedule for 1 minute from now
+        const effectiveScheduledAt =
+          newScheduledAt <= new Date() ? new Date(Date.now() + 60 * 1000) : newScheduledAt;
+
+        await prisma.job.updateMany({
+          where: {
+            type: found.jobType,
+            status: 'pending',
+          },
+          data: { scheduledAt: effectiveScheduledAt },
+        });
+      }
+
       res.status(200).json({ data: config });
     } catch (err) {
       next(err);

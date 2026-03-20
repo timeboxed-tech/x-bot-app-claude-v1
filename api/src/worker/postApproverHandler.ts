@@ -1,6 +1,6 @@
 import { prisma } from '../utils/prisma.js';
-import { postRepository } from '../repositories/postRepository.js';
 import { findNextScheduledSlot } from '../services/scheduler.js';
+import { buildPostingContext } from '../services/schedulerHelpers.js';
 import { log } from './activityLog.js';
 
 /**
@@ -35,16 +35,7 @@ export async function handlePostApprover(_jobId: string): Promise<string> {
       const bot = draft.bot;
 
       // Build context for slot finding
-      const lastPost = await getLastPublishedOrScheduledAt(bot.id);
-      const startOfToday = getStartOfTodayInTz(bot.timezone || 'UTC');
-      const publishedToday = await postRepository.countPublishedByBotSince(bot.id, startOfToday);
-      const approvedToday = await prisma.post.count({
-        where: {
-          botId: bot.id,
-          status: 'approved',
-          scheduledAt: { gte: startOfToday },
-        },
-      });
+      const context = await buildPostingContext(bot.id);
 
       const slot = findNextScheduledSlot(
         {
@@ -54,11 +45,7 @@ export async function handlePostApprover(_jobId: string): Promise<string> {
           preferredHoursEnd: bot.preferredHoursEnd,
           timezone: bot.timezone || 'UTC',
         },
-        {
-          lastPublishedOrScheduledAt: lastPost,
-          publishedTodayCount: publishedToday,
-          approvedTodayCount: approvedToday,
-        },
+        context,
         48, // 48-hour search window for autonomous
       );
 
@@ -93,37 +80,4 @@ export async function handlePostApprover(_jobId: string): Promise<string> {
   const message = `Approved ${approved} post(s) from ${drafts.length} draft(s), ${noSlot} no slot`;
   log('post-approver', message);
   return message;
-}
-
-async function getLastPublishedOrScheduledAt(botId: string): Promise<Date | null> {
-  const [lastPublished, lastScheduled] = await Promise.all([
-    prisma.post.findFirst({
-      where: { botId, status: 'published', publishedAt: { not: null } },
-      orderBy: { publishedAt: 'desc' },
-      select: { publishedAt: true },
-    }),
-    prisma.post.findFirst({
-      where: { botId, status: 'approved', scheduledAt: { not: null } },
-      orderBy: { scheduledAt: 'desc' },
-      select: { scheduledAt: true },
-    }),
-  ]);
-
-  const dates: Date[] = [];
-  if (lastPublished?.publishedAt) dates.push(lastPublished.publishedAt);
-  if (lastScheduled?.scheduledAt) dates.push(lastScheduled.scheduledAt);
-
-  if (dates.length === 0) return null;
-  return dates.reduce((a, b) => (a > b ? a : b));
-}
-
-function getStartOfTodayInTz(timezone: string): Date {
-  const now = new Date();
-  const dateStr = new Intl.DateTimeFormat('en-CA', {
-    timeZone: timezone,
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-  }).format(now);
-  return new Date(dateStr + 'T00:00:00Z');
 }

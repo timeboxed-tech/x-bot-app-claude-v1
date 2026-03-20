@@ -116,6 +116,7 @@ export default function PostCard({ post }: PostCardProps) {
   const [processDialogOpen, setProcessDialogOpen] = useState(false);
   const [evaluateDialogOpen, setEvaluateDialogOpen] = useState(false);
   const [publishError, setPublishError] = useState<string | null>(null);
+  const [warningMessage, setWarningMessage] = useState<string | null>(null);
 
   // Parse metadata for process steps
   const parsedMetadata = (() => {
@@ -161,11 +162,29 @@ export default function PostCard({ post }: PostCardProps) {
   };
 
   const handleSchedule = () => {
-    updatePost.mutate({ id: post.id, status: 'approved' });
+    updatePost.mutate(
+      { id: post.id, status: 'approved' },
+      {
+        onSuccess: (data) => {
+          if (data.warning) {
+            setWarningMessage(data.warning);
+          }
+        },
+      },
+    );
   };
 
   const handleApprove = () => {
-    updatePost.mutate({ id: post.id, status: 'approved' });
+    updatePost.mutate(
+      { id: post.id, status: 'approved' },
+      {
+        onSuccess: (data) => {
+          if (data.warning) {
+            setWarningMessage(data.warning);
+          }
+        },
+      },
+    );
   };
 
   const handlePublishNow = () => {
@@ -628,6 +647,11 @@ export default function PostCard({ post }: PostCardProps) {
         {publishError && (
           <Alert severity="error" onClose={() => setPublishError(null)} sx={{ mt: 1 }}>
             {publishError}
+          </Alert>
+        )}
+        {warningMessage && (
+          <Alert severity="warning" onClose={() => setWarningMessage(null)} sx={{ mt: 1 }}>
+            {warningMessage}
           </Alert>
         )}
       </CardContent>

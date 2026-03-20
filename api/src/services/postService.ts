@@ -1,9 +1,9 @@
-import { prisma } from '../utils/prisma.js';
 import { botRepository } from '../repositories/botRepository.js';
 import { postRepository } from '../repositories/postRepository.js';
 import { botTipRepository } from '../repositories/botTipRepository.js';
 import { tweakPost, generateTips } from './aiService.js';
 import { findNextScheduledSlot } from './scheduler.js';
+import { buildPostingContext, type BotForScheduling } from './schedulerHelpers.js';
 import { NotFoundError, ForbiddenError, ValidationError } from '../utils/errors.js';
 
 type UpdatePostInput = {
@@ -260,58 +260,17 @@ export const postService = {
   },
 };
 
-async function findSlotForBot(bot: {
-  id: string;
-  postsPerDay: number;
-  minIntervalHours: number;
-  preferredHoursStart: number;
-  preferredHoursEnd: number;
-  timezone: string;
-}): Promise<Date | null> {
-  const tz = bot.timezone || 'UTC';
-  const todayStr = new Intl.DateTimeFormat('en-CA', {
-    timeZone: tz,
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-  }).format(new Date());
-  const startOfToday = new Date(todayStr + 'T00:00:00Z');
-
-  const [lastPublished, lastScheduled, publishedToday, approvedToday] = await Promise.all([
-    prisma.post.findFirst({
-      where: { botId: bot.id, status: 'published', publishedAt: { not: null } },
-      orderBy: { publishedAt: 'desc' },
-      select: { publishedAt: true },
-    }),
-    prisma.post.findFirst({
-      where: { botId: bot.id, status: 'approved', scheduledAt: { not: null } },
-      orderBy: { scheduledAt: 'desc' },
-      select: { scheduledAt: true },
-    }),
-    postRepository.countPublishedByBotSince(bot.id, startOfToday),
-    prisma.post.count({
-      where: { botId: bot.id, status: 'approved', scheduledAt: { gte: startOfToday } },
-    }),
-  ]);
-
-  const dates: Date[] = [];
-  if (lastPublished?.publishedAt) dates.push(lastPublished.publishedAt);
-  if (lastScheduled?.scheduledAt) dates.push(lastScheduled.scheduledAt);
-  const lastPostAt = dates.length > 0 ? dates.reduce((a, b) => (a > b ? a : b)) : null;
-
+async function findSlotForBot(bot: BotForScheduling): Promise<Date | null> {
+  const context = await buildPostingContext(bot.id);
   return findNextScheduledSlot(
     {
       postsPerDay: bot.postsPerDay,
       minIntervalHours: bot.minIntervalHours,
       preferredHoursStart: bot.preferredHoursStart,
       preferredHoursEnd: bot.preferredHoursEnd,
-      timezone: tz,
+      timezone: bot.timezone || 'UTC',
     },
-    {
-      lastPublishedOrScheduledAt: lastPostAt,
-      publishedTodayCount: publishedToday,
-      approvedTodayCount: approvedToday,
-    },
+    context,
     48,
   );
 }

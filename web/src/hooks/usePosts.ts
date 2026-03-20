@@ -29,6 +29,7 @@ type PostListResponse = {
 
 type PostResponse = {
   data: Post;
+  warning?: string;
 };
 
 type UpdatePostInput = {
@@ -99,7 +100,7 @@ export function useUpdatePost() {
   return useMutation({
     mutationFn: async ({ id, ...input }: UpdatePostInput) => {
       const response = await apiClient.patch<PostResponse>(`/posts/${id}`, input);
-      return response.data.data;
+      return { post: response.data.data, warning: response.data.warning };
     },
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: queryKeys.posts.all });

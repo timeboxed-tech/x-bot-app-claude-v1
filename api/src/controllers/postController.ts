@@ -6,7 +6,7 @@ import { userRepository } from '../repositories/userRepository.js';
 import { postRepository } from '../repositories/postRepository.js';
 import { publishPostNow } from '../services/publishService.js';
 import { findNextScheduledSlot } from '../services/scheduler.js';
-import { prisma } from '../utils/prisma.js';
+import { buildPostingContext } from '../services/schedulerHelpers.js';
 import { paginationSchema, uuidSchema } from '../utils/validation.js';
 import { NotFoundError, ForbiddenError, ValidationError } from '../utils/errors.js';
 
@@ -107,8 +107,14 @@ export const postController = {
       const body = updatePostSchema.parse(req.body);
       const post = await postService.updatePost(id, userId, body);
 
+      const warning =
+        post.status === 'approved' && !post.scheduledAt
+          ? 'No available slot found in the next 48 hours. Post will be scheduled when a slot opens up.'
+          : undefined;
+
       res.status(200).json({
         data: post,
+        ...(warning && { warning }),
       });
     } catch (err) {
       next(err);
@@ -240,12 +246,7 @@ export const postController = {
       const bot = post.bot;
 
       // Build context
-      const lastPost = await getLastPublishedOrScheduledAt(bot.id);
-      const startOfToday = getStartOfTodayInTz(bot.timezone || 'UTC');
-      const publishedToday = await postRepository.countPublishedByBotSince(bot.id, startOfToday);
-      const approvedToday = await prisma.post.count({
-        where: { botId: bot.id, status: 'approved', scheduledAt: { gte: startOfToday } },
-      });
+      const context = await buildPostingContext(bot.id);
 
       const slot = findNextScheduledSlot(
         {
@@ -255,11 +256,7 @@ export const postController = {
           preferredHoursEnd: bot.preferredHoursEnd,
           timezone: bot.timezone || 'UTC',
         },
-        {
-          lastPublishedOrScheduledAt: lastPost,
-          publishedTodayCount: publishedToday,
-          approvedTodayCount: approvedToday,
-        },
+        context,
         7 * 24, // 7-day search window for human
       );
 
@@ -339,39 +336,6 @@ export const postController = {
     }
   },
 };
-
-async function getLastPublishedOrScheduledAt(botId: string): Promise<Date | null> {
-  const [lastPublished, lastScheduled] = await Promise.all([
-    prisma.post.findFirst({
-      where: { botId, status: 'published', publishedAt: { not: null } },
-      orderBy: { publishedAt: 'desc' },
-      select: { publishedAt: true },
-    }),
-    prisma.post.findFirst({
-      where: { botId, status: 'approved', scheduledAt: { not: null } },
-      orderBy: { scheduledAt: 'desc' },
-      select: { scheduledAt: true },
-    }),
-  ]);
-
-  const dates: Date[] = [];
-  if (lastPublished?.publishedAt) dates.push(lastPublished.publishedAt);
-  if (lastScheduled?.scheduledAt) dates.push(lastScheduled.scheduledAt);
-
-  if (dates.length === 0) return null;
-  return dates.reduce((a, b) => (a > b ? a : b));
-}
-
-function getStartOfTodayInTz(timezone: string): Date {
-  const now = new Date();
-  const dateStr = new Intl.DateTimeFormat('en-CA', {
-    timeZone: timezone,
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-  }).format(now);
-  return new Date(dateStr + 'T00:00:00Z');
-}
 
 function isOutsidePreferredWindow(
   date: Date,

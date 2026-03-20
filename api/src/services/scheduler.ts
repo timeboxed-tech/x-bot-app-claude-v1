@@ -8,8 +8,7 @@ export type BotScheduleConfig = {
 
 export type PostingContext = {
   lastPublishedOrScheduledAt: Date | null;
-  publishedTodayCount: number;
-  approvedTodayCount: number;
+  existingPostDates: Date[];
 };
 
 /**
@@ -53,10 +52,9 @@ export function findNextScheduledSlot(
 ): Date | null {
   const { postsPerDay, minIntervalHours, preferredHoursStart, preferredHoursEnd, timezone } =
     config;
-  const { lastPublishedOrScheduledAt, publishedTodayCount, approvedTodayCount } = context;
+  const { lastPublishedOrScheduledAt, existingPostDates } = context;
 
   const now = new Date();
-  const todayStr = getLocalDateString(now, timezone);
 
   // Compute jitter factors once per call
   const windowJitterFactor = 0.9 + Math.random() * 0.2;
@@ -103,10 +101,11 @@ export function findNextScheduledSlot(
       }
     }
 
-    // 3. Daily cap check
+    // 3. Daily cap check — count existing posts on the same calendar day
     const candidateDayStr = getLocalDateString(candidate, timezone);
-    const isToday = candidateDayStr === todayStr;
-    const dailyCount = isToday ? publishedTodayCount + approvedTodayCount : 0;
+    const dailyCount = existingPostDates.filter(
+      (d) => getLocalDateString(d, timezone) === candidateDayStr,
+    ).length;
     if (dailyCount >= jitteredCap) {
       continue;
     }

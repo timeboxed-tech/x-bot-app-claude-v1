@@ -8,6 +8,7 @@ import {
   handleReplyToPostPublish,
 } from '../services/publishService.js';
 import { findNextScheduledSlot } from '../services/scheduler.js';
+import { buildPostingContext } from '../services/schedulerHelpers.js';
 import { log } from './activityLog.js';
 
 const MAX_POSTS_PER_HOUR = 1;
@@ -182,36 +183,8 @@ async function assignSlotsToUnscheduledPosts(): Promise<void> {
   let assigned = 0;
   for (const post of unscheduled) {
     const bot = post.bot;
-    const tz = bot.timezone || 'UTC';
-    const todayStr = new Intl.DateTimeFormat('en-CA', {
-      timeZone: tz,
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
-    }).format(new Date());
-    const startOfToday = new Date(todayStr + 'T00:00:00Z');
 
-    const [lastPublished, lastScheduled, publishedToday, approvedToday] = await Promise.all([
-      prisma.post.findFirst({
-        where: { botId: bot.id, status: 'published', publishedAt: { not: null } },
-        orderBy: { publishedAt: 'desc' },
-        select: { publishedAt: true },
-      }),
-      prisma.post.findFirst({
-        where: { botId: bot.id, status: 'approved', scheduledAt: { not: null } },
-        orderBy: { scheduledAt: 'desc' },
-        select: { scheduledAt: true },
-      }),
-      postRepository.countPublishedByBotSince(bot.id, startOfToday),
-      prisma.post.count({
-        where: { botId: bot.id, status: 'approved', scheduledAt: { gte: startOfToday } },
-      }),
-    ]);
-
-    const dates: Date[] = [];
-    if (lastPublished?.publishedAt) dates.push(lastPublished.publishedAt);
-    if (lastScheduled?.scheduledAt) dates.push(lastScheduled.scheduledAt);
-    const lastPostAt = dates.length > 0 ? dates.reduce((a, b) => (a > b ? a : b)) : null;
+    const context = await buildPostingContext(bot.id);
 
     const slot = findNextScheduledSlot(
       {
@@ -219,13 +192,9 @@ async function assignSlotsToUnscheduledPosts(): Promise<void> {
         minIntervalHours: bot.minIntervalHours,
         preferredHoursStart: bot.preferredHoursStart,
         preferredHoursEnd: bot.preferredHoursEnd,
-        timezone: tz,
+        timezone: bot.timezone || 'UTC',
       },
-      {
-        lastPublishedOrScheduledAt: lastPostAt,
-        publishedTodayCount: publishedToday,
-        approvedTodayCount: approvedToday,
-      },
+      context,
       48,
     );
 
