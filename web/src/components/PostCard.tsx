@@ -466,33 +466,15 @@ export default function PostCard({ post }: PostCardProps) {
           <Typography variant="caption" color="text.secondary">
             Created: {formatDate(post.createdAt)}
           </Typography>
-          {post.status === 'approved' && post.scheduledAt && (
+          {post.scheduledAt && (
             <Typography variant="caption" color="text.secondary">
               Scheduled for: {formatDate(post.scheduledAt)}
             </Typography>
           )}
-          {post.status === 'published' && (
-            <>
-              {post.scheduledAt && (
-                <Typography variant="caption" color="text.secondary">
-                  Scheduled for: {formatDate(post.scheduledAt)}
-                </Typography>
-              )}
-              {post.publishedAt && (
-                <Typography variant="caption" color="text.secondary">
-                  Published: {formatDate(post.publishedAt)}
-                </Typography>
-              )}
-            </>
-          )}
-          {post.status === 'failed' && (
-            <>
-              {post.scheduledAt && (
-                <Typography variant="caption" color="text.secondary">
-                  Scheduled for: {formatDate(post.scheduledAt)}
-                </Typography>
-              )}
-            </>
+          {post.publishedAt && (
+            <Typography variant="caption" color="text.secondary">
+              Published: {formatDate(post.publishedAt)}
+            </Typography>
           )}
         </Box>
         {post.status === 'failed' && post.flagReasons && post.flagReasons.length > 0 && (
