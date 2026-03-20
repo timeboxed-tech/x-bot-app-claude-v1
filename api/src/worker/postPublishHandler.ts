@@ -7,6 +7,7 @@ import {
   isReplyToPostDraft,
   handleReplyToPostPublish,
 } from '../services/publishService.js';
+import { findNextScheduledSlot } from '../services/scheduler.js';
 import { log } from './activityLog.js';
 
 const MAX_POSTS_PER_HOUR = 1;
@@ -14,9 +15,12 @@ const MAX_POSTS_PER_HOUR = 1;
 /**
  * Post publish handler: recurring job that finds all approved posts
  * with scheduledAt <= now and publishes them, respecting rate limits.
- * Skips bots that are rate-limited and moves to the next.
+ * Also assigns scheduledAt to approved posts that don't have one yet.
  */
 export async function handlePostPublish(_jobId: string): Promise<string> {
+  // First: try to assign scheduledAt to approved posts without one
+  await assignSlotsToUnscheduledPosts();
+
   // Find all approved posts ready to publish across all bots
   const readyPosts = await prisma.post.findMany({
     where: {
@@ -155,4 +159,79 @@ export async function handlePostPublish(_jobId: string): Promise<string> {
   const message = `Published ${published}, skipped ${skipped} (rate limit), failed ${failed}`;
   log('post-publish', message);
   return message;
+}
+
+async function assignSlotsToUnscheduledPosts(): Promise<void> {
+  const unscheduled = await prisma.post.findMany({
+    where: {
+      status: 'approved',
+      scheduledAt: null,
+      bot: { active: true, user: { archivedAt: null } },
+    },
+    include: { bot: true },
+    orderBy: { createdAt: 'asc' },
+    take: 20,
+  });
+
+  if (unscheduled.length === 0) return;
+
+  let assigned = 0;
+  for (const post of unscheduled) {
+    const bot = post.bot;
+    const tz = bot.timezone || 'UTC';
+    const todayStr = new Intl.DateTimeFormat('en-CA', {
+      timeZone: tz,
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+    }).format(new Date());
+    const startOfToday = new Date(todayStr + 'T00:00:00Z');
+
+    const [lastPublished, lastScheduled, publishedToday, approvedToday] = await Promise.all([
+      prisma.post.findFirst({
+        where: { botId: bot.id, status: 'published', publishedAt: { not: null } },
+        orderBy: { publishedAt: 'desc' },
+        select: { publishedAt: true },
+      }),
+      prisma.post.findFirst({
+        where: { botId: bot.id, status: 'approved', scheduledAt: { not: null } },
+        orderBy: { scheduledAt: 'desc' },
+        select: { scheduledAt: true },
+      }),
+      postRepository.countPublishedByBotSince(bot.id, startOfToday),
+      prisma.post.count({
+        where: { botId: bot.id, status: 'approved', scheduledAt: { gte: startOfToday } },
+      }),
+    ]);
+
+    const dates: Date[] = [];
+    if (lastPublished?.publishedAt) dates.push(lastPublished.publishedAt);
+    if (lastScheduled?.scheduledAt) dates.push(lastScheduled.scheduledAt);
+    const lastPostAt = dates.length > 0 ? dates.reduce((a, b) => (a > b ? a : b)) : null;
+
+    const slot = findNextScheduledSlot(
+      {
+        postsPerDay: bot.postsPerDay,
+        minIntervalHours: bot.minIntervalHours,
+        preferredHoursStart: bot.preferredHoursStart,
+        preferredHoursEnd: bot.preferredHoursEnd,
+        timezone: tz,
+      },
+      {
+        lastPublishedOrScheduledAt: lastPostAt,
+        publishedTodayCount: publishedToday,
+        approvedTodayCount: approvedToday,
+      },
+      48,
+    );
+
+    if (slot) {
+      await postRepository.update(post.id, { scheduledAt: slot });
+      assigned++;
+    }
+  }
+
+  if (assigned > 0) {
+    log('post-publish', `Assigned scheduledAt to ${assigned} unscheduled approved post(s)`);
+  }
 }
