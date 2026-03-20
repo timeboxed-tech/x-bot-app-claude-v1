@@ -463,15 +463,50 @@ export default function PostCard({ post }: PostCardProps) {
           )}
         </Box>
 
-        {post.scheduledAt && (
+        {post.status === 'approved' && post.scheduledAt && (
           <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 0.5 }}>
-            Scheduled: {formatDate(post.scheduledAt)}
+            Scheduled for: {formatDate(post.scheduledAt)}
           </Typography>
         )}
-        {post.publishedAt && (
-          <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 0.5 }}>
-            Published: {formatDate(post.publishedAt)}
-          </Typography>
+        {post.status === 'published' && (
+          <>
+            {post.scheduledAt && (
+              <Typography
+                variant="caption"
+                color="text.secondary"
+                sx={{ display: 'block', mb: 0.5 }}
+              >
+                Scheduled for: {formatDate(post.scheduledAt)}
+              </Typography>
+            )}
+            {post.publishedAt && (
+              <Typography
+                variant="caption"
+                color="text.secondary"
+                sx={{ display: 'block', mb: 0.5 }}
+              >
+                Published: {formatDate(post.publishedAt)}
+              </Typography>
+            )}
+          </>
+        )}
+        {post.status === 'failed' && (
+          <>
+            {post.scheduledAt && (
+              <Typography
+                variant="caption"
+                color="text.secondary"
+                sx={{ display: 'block', mb: 0.5 }}
+              >
+                Scheduled for: {formatDate(post.scheduledAt)}
+              </Typography>
+            )}
+            {post.flagReasons && post.flagReasons.length > 0 && (
+              <Typography variant="caption" color="error" sx={{ display: 'block', mb: 0.5 }}>
+                Reason: {post.flagReasons.join(', ')}
+              </Typography>
+            )}
+          </>
         )}
 
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mt: 1 }}>
