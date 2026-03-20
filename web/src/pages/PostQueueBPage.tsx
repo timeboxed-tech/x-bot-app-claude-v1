@@ -659,42 +659,26 @@ export default function PostQueueBPage() {
                               </IconButton>
                             </Tooltip>
                           )}
-                          {post.status === 'approved' && post.scheduledAt && (
+                          <Typography variant="caption" color="text.secondary">
+                            Created: {new Date(post.createdAt).toLocaleString()}
+                          </Typography>
+                          {post.scheduledAt && (
                             <Typography variant="caption" color="text.secondary">
                               Scheduled for: {new Date(post.scheduledAt).toLocaleString()}
                             </Typography>
                           )}
-                          {post.status === 'published' && (
-                            <>
-                              {post.scheduledAt && (
-                                <Typography variant="caption" color="text.secondary">
-                                  Scheduled for: {new Date(post.scheduledAt).toLocaleString()}
-                                </Typography>
-                              )}
-                              {post.publishedAt && (
-                                <Typography variant="caption" color="text.secondary">
-                                  Published: {new Date(post.publishedAt).toLocaleString()}
-                                </Typography>
-                              )}
-                            </>
+                          {post.publishedAt && (
+                            <Typography variant="caption" color="text.secondary">
+                              Published: {new Date(post.publishedAt).toLocaleString()}
+                            </Typography>
                           )}
-                          {post.status === 'failed' && (
-                            <>
-                              {post.scheduledAt && (
-                                <Typography variant="caption" color="text.secondary">
-                                  Scheduled for: {new Date(post.scheduledAt).toLocaleString()}
-                                </Typography>
-                              )}
-                              {post.flagReasons && post.flagReasons.length > 0 && (
-                                <Typography variant="caption" color="error">
-                                  Reason: {post.flagReasons.join(', ')}
-                                </Typography>
-                              )}
-                            </>
-                          )}
-                          <Typography variant="caption" color="text.secondary">
-                            Created: {new Date(post.createdAt).toLocaleString()}
-                          </Typography>
+                          {post.status === 'failed' &&
+                            post.flagReasons &&
+                            post.flagReasons.length > 0 && (
+                              <Typography variant="caption" color="error">
+                                Reason: {post.flagReasons.join(', ')}
+                              </Typography>
+                            )}
                         </Box>
                         <Box sx={{ display: 'flex', gap: 1, mt: 2, flexWrap: 'wrap' }}>
                           {post.status === 'draft' && (
