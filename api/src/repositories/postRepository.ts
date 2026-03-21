@@ -43,12 +43,17 @@ export const postRepository = {
       where.status = options.status;
     }
 
+    const orderBy =
+      options.status === 'approved'
+        ? [{ scheduledAt: 'asc' as const }, { createdAt: 'desc' as const }]
+        : { createdAt: 'desc' as const };
+
     const [posts, total] = await Promise.all([
       prisma.post.findMany({
         where,
         skip: (options.page - 1) * options.pageSize,
         take: options.pageSize,
-        orderBy: { createdAt: 'desc' },
+        orderBy,
       }),
       prisma.post.count({ where }),
     ]);
@@ -67,12 +72,17 @@ export const postRepository = {
       where.status = options.status;
     }
 
+    const orderBy =
+      options.status === 'approved'
+        ? [{ scheduledAt: 'asc' as const }, { createdAt: 'desc' as const }]
+        : { createdAt: 'desc' as const };
+
     const [posts, total] = await Promise.all([
       prisma.post.findMany({
         where,
         skip: (options.page - 1) * options.pageSize,
         take: options.pageSize,
-        orderBy: { createdAt: 'desc' },
+        orderBy,
       }),
       prisma.post.count({ where }),
     ]);

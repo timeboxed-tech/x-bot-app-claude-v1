@@ -83,6 +83,19 @@ function timeAgo(dateStr: string): string {
   return new Date(dateStr).toLocaleDateString();
 }
 
+function daysUntil(dateStr: string | null): string {
+  if (!dateStr) return 'N/A';
+  const now = new Date();
+  const target = new Date(dateStr);
+  const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const targetStart = new Date(target.getFullYear(), target.getMonth(), target.getDate());
+  const diffDays = Math.round((targetStart.getTime() - todayStart.getTime()) / 86400000);
+  if (diffDays < 0) return 'overdue';
+  if (diffDays === 0) return 'today';
+  if (diffDays === 1) return 'tomorrow';
+  return `in ${diffDays} days`;
+}
+
 function PostReviewsSection({
   postId,
   onDeleteReview,
@@ -351,6 +364,15 @@ export default function PostQueueBPage() {
                       >
                         {timeAgo(post.createdAt)}
                       </Typography>
+                      {post.status === 'approved' && (
+                        <Typography
+                          variant="caption"
+                          color={post.scheduledAt ? 'primary' : 'text.disabled'}
+                          sx={{ whiteSpace: 'nowrap', minWidth: 60, textAlign: 'right' }}
+                        >
+                          {daysUntil(post.scheduledAt)}
+                        </Typography>
+                      )}
                       {/* Hover action icons */}
                       <Box
                         className="row-hover-actions"
