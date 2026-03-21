@@ -62,6 +62,11 @@ export const userRepository = {
   },
 
   async archive(id: string) {
+    // Deactivate all bots when archiving user
+    await prisma.bot.updateMany({
+      where: { userId: id },
+      data: { active: false },
+    });
     return prisma.user.update({
       where: { id },
       data: { archivedAt: new Date() },
