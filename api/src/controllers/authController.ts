@@ -4,10 +4,13 @@ import { authService } from '../services/authService.js';
 import { config } from '../config/index.js';
 import { emailSchema } from '../utils/validation.js';
 
+const SIGNUP_CODE = 'sister2026';
+
 const registerSchema = z.object({
   email: emailSchema,
   password: z.string().min(6, 'Password must be at least 6 characters'),
   name: z.string().min(1, 'Name is required'),
+  code: z.string().min(1, 'Invite code is required'),
 });
 
 const loginSchema = z.object({
@@ -28,7 +31,11 @@ function setSessionCookie(res: Response, sessionToken: string): void {
 export const authController = {
   async register(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const { email, password, name } = registerSchema.parse(req.body);
+      const { email, password, name, code } = registerSchema.parse(req.body);
+      if (code !== SIGNUP_CODE) {
+        res.status(403).json({ error: 'Invalid invite code' });
+        return;
+      }
       const { user, sessionToken } = await authService.register(email, password, name);
 
       setSessionCookie(res, sessionToken);

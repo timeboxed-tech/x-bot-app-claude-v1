@@ -28,6 +28,7 @@ export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
+  const [code, setCode] = useState('');
   const [emailError, setEmailError] = useState<string | null>(null);
   const [apiError, setApiError] = useState<string | null>(null);
 
@@ -61,7 +62,7 @@ export default function LoginPage() {
     };
 
     if (isRegister) {
-      registerMutation.mutate({ email, password, name }, { onSuccess, onError });
+      registerMutation.mutate({ email, password, name, code }, { onSuccess, onError });
     } else {
       loginMutation.mutate({ email, password }, { onSuccess, onError });
     }
@@ -93,13 +94,21 @@ export default function LoginPage() {
             sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}
           >
             {isRegister && (
-              <TextField
-                label="Name"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                fullWidth
-                autoFocus
-              />
+              <>
+                <TextField
+                  label="Name"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  fullWidth
+                  autoFocus
+                />
+                <TextField
+                  label="Invite Code"
+                  value={code}
+                  onChange={(e) => setCode(e.target.value)}
+                  fullWidth
+                />
+              </>
             )}
             <TextField
               label="Email"
