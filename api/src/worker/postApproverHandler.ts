@@ -10,7 +10,8 @@ import { log } from './activityLog.js';
  */
 export async function handlePostApprover(_jobId: string): Promise<string> {
   // Find draft posts from auto-mode bots that are not flagged
-  const drafts = await prisma.post.findMany({
+  // Fetch extra, then shuffle with bias toward older posts
+  const allDrafts = await prisma.post.findMany({
     where: {
       status: 'draft',
       flagged: false,
@@ -22,8 +23,16 @@ export async function handlePostApprover(_jobId: string): Promise<string> {
     },
     include: { bot: true },
     orderBy: { createdAt: 'asc' },
-    take: 20,
+    take: 40,
   });
+
+  // Weighted shuffle: older posts get higher priority but with randomness
+  // Each post gets a score = index + random(0, total/2), then sort by score
+  const drafts = allDrafts
+    .map((draft, i) => ({ draft, score: i + Math.random() * (allDrafts.length / 2) }))
+    .sort((a, b) => a.score - b.score)
+    .slice(0, 20)
+    .map((d) => d.draft);
 
   log('post-approver', `Found ${drafts.length} draft(s) to consider for auto-approval`);
 
