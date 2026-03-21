@@ -102,7 +102,7 @@ function PostsAPage() {
                   }}
                 />
               }
-              label="Show all bots"
+              label="Show everyone's bots"
             />
           )}
         </Box>

@@ -53,12 +53,12 @@ import {
 } from '../hooks/useJudges';
 
 const STATUS_FILTERS: Array<{ label: string; status?: PostStatus }> = [
-  { label: 'All' },
   { label: 'Drafts', status: 'draft' },
   { label: 'Approved', status: 'approved' },
   { label: 'Published', status: 'published' },
   { label: 'Failed', status: 'failed' },
   { label: 'Discarded', status: 'discarded' },
+  { label: 'All' },
 ];
 
 const statusColors: Record<PostStatus, 'default' | 'info' | 'success' | 'error' | 'warning'> = {
@@ -224,7 +224,7 @@ export default function PostQueueBPage() {
                   }}
                 />
               }
-              label="Show all bots"
+              label="Show everyone's bots"
             />
           )}
         </Box>
