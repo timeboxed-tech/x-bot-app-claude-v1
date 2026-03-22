@@ -1,4 +1,5 @@
 import { xOAuthService } from './xOAuthService.js';
+import { prisma } from '../utils/prisma.js';
 import { botRepository } from '../repositories/botRepository.js';
 import { systemConfigRepository } from '../repositories/systemConfigRepository.js';
 import { loggedFetch } from '../utils/apiLogger.js';
@@ -6,6 +7,29 @@ import { loggedFetch } from '../utils/apiLogger.js';
 const TWITTER_TWEET_URL = 'https://api.twitter.com/2/tweets';
 const TWITTER_SEARCH_URL = 'https://api.twitter.com/2/tweets/search/recent';
 const TWITTER_ME_URL = 'https://api.twitter.com/2/users/me';
+
+/**
+ * Re-read bot tokens from DB (they may have been refreshed by a prior call).
+ */
+async function getLatestTokens(
+  botId: string | undefined,
+  fallbackAccess: string,
+  fallbackRefresh: string,
+): Promise<{ accessToken: string; refreshToken: string }> {
+  if (!botId) return { accessToken: fallbackAccess, refreshToken: fallbackRefresh };
+  try {
+    const bot = await prisma.bot.findUnique({
+      where: { id: botId },
+      select: { xAccessToken: true, xAccessSecret: true },
+    });
+    if (bot) {
+      return { accessToken: bot.xAccessToken, refreshToken: bot.xAccessSecret };
+    }
+  } catch {
+    // fall back
+  }
+  return { accessToken: fallbackAccess, refreshToken: fallbackRefresh };
+}
 
 export async function publishTweet(
   content: string,
@@ -443,13 +467,15 @@ export async function followUser(
   botId?: string,
 ): Promise<{ success: boolean; error?: string }> {
   try {
-    let token = accessToken;
-
-    // First, get the authenticated user's ID
-    const meResult = await getAuthenticatedUserId(token, refreshToken, botId);
+    // First, get the authenticated user's ID (may refresh tokens)
+    const meResult = await getAuthenticatedUserId(accessToken, refreshToken, botId);
     if (!meResult.success || !meResult.userId) {
       return { success: false, error: `Failed to get user ID: ${meResult.error ?? 'unknown'}` };
     }
+
+    // Re-read tokens in case getAuthenticatedUserId refreshed them
+    const latest = await getLatestTokens(botId, accessToken, refreshToken);
+    let token = latest.accessToken;
 
     const followUrl = `https://api.twitter.com/2/users/${meResult.userId}/following`;
 
@@ -463,9 +489,9 @@ export async function followUser(
     });
 
     // If 401 or 403, try refreshing the token (expired tokens can return either)
-    if ((response.status === 401 || response.status === 403) && refreshToken) {
+    if ((response.status === 401 || response.status === 403) && latest.refreshToken) {
       try {
-        const refreshed = await xOAuthService.refreshAccessToken(refreshToken);
+        const refreshed = await xOAuthService.refreshAccessToken(latest.refreshToken);
         token = refreshed.accessToken;
 
         if (botId) {
@@ -511,13 +537,15 @@ export async function likeTweet(
   botId?: string,
 ): Promise<{ success: boolean; error?: string }> {
   try {
-    let token = accessToken;
-
-    // First, get the authenticated user's ID
-    const meResult = await getAuthenticatedUserId(token, refreshToken, botId);
+    // First, get the authenticated user's ID (may refresh tokens)
+    const meResult = await getAuthenticatedUserId(accessToken, refreshToken, botId);
     if (!meResult.success || !meResult.userId) {
       return { success: false, error: `Failed to get user ID: ${meResult.error ?? 'unknown'}` };
     }
+
+    // Re-read tokens in case getAuthenticatedUserId refreshed them
+    const latest = await getLatestTokens(botId, accessToken, refreshToken);
+    let token = latest.accessToken;
 
     const likeUrl = `https://api.twitter.com/2/users/${meResult.userId}/likes`;
 
@@ -531,9 +559,9 @@ export async function likeTweet(
     });
 
     // If 401 or 403, try refreshing the token (expired tokens can return either)
-    if ((response.status === 401 || response.status === 403) && refreshToken) {
+    if ((response.status === 401 || response.status === 403) && latest.refreshToken) {
       try {
-        const refreshed = await xOAuthService.refreshAccessToken(refreshToken);
+        const refreshed = await xOAuthService.refreshAccessToken(latest.refreshToken);
         token = refreshed.accessToken;
 
         if (botId) {
