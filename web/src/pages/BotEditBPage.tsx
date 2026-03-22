@@ -39,7 +39,7 @@ import AppHeader from '../components/AppHeader';
 import { apiClient } from '../lib/apiClient';
 import { StepCard, type ProcessStep } from '../components/ProcessVisualisationDialog';
 import { useBot, useUpdateBot, useBotTips } from '../hooks/useBot';
-import { useDeletePost, useUpdatePost } from '../hooks/usePosts';
+import { useUpdatePost } from '../hooks/usePosts';
 import {
   useBotBehaviours,
   useCreateBotBehaviour,
@@ -68,7 +68,6 @@ export default function BotEditBPage() {
   const deleteBehaviour = useDeleteBotBehaviour();
   const toggleBehaviour = useToggleBotBehaviour();
   const quickRunBehaviour = useQuickRunBehaviour();
-  const deletePost = useDeletePost();
   const updatePost = useUpdatePost();
 
   const { data: allJudges } = useJudges();
