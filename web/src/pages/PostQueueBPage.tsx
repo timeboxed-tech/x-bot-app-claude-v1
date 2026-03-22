@@ -369,30 +369,59 @@ export default function PostQueueBPage() {
                           }}
                         />
                       )}
-                      <Typography
-                        variant="caption"
-                        color="text.secondary"
-                        sx={{ whiteSpace: 'nowrap', minWidth: 60, textAlign: 'right' }}
-                      >
-                        {timeAgo(post.createdAt)}
-                      </Typography>
-                      {post.status === 'approved' && (
+                      <Tooltip title={`Created: ${new Date(post.createdAt).toLocaleString()}`}>
                         <Typography
                           variant="caption"
-                          color={post.scheduledAt ? 'primary' : 'text.disabled'}
-                          sx={{ whiteSpace: 'nowrap', minWidth: 60, textAlign: 'right' }}
+                          color="text.secondary"
+                          sx={{
+                            whiteSpace: 'nowrap',
+                            minWidth: 60,
+                            textAlign: 'right',
+                            cursor: 'default',
+                          }}
                         >
-                          {daysUntil(post.scheduledAt)}
+                          {timeAgo(post.createdAt)}
                         </Typography>
+                      </Tooltip>
+                      {post.status === 'approved' && (
+                        <Tooltip
+                          title={
+                            post.scheduledAt
+                              ? `Scheduled for: ${new Date(post.scheduledAt).toLocaleString()}`
+                              : 'Not scheduled yet'
+                          }
+                        >
+                          <Typography
+                            variant="caption"
+                            color={post.scheduledAt ? 'primary' : 'text.disabled'}
+                            sx={{
+                              whiteSpace: 'nowrap',
+                              minWidth: 60,
+                              textAlign: 'right',
+                              cursor: 'default',
+                            }}
+                          >
+                            {daysUntil(post.scheduledAt)}
+                          </Typography>
+                        </Tooltip>
                       )}
                       {post.status === 'published' && post.publishedAt && (
-                        <Typography
-                          variant="caption"
-                          color="success.main"
-                          sx={{ whiteSpace: 'nowrap', minWidth: 60, textAlign: 'right' }}
+                        <Tooltip
+                          title={`Published: ${new Date(post.publishedAt).toLocaleString()}`}
                         >
-                          {daysSince(post.publishedAt)}
-                        </Typography>
+                          <Typography
+                            variant="caption"
+                            color="success.main"
+                            sx={{
+                              whiteSpace: 'nowrap',
+                              minWidth: 60,
+                              textAlign: 'right',
+                              cursor: 'default',
+                            }}
+                          >
+                            {daysSince(post.publishedAt)}
+                          </Typography>
+                        </Tooltip>
                       )}
                       {/* Hover action icons */}
                       <Box
