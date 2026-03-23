@@ -37,6 +37,9 @@ export async function publishTweet(
   refreshToken: string,
   botId?: string,
 ): Promise<{ success: boolean; tweetId?: string; error?: string }> {
+  if (content.length > 280) {
+    return { success: false, error: `Tweet exceeds 280 character limit (${content.length} chars)` };
+  }
   try {
     let token = accessToken;
 
@@ -391,6 +394,9 @@ export async function replyTweet(
   refreshToken: string,
   botId?: string,
 ): Promise<{ success: boolean; tweetId?: string; error?: string }> {
+  if (content.length > 280) {
+    return { success: false, error: `Reply exceeds 280 character limit (${content.length} chars)` };
+  }
   try {
     let token = accessToken;
 
