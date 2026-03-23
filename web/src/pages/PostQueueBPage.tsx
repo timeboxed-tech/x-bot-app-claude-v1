@@ -358,6 +358,13 @@ export default function PostQueueBPage() {
                         {post.content.substring(0, 100)}
                         {post.content.length > 100 ? '...' : ''}
                       </Typography>
+                      <Typography
+                        variant="caption"
+                        color={post.content.length > 280 ? 'error' : 'text.disabled'}
+                        sx={{ flexShrink: 0, whiteSpace: 'nowrap' }}
+                      >
+                        {post.content.length}
+                      </Typography>
                       <Rating value={post.rating} readOnly size="small" sx={{ flexShrink: 0 }} />
                       {post.behaviourTitle && (
                         <Chip
@@ -669,9 +676,16 @@ export default function PostQueueBPage() {
                           <Box sx={{ position: 'relative' }}>
                             <Typography
                               variant="body1"
-                              sx={{ whiteSpace: 'pre-wrap', mb: 2, pr: 4 }}
+                              sx={{ whiteSpace: 'pre-wrap', mb: 0.5, pr: 4 }}
                             >
                               {post.content}
+                            </Typography>
+                            <Typography
+                              variant="caption"
+                              color={post.content.length > 280 ? 'error' : 'text.disabled'}
+                              sx={{ display: 'block', textAlign: 'right', mb: 1.5 }}
+                            >
+                              {post.content.length}/280
                             </Typography>
                             <Tooltip
                               title={contentCopied === post.id ? 'Copied!' : 'Copy post content'}
