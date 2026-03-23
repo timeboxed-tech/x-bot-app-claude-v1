@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
 import Card from '@mui/material/Card';
@@ -15,6 +15,10 @@ import Typography from '@mui/material/Typography';
 import FormControlLabel from '@mui/material/FormControlLabel';
 import Switch from '@mui/material/Switch';
 import CircularProgress from '@mui/material/CircularProgress';
+import Dialog from '@mui/material/Dialog';
+import DialogTitle from '@mui/material/DialogTitle';
+import DialogContent from '@mui/material/DialogContent';
+import DialogActions from '@mui/material/DialogActions';
 import Alert from '@mui/material/Alert';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import SendIcon from '@mui/icons-material/Send';
@@ -26,6 +30,7 @@ import DeleteIcon from '@mui/icons-material/Delete';
 import FlagIcon from '@mui/icons-material/Flag';
 import OutlinedFlagIcon from '@mui/icons-material/OutlinedFlag';
 import EditIcon from '@mui/icons-material/Edit';
+import AutoFixHighIcon from '@mui/icons-material/AutoFixHigh';
 import RestoreIcon from '@mui/icons-material/Restore';
 import VisibilityIcon from '@mui/icons-material/Visibility';
 import { AxiosError } from 'axios';
@@ -44,6 +49,8 @@ import {
   useUpdatePost,
   useDeletePost,
   usePublishPost,
+  useTweakPost,
+  useAcceptTweak,
   type PostStatus,
 } from '../hooks/usePosts';
 import {
@@ -171,6 +178,11 @@ function PostReviewsSection({
   );
 }
 
+type ConversationMessage = {
+  role: 'user' | 'assistant';
+  content: string;
+};
+
 export default function PostQueueBPage() {
   const { user } = useAuth();
   const [activeFilter, setActiveFilter] = useState<PostStatus | undefined>('draft');
@@ -188,6 +200,14 @@ export default function PostQueueBPage() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editContent, setEditContent] = useState('');
 
+  // Tweak with AI state
+  const [tweakPostId, setTweakPostId] = useState<string | null>(null);
+  const [tweakContent, setTweakContent] = useState('');
+  const [tweakFeedback, setTweakFeedback] = useState('');
+  const [tweakConversation, setTweakConversation] = useState<ConversationMessage[]>([]);
+  const [tweakSuccessMessage, setTweakSuccessMessage] = useState('');
+  const conversationEndRef = useRef<HTMLDivElement>(null);
+
   const { data: allBots } = useAllBots(showAll && !!user?.isAdmin);
 
   const { data: counts } = usePostCounts(showAll, selectedBotId || undefined);
@@ -195,8 +215,16 @@ export default function PostQueueBPage() {
   const updatePost = useUpdatePost();
   const deletePost = useDeletePost();
   const publishPost = usePublishPost();
+  const tweakPost = useTweakPost();
+  const acceptTweak = useAcceptTweak();
   const requestReview = useRequestReview();
   const deleteReview = useDeleteReview();
+
+  useEffect(() => {
+    if (conversationEndRef.current) {
+      conversationEndRef.current.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [tweakConversation]);
 
   const posts = data?.data ?? [];
   const meta = data?.meta;
@@ -454,6 +482,20 @@ export default function PostQueueBPage() {
                                 }}
                               >
                                 <EditIcon fontSize="small" />
+                              </IconButton>
+                            </Tooltip>
+                            <Tooltip title="Tweak with AI">
+                              <IconButton
+                                size="small"
+                                onClick={() => {
+                                  setTweakPostId(post.id);
+                                  setTweakContent(post.content);
+                                  setTweakConversation([]);
+                                  setTweakFeedback('');
+                                  setTweakSuccessMessage('');
+                                }}
+                              >
+                                <AutoFixHighIcon fontSize="small" />
                               </IconButton>
                             </Tooltip>
                             <Tooltip title="Approve">
@@ -797,6 +839,19 @@ export default function PostQueueBPage() {
                                 size="small"
                                 variant="outlined"
                                 onClick={() => {
+                                  setTweakPostId(post.id);
+                                  setTweakContent(post.content);
+                                  setTweakConversation([]);
+                                  setTweakFeedback('');
+                                  setTweakSuccessMessage('');
+                                }}
+                              >
+                                Tweak with AI
+                              </Button>
+                              <Button
+                                size="small"
+                                variant="outlined"
+                                onClick={() => {
                                   requestReview.mutate(post.id);
                                 }}
                                 disabled={requestReview.isPending}
@@ -1050,6 +1105,243 @@ export default function PostQueueBPage() {
           </Box>
         )}
       </Container>
+
+      {/* Tweak with AI Dialog */}
+      <Dialog
+        open={tweakPostId !== null}
+        onClose={() => {
+          setTweakPostId(null);
+          setTweakFeedback('');
+          setTweakConversation([]);
+          setTweakSuccessMessage('');
+        }}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle>Tweak Post with AI</DialogTitle>
+        <DialogContent>
+          {tweakSuccessMessage && (
+            <Alert severity="success" sx={{ mb: 2 }}>
+              {tweakSuccessMessage}
+            </Alert>
+          )}
+
+          <Typography variant="subtitle2" sx={{ mb: 1, mt: 1 }}>
+            Current version:
+          </Typography>
+          <Card variant="outlined" sx={{ mb: 2, p: 2 }}>
+            <Typography variant="body2" sx={{ whiteSpace: 'pre-wrap' }}>
+              {tweakContent}
+            </Typography>
+          </Card>
+
+          {tweakConversation.length > 1 && (
+            <>
+              <Typography variant="subtitle2" sx={{ mb: 1 }}>
+                Conversation:
+              </Typography>
+              <Box
+                sx={{
+                  maxHeight: 300,
+                  overflowY: 'auto',
+                  mb: 2,
+                  border: '1px solid',
+                  borderColor: 'divider',
+                  borderRadius: 1,
+                  p: 1,
+                }}
+              >
+                {tweakConversation.slice(1).map((msg, idx) => {
+                  let displayContent = msg.content;
+                  if (msg.role === 'assistant') {
+                    const markerIdx = msg.content.indexOf('---TWEET---');
+                    if (markerIdx !== -1) {
+                      displayContent = msg.content.substring(0, markerIdx).trim();
+                    }
+                  }
+                  if (!displayContent) return null;
+                  return (
+                    <Box
+                      key={idx}
+                      sx={{
+                        mb: 1,
+                        p: 1.5,
+                        borderRadius: 1,
+                        bgcolor: msg.role === 'user' ? 'action.hover' : 'primary.50',
+                      }}
+                    >
+                      <Typography variant="caption" color="text.secondary" fontWeight="bold">
+                        {msg.role === 'user' ? 'You' : 'AI'}
+                      </Typography>
+                      <Typography variant="body2" sx={{ whiteSpace: 'pre-wrap', mt: 0.5 }}>
+                        {displayContent}
+                      </Typography>
+                    </Box>
+                  );
+                })}
+                <div ref={conversationEndRef} />
+              </Box>
+            </>
+          )}
+
+          <TextField
+            fullWidth
+            multiline
+            minRows={2}
+            label="Your message"
+            placeholder="e.g., make it more casual, add a question at the end..."
+            value={tweakFeedback}
+            onChange={(e) => setTweakFeedback(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                if (tweakFeedback.trim() && tweakPostId) {
+                  const feedbackText = tweakFeedback.trim();
+                  setTweakFeedback('');
+                  const tweakedPost = posts.find((p) => p.id === tweakPostId);
+                  const originalContent = tweakedPost?.content ?? tweakContent;
+
+                  const apiMessages: ConversationMessage[] =
+                    tweakConversation.length === 0
+                      ? [{ role: 'user', content: `Current tweet:\n${originalContent}` }]
+                      : [...tweakConversation];
+
+                  tweakPost.mutate(
+                    {
+                      postId: tweakPostId,
+                      feedback: feedbackText,
+                      previousMessages: apiMessages,
+                    },
+                    {
+                      onSuccess: (data) => {
+                        setTweakContent(data.content);
+                        const aiResponse = data.message
+                          ? `${data.message}\n\n---TWEET---\n${data.content}`
+                          : data.content;
+                        setTweakConversation((prev) => {
+                          const base =
+                            prev.length === 0
+                              ? [
+                                  {
+                                    role: 'user' as const,
+                                    content: `Current tweet:\n${originalContent}`,
+                                  },
+                                ]
+                              : prev;
+                          return [
+                            ...base,
+                            { role: 'user' as const, content: feedbackText },
+                            { role: 'assistant' as const, content: aiResponse },
+                          ];
+                        });
+                      },
+                    },
+                  );
+                }
+              }
+            }}
+            disabled={tweakPost.isPending || acceptTweak.isPending}
+            sx={{ mt: 1 }}
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button
+            onClick={() => {
+              setTweakPostId(null);
+              setTweakFeedback('');
+              setTweakConversation([]);
+              setTweakSuccessMessage('');
+            }}
+            disabled={tweakPost.isPending || acceptTweak.isPending}
+          >
+            Cancel
+          </Button>
+          <Button
+            variant="outlined"
+            onClick={() => {
+              if (!tweakFeedback.trim() || !tweakPostId) return;
+              const feedbackText = tweakFeedback.trim();
+              setTweakFeedback('');
+              const tweakedPost = posts.find((p) => p.id === tweakPostId);
+              const originalContent = tweakedPost?.content ?? tweakContent;
+
+              const apiMessages: ConversationMessage[] =
+                tweakConversation.length === 0
+                  ? [{ role: 'user', content: `Current tweet:\n${originalContent}` }]
+                  : [...tweakConversation];
+
+              tweakPost.mutate(
+                {
+                  postId: tweakPostId,
+                  feedback: feedbackText,
+                  previousMessages: apiMessages,
+                },
+                {
+                  onSuccess: (data) => {
+                    setTweakContent(data.content);
+                    const aiResponse = data.message
+                      ? `${data.message}\n\n---TWEET---\n${data.content}`
+                      : data.content;
+                    setTweakConversation((prev) => {
+                      const base =
+                        prev.length === 0
+                          ? [
+                              {
+                                role: 'user' as const,
+                                content: `Current tweet:\n${originalContent}`,
+                              },
+                            ]
+                          : prev;
+                      return [
+                        ...base,
+                        { role: 'user' as const, content: feedbackText },
+                        { role: 'assistant' as const, content: aiResponse },
+                      ];
+                    });
+                  },
+                },
+              );
+            }}
+            disabled={!tweakFeedback.trim() || tweakPost.isPending || acceptTweak.isPending}
+          >
+            {tweakPost.isPending ? <CircularProgress size={20} /> : 'Send'}
+          </Button>
+          <Button
+            variant="contained"
+            onClick={() => {
+              if (!tweakPostId) return;
+              acceptTweak.mutate(
+                {
+                  postId: tweakPostId,
+                  content: tweakContent,
+                  conversation: tweakConversation,
+                },
+                {
+                  onSuccess: (data) => {
+                    if (data.newTips.length > 0) {
+                      const tipTexts = data.newTips.map((t) => t.content).join(', ');
+                      setTweakSuccessMessage(`Post updated! New tips saved: ${tipTexts}`);
+                    } else {
+                      setTweakSuccessMessage('Post updated successfully!');
+                    }
+                    setTimeout(() => {
+                      setTweakPostId(null);
+                      setTweakFeedback('');
+                      setTweakConversation([]);
+                      setTweakSuccessMessage('');
+                    }, 2000);
+                  },
+                },
+              );
+            }}
+            disabled={
+              tweakConversation.length === 0 || acceptTweak.isPending || tweakPost.isPending
+            }
+          >
+            {acceptTweak.isPending ? <CircularProgress size={20} /> : 'Accept'}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </>
   );
 }
