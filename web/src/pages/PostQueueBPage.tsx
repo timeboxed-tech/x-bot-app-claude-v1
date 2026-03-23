@@ -25,6 +25,7 @@ import ScheduleIcon from '@mui/icons-material/Schedule';
 import DeleteIcon from '@mui/icons-material/Delete';
 import FlagIcon from '@mui/icons-material/Flag';
 import OutlinedFlagIcon from '@mui/icons-material/OutlinedFlag';
+import EditIcon from '@mui/icons-material/Edit';
 import RestoreIcon from '@mui/icons-material/Restore';
 import VisibilityIcon from '@mui/icons-material/Visibility';
 import { AxiosError } from 'axios';
@@ -436,6 +437,18 @@ export default function PostQueueBPage() {
                       >
                         {post.status === 'draft' && (
                           <>
+                            <Tooltip title="Edit">
+                              <IconButton
+                                size="small"
+                                onClick={() => {
+                                  setExpandedId(post.id);
+                                  setEditingId(post.id);
+                                  setEditContent(post.content);
+                                }}
+                              >
+                                <EditIcon fontSize="small" />
+                              </IconButton>
+                            </Tooltip>
                             <Tooltip title="Approve">
                               <IconButton
                                 size="small"
