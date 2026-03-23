@@ -116,6 +116,16 @@ function daysSince(dateStr: string | null): string {
   return `${diffDays}d ago`;
 }
 
+function isWritePost(post: { generationPrompt?: string | null }): boolean {
+  if (!post.generationPrompt) return true;
+  try {
+    const parsed = JSON.parse(post.generationPrompt);
+    return !parsed.outcome || parsed.outcome === 'write_post';
+  } catch {
+    return true;
+  }
+}
+
 function PostReviewsSection({
   postId,
   onDeleteReview,
@@ -386,13 +396,15 @@ export default function PostQueueBPage() {
                         {post.content.substring(0, 100)}
                         {post.content.length > 100 ? '...' : ''}
                       </Typography>
-                      <Typography
-                        variant="caption"
-                        color={post.content.length > 280 ? 'error' : 'text.disabled'}
-                        sx={{ flexShrink: 0, whiteSpace: 'nowrap' }}
-                      >
-                        {post.content.length}
-                      </Typography>
+                      {isWritePost(post) && (
+                        <Typography
+                          variant="caption"
+                          color={post.content.length > 280 ? 'error' : 'text.disabled'}
+                          sx={{ flexShrink: 0, whiteSpace: 'nowrap' }}
+                        >
+                          {post.content.length}
+                        </Typography>
+                      )}
                       <Rating value={post.rating} readOnly size="small" sx={{ flexShrink: 0 }} />
                       {post.behaviourTitle && (
                         <Chip
@@ -722,13 +734,15 @@ export default function PostQueueBPage() {
                             >
                               {post.content}
                             </Typography>
-                            <Typography
-                              variant="caption"
-                              color={post.content.length > 280 ? 'error' : 'text.disabled'}
-                              sx={{ display: 'block', textAlign: 'right', mb: 1.5 }}
-                            >
-                              {post.content.length}/280
-                            </Typography>
+                            {isWritePost(post) && (
+                              <Typography
+                                variant="caption"
+                                color={post.content.length > 280 ? 'error' : 'text.disabled'}
+                                sx={{ display: 'block', textAlign: 'right', mb: 1.5 }}
+                              >
+                                {post.content.length}/280
+                              </Typography>
+                            )}
                             <Tooltip
                               title={contentCopied === post.id ? 'Copied!' : 'Copy post content'}
                             >
