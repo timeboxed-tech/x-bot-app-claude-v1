@@ -388,6 +388,13 @@ export default function PostCard({ post }: PostCardProps) {
             <Typography variant="body1" sx={{ whiteSpace: 'pre-wrap', pr: 4 }}>
               {post.content}
             </Typography>
+            <Typography
+              variant="caption"
+              color={post.content.length > 280 ? 'error' : 'text.disabled'}
+              sx={{ display: 'block', textAlign: 'right', mt: 0.5 }}
+            >
+              {post.content.length}/280
+            </Typography>
             <Tooltip title={contentCopied ? 'Copied!' : 'Copy post'}>
               <IconButton
                 size="small"
