@@ -87,11 +87,11 @@ function PromptTooltipContent({ generationPrompt }: { generationPrompt: string }
   }
 }
 
-function isWritePost(post: { generationPrompt?: string | null }): boolean {
+function showCharCount(post: { generationPrompt?: string | null }): boolean {
   if (!post.generationPrompt) return true;
   try {
     const parsed = JSON.parse(post.generationPrompt);
-    return !parsed.outcome || parsed.outcome === 'write_post';
+    return !parsed.outcome || parsed.outcome === 'write_post' || parsed.outcome === 'reply_to_post';
   } catch {
     return true;
   }
@@ -398,7 +398,7 @@ export default function PostCard({ post }: PostCardProps) {
             <Typography variant="body1" sx={{ whiteSpace: 'pre-wrap', pr: 4 }}>
               {post.content}
             </Typography>
-            {isWritePost(post) && (
+            {showCharCount(post) && (
               <Typography
                 variant="caption"
                 color={post.content.length > 280 ? 'error' : 'text.disabled'}

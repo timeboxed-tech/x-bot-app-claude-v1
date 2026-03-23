@@ -116,11 +116,11 @@ function daysSince(dateStr: string | null): string {
   return `${diffDays}d ago`;
 }
 
-function isWritePost(post: { generationPrompt?: string | null }): boolean {
+function showCharCount(post: { generationPrompt?: string | null }): boolean {
   if (!post.generationPrompt) return true;
   try {
     const parsed = JSON.parse(post.generationPrompt);
-    return !parsed.outcome || parsed.outcome === 'write_post';
+    return !parsed.outcome || parsed.outcome === 'write_post' || parsed.outcome === 'reply_to_post';
   } catch {
     return true;
   }
@@ -396,7 +396,7 @@ export default function PostQueueBPage() {
                         {post.content.substring(0, 100)}
                         {post.content.length > 100 ? '...' : ''}
                       </Typography>
-                      {isWritePost(post) && (
+                      {showCharCount(post) && (
                         <Typography
                           variant="caption"
                           color={post.content.length > 280 ? 'error' : 'text.disabled'}
@@ -734,7 +734,7 @@ export default function PostQueueBPage() {
                             >
                               {post.content}
                             </Typography>
-                            {isWritePost(post) && (
+                            {showCharCount(post) && (
                               <Typography
                                 variant="caption"
                                 color={post.content.length > 280 ? 'error' : 'text.disabled'}
