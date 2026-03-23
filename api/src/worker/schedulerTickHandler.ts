@@ -141,6 +141,20 @@ async function generateDraftForBot(
   });
 
   await checkAndFlagPost(post.id);
+
+  // Flag posts that exceed the 280 character tweet limit
+  if (result.content.length > 280) {
+    await postRepository.update(post.id, {
+      flagged: true,
+      flagReasons: [`Exceeds 280 character limit (${result.content.length} chars)`],
+    });
+    log(
+      'post-generator',
+      `Bot ${bot.xAccountHandle || bot.id}: created draft post (flagged: ${result.content.length} chars)`,
+    );
+    return;
+  }
+
   log('post-generator', `Bot ${bot.xAccountHandle || bot.id}: created draft post`);
 }
 
