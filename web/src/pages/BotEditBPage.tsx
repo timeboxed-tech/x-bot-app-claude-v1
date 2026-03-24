@@ -993,6 +993,21 @@ export default function BotEditBPage() {
               sx={{ width: 120 }}
             />
           )}
+          {(autoJudgeEnabled !== null || autoJudgeMinRating !== null) &&
+            (autoJudgeEnabled !== bot.autoJudgeEnabled ||
+              (autoJudgeMinRating !== null &&
+                autoJudgeMinRating !== String(bot.autoJudgeMinRating))) && (
+              <Button
+                size="small"
+                variant="contained"
+                startIcon={<SaveIcon />}
+                onClick={handleSaveBot}
+                disabled={updateBot.isPending}
+                sx={{ mt: 1 }}
+              >
+                {updateBot.isPending ? 'Saving...' : 'Save'}
+              </Button>
+            )}
         </CardContent>
       </Card>
 
