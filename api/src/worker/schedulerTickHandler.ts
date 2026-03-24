@@ -35,9 +35,7 @@ export async function handleSchedulerTick(jobId: string): Promise<string> {
     try {
       // Pipeline count gate
       const pipelineCount = await getPipelineCount(bot.id);
-      const dailyTarget = bot.postsPerDay;
-      const generationBuffer = 1;
-      if (pipelineCount >= dailyTarget + generationBuffer) {
+      if (pipelineCount >= bot.postsPerDay * 2) {
         skipped++;
         continue;
       }
