@@ -36,6 +36,8 @@ model Bot {
   timezone            String   @default("UTC")
   knowledgeSource      String   @default("ai")
   judgeKnowledgeSource String   @default("ai")
+  autoJudgeEnabled    Boolean  @default(false)
+  autoJudgeMinRating  Int      @default(3)
   active              Boolean  @default(true)
   createdAt           DateTime @default(now())
 

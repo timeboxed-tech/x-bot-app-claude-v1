@@ -22,6 +22,8 @@ export type Bot = {
   timezone: string;
   knowledgeSource: string;
   judgeKnowledgeSource: string;
+  autoJudgeEnabled: boolean;
+  autoJudgeMinRating: number;
   active: boolean;
   createdAt: string;
   updatedAt: string;
@@ -47,6 +49,8 @@ type CreateBotInput = {
   timezone?: string;
   knowledgeSource?: string;
   judgeKnowledgeSource?: string;
+  autoJudgeEnabled?: boolean;
+  autoJudgeMinRating?: number;
 };
 
 type UpdateBotInput = {
@@ -59,6 +63,8 @@ type UpdateBotInput = {
   timezone?: string;
   knowledgeSource?: string;
   judgeKnowledgeSource?: string;
+  autoJudgeEnabled?: boolean;
+  autoJudgeMinRating?: number;
   active?: boolean;
 };
 

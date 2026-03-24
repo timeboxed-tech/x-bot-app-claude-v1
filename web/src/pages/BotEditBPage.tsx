@@ -83,6 +83,8 @@ export default function BotEditBPage() {
   const [hoursStart, setHoursStart] = useState<string | null>(null);
   const [hoursEnd, setHoursEnd] = useState<string | null>(null);
   const [timezone, setTimezone] = useState<string | null>(null);
+  const [autoJudgeEnabled, setAutoJudgeEnabled] = useState<boolean | null>(null);
+  const [autoJudgeMinRating, setAutoJudgeMinRating] = useState<string | null>(null);
   const [newBehaviourContent, setNewBehaviourContent] = useState('');
   const [newBehaviourTitle, setNewBehaviourTitle] = useState('');
   const [newBehaviourOutcome, setNewBehaviourOutcome] = useState('write_post');
@@ -170,7 +172,9 @@ export default function BotEditBPage() {
     (minInterval !== null && minInterval !== String(bot.minIntervalHours)) ||
     (hoursStart !== null && hoursStart !== String(bot.preferredHoursStart)) ||
     (hoursEnd !== null && hoursEnd !== String(bot.preferredHoursEnd)) ||
-    (timezone !== null && timezone !== (bot.timezone || 'UTC'));
+    (timezone !== null && timezone !== (bot.timezone || 'UTC')) ||
+    (autoJudgeEnabled !== null && autoJudgeEnabled !== bot.autoJudgeEnabled) ||
+    (autoJudgeMinRating !== null && autoJudgeMinRating !== String(bot.autoJudgeMinRating));
 
   const handleSaveBot = () => {
     const updates: Record<string, unknown> = { id: bot.id };
@@ -181,6 +185,8 @@ export default function BotEditBPage() {
     if (hoursStart !== null) updates.preferredHoursStart = parseInt(hoursStart, 10);
     if (hoursEnd !== null) updates.preferredHoursEnd = parseInt(hoursEnd, 10);
     if (timezone !== null) updates.timezone = timezone;
+    if (autoJudgeEnabled !== null) updates.autoJudgeEnabled = autoJudgeEnabled;
+    if (autoJudgeMinRating !== null) updates.autoJudgeMinRating = parseInt(autoJudgeMinRating, 10);
     updateBot.mutate(updates as Parameters<typeof updateBot.mutate>[0], {
       onSuccess: () => {
         showSnackbar('Bot updated', 'success');
@@ -191,6 +197,8 @@ export default function BotEditBPage() {
         setHoursStart(null);
         setHoursEnd(null);
         setTimezone(null);
+        setAutoJudgeEnabled(null);
+        setAutoJudgeMinRating(null);
       },
       onError: () => showSnackbar('Failed to update bot', 'error'),
     });
@@ -428,6 +436,37 @@ export default function BotEditBPage() {
             </Select>
           </FormControl>
         </Grid>
+        <Grid item xs={12}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <Typography variant="body2">Auto Judge</Typography>
+            <Switch
+              size="small"
+              checked={autoJudgeEnabled ?? bot.autoJudgeEnabled}
+              onChange={(e) => setAutoJudgeEnabled(e.target.checked)}
+            />
+          </Box>
+          <Typography variant="caption" color="text.secondary">
+            Automatically judge generated posts and discard those below the minimum rating.
+          </Typography>
+        </Grid>
+        {(autoJudgeEnabled ?? bot.autoJudgeEnabled) && (
+          <Grid item xs={6}>
+            <TextField
+              fullWidth
+              size="small"
+              type="number"
+              label="Min Rating (1-5)"
+              InputProps={{ inputProps: { min: 1, max: 5 } }}
+              value={autoJudgeMinRating ?? String(bot.autoJudgeMinRating)}
+              onChange={(e) => {
+                const val = parseInt(e.target.value, 10);
+                if (!isNaN(val) && val >= 1 && val <= 5) {
+                  setAutoJudgeMinRating(e.target.value);
+                }
+              }}
+            />
+          </Grid>
+        )}
       </Grid>
       {hasSettingsChanges && (
         <Button
