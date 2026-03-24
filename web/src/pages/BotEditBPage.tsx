@@ -9,6 +9,11 @@ import CardContent from '@mui/material/CardContent';
 import Chip from '@mui/material/Chip';
 import CircularProgress from '@mui/material/CircularProgress';
 import Container from '@mui/material/Container';
+import Dialog from '@mui/material/Dialog';
+import DialogActions from '@mui/material/DialogActions';
+import DialogContent from '@mui/material/DialogContent';
+import DialogContentText from '@mui/material/DialogContentText';
+import DialogTitle from '@mui/material/DialogTitle';
 import Divider from '@mui/material/Divider';
 import FormControl from '@mui/material/FormControl';
 import Grid from '@mui/material/Grid';
@@ -38,7 +43,14 @@ import CreateIcon from '@mui/icons-material/Create';
 import AppHeader from '../components/AppHeader';
 import { apiClient } from '../lib/apiClient';
 import { StepCard, type ProcessStep } from '../components/ProcessVisualisationDialog';
-import { useBot, useUpdateBot, useBotTips } from '../hooks/useBot';
+import {
+  useBot,
+  useUpdateBot,
+  useBotTips,
+  useBotShares,
+  useShareBot,
+  useUnshareBot,
+} from '../hooks/useBot';
 import { useUpdatePost } from '../hooks/usePosts';
 import {
   useBotBehaviours,
@@ -49,6 +61,7 @@ import {
   useQuickRunBehaviour,
 } from '../hooks/useBotBehaviours';
 import { useJudges, useBotJudges, useAssignJudge, useRemoveJudge } from '../hooks/useJudges';
+import { useAuth } from '../hooks/useAuth';
 import { useNavigate, useParams } from '@tanstack/react-router';
 
 type SnackbarState = {
@@ -59,6 +72,7 @@ type SnackbarState = {
 
 export default function BotEditBPage() {
   const { botId } = useParams({ strict: false }) as { botId: string };
+  const { user } = useAuth();
   const { bots, isLoading } = useBot();
   const updateBot = useUpdateBot();
   const navigate = useNavigate();
@@ -75,6 +89,9 @@ export default function BotEditBPage() {
   const assignJudge = useAssignJudge();
   const removeJudge = useRemoveJudge();
   const { data: tips } = useBotTips(botId);
+  const { data: shares } = useBotShares(botId);
+  const shareBot = useShareBot();
+  const unshareBot = useUnshareBot();
 
   const [prompt, setPrompt] = useState<string | null>(null);
   const [postMode, setPostMode] = useState<string | null>(null);
@@ -101,6 +118,10 @@ export default function BotEditBPage() {
   // Tab state
   const [activeTab, setActiveTab] = useState(0);
 
+  // Share dialog state
+  const [shareOpen, setShareOpen] = useState(false);
+  const [shareEmail, setShareEmail] = useState('');
+
   // Test run panel state
   const [selectedBehaviourId, setSelectedBehaviourId] = useState<string>('');
   const [testRunLoading, setTestRunLoading] = useState(false);
@@ -123,6 +144,7 @@ export default function BotEditBPage() {
   });
 
   const bot = bots.find((b) => b.id === botId);
+  const isOwner = bot ? bot.userId === user?.id : false;
 
   const showSnackbar = (message: string, severity: 'success' | 'error') => {
     setSnackbar({ open: true, message, severity });
@@ -1241,6 +1263,7 @@ export default function BotEditBPage() {
                 <Tab label="Schedule & Mode" />
                 <Tab label="Behaviours" />
                 <Tab label="Judges & Tips" />
+                <Tab label="Sharing" />
               </Tabs>
             </Box>
 
@@ -1248,6 +1271,76 @@ export default function BotEditBPage() {
             {activeTab === 1 && renderScheduleModeTab()}
             {activeTab === 2 && renderBehavioursTab()}
             {activeTab === 3 && renderJudgesTipsTab()}
+            {activeTab === 4 && (
+              <>
+                {isOwner ? (
+                  <Card sx={{ mb: 3 }}>
+                    <CardContent>
+                      <Box
+                        sx={{
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          alignItems: 'center',
+                          mb: 1,
+                        }}
+                      >
+                        <Typography variant="subtitle2">Shared with</Typography>
+                        <Button variant="outlined" size="small" onClick={() => setShareOpen(true)}>
+                          Share Bot
+                        </Button>
+                      </Box>
+                      {shares && shares.length > 0 ? (
+                        <List dense disablePadding>
+                          {shares.map((share, index) => (
+                            <div key={share.id}>
+                              {index > 0 && <Divider />}
+                              <ListItem
+                                secondaryAction={
+                                  <IconButton
+                                    edge="end"
+                                    aria-label="unshare"
+                                    onClick={() => {
+                                      unshareBot.mutate(
+                                        { botId: bot.id, userId: share.userId },
+                                        {
+                                          onSuccess: () =>
+                                            showSnackbar(
+                                              `Removed ${share.user.email} from shared users`,
+                                              'success',
+                                            ),
+                                          onError: () =>
+                                            showSnackbar('Failed to remove shared user', 'error'),
+                                        },
+                                      );
+                                    }}
+                                    disabled={unshareBot.isPending}
+                                  >
+                                    <DeleteIcon />
+                                  </IconButton>
+                                }
+                              >
+                                <ListItemText
+                                  primary={share.user.name}
+                                  secondary={share.user.email}
+                                />
+                              </ListItem>
+                            </div>
+                          ))}
+                        </List>
+                      ) : (
+                        <Typography variant="body2" color="text.secondary">
+                          This bot is not shared with anyone yet.
+                        </Typography>
+                      )}
+                    </CardContent>
+                  </Card>
+                ) : (
+                  <Typography variant="body2" color="text.secondary">
+                    Only the bot owner can manage sharing settings.
+                  </Typography>
+                )}
+              </>
+            )}
           </Grid>
 
           {/* Right column: persistent test run sidebar */}
@@ -1255,6 +1348,65 @@ export default function BotEditBPage() {
             {renderTestRunSidebar()}
           </Grid>
         </Grid>
+
+        {/* Share Bot dialog */}
+        <Dialog
+          open={shareOpen}
+          onClose={() => {
+            setShareOpen(false);
+            setShareEmail('');
+          }}
+          maxWidth="xs"
+          fullWidth
+        >
+          <DialogTitle>Share Bot</DialogTitle>
+          <DialogContent>
+            <DialogContentText sx={{ mb: 2 }}>
+              Enter the email address of the user you want to share this bot with.
+            </DialogContentText>
+            <TextField
+              autoFocus
+              fullWidth
+              label="Email address"
+              type="email"
+              value={shareEmail}
+              onChange={(e) => setShareEmail(e.target.value)}
+            />
+          </DialogContent>
+          <DialogActions>
+            <Button
+              onClick={() => {
+                setShareOpen(false);
+                setShareEmail('');
+              }}
+              disabled={shareBot.isPending}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="contained"
+              disabled={!shareEmail || shareBot.isPending}
+              onClick={() => {
+                if (!bot) return;
+                shareBot.mutate(
+                  { botId: bot.id, email: shareEmail },
+                  {
+                    onSuccess: () => {
+                      setShareOpen(false);
+                      setShareEmail('');
+                      showSnackbar('Bot shared successfully', 'success');
+                    },
+                    onError: () => {
+                      showSnackbar('Failed to share bot', 'error');
+                    },
+                  },
+                );
+              }}
+            >
+              {shareBot.isPending ? 'Sharing...' : 'Share'}
+            </Button>
+          </DialogActions>
+        </Dialog>
 
         <Snackbar
           open={snackbar.open}
