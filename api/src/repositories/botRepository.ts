@@ -37,6 +37,8 @@ const botSelect = {
   preferredHoursEnd: true,
   knowledgeSource: true,
   judgeKnowledgeSource: true,
+  autoJudgeEnabled: true,
+  autoJudgeMinRating: true,
   active: true,
   createdAt: true,
 };

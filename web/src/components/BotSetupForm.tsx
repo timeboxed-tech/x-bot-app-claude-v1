@@ -4,6 +4,7 @@ import Button from '@mui/material/Button';
 import FormControl from '@mui/material/FormControl';
 import FormControlLabel from '@mui/material/FormControlLabel';
 import FormLabel from '@mui/material/FormLabel';
+import Switch from '@mui/material/Switch';
 import MenuItem from '@mui/material/MenuItem';
 import Radio from '@mui/material/Radio';
 import RadioGroup from '@mui/material/RadioGroup';
@@ -69,6 +70,8 @@ const botConfigSchema = z.object({
   timezone: z.string().min(1),
   knowledgeSource: z.enum(['ai', 'ai+web']),
   judgeKnowledgeSource: z.enum(['ai', 'ai+web']),
+  autoJudgeEnabled: z.boolean(),
+  autoJudgeMinRating: z.number().int().min(1).max(5),
 });
 
 type BotConfigValues = z.infer<typeof botConfigSchema>;
@@ -91,6 +94,8 @@ const defaultValues: BotConfigValues = {
   timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
   knowledgeSource: 'ai',
   judgeKnowledgeSource: 'ai',
+  autoJudgeEnabled: false,
+  autoJudgeMinRating: 3,
 };
 
 export default function BotSetupForm({
@@ -313,6 +318,34 @@ export default function BotSetupForm({
           applies.
         </Typography>
       </FormControl>
+
+      <FormControlLabel
+        control={
+          <Switch
+            checked={values.autoJudgeEnabled}
+            onChange={(e) => setValues((v) => ({ ...v, autoJudgeEnabled: e.target.checked }))}
+          />
+        }
+        label="Auto Judge"
+      />
+      <Typography variant="caption" color="text.secondary" sx={{ mt: -2 }}>
+        Automatically judge generated posts and discard those below the minimum rating.
+      </Typography>
+
+      {values.autoJudgeEnabled && (
+        <Box>
+          <Typography gutterBottom>Min Rating: {values.autoJudgeMinRating}</Typography>
+          <Slider
+            value={values.autoJudgeMinRating}
+            onChange={(_, val) => setValues((v) => ({ ...v, autoJudgeMinRating: val as number }))}
+            min={1}
+            max={5}
+            step={1}
+            marks
+            valueLabelDisplay="auto"
+          />
+        </Box>
+      )}
 
       {Object.keys(errors).length > 0 && (
         <Alert severity="error">Please fix the errors above.</Alert>

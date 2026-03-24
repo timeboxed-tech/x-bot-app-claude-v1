@@ -192,6 +192,8 @@ function BotEditAPage() {
               timezone: bot.timezone || 'UTC',
               knowledgeSource: (bot.knowledgeSource as 'ai' | 'ai+web') ?? 'ai',
               judgeKnowledgeSource: (bot.judgeKnowledgeSource as 'ai' | 'ai+web') ?? 'ai',
+              autoJudgeEnabled: bot.autoJudgeEnabled,
+              autoJudgeMinRating: bot.autoJudgeMinRating,
             }}
             onSubmit={(values) => {
               updateBot.mutate(

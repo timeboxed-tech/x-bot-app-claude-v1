@@ -23,6 +23,8 @@ const createBotSchema = z.object({
   timezone: z.string().min(1).max(50).default('UTC'),
   knowledgeSource: z.enum(['ai', 'ai+web']).default('ai'),
   judgeKnowledgeSource: z.enum(['ai', 'ai+web']).default('ai'),
+  autoJudgeEnabled: z.boolean().default(false),
+  autoJudgeMinRating: z.number().int().min(1).max(5).default(3),
 });
 
 const updateBotSchema = z.object({
@@ -35,6 +37,8 @@ const updateBotSchema = z.object({
   timezone: z.string().min(1).max(50).optional(),
   knowledgeSource: z.enum(['ai', 'ai+web']).optional(),
   judgeKnowledgeSource: z.enum(['ai', 'ai+web']).optional(),
+  autoJudgeEnabled: z.boolean().optional(),
+  autoJudgeMinRating: z.number().int().min(1).max(5).optional(),
   active: z.boolean().optional(),
   xAccessToken: z.string().min(1).optional(),
   xAccessSecret: z.string().min(1).optional(),
