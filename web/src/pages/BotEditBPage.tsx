@@ -436,37 +436,6 @@ export default function BotEditBPage() {
             </Select>
           </FormControl>
         </Grid>
-        <Grid item xs={12}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <Typography variant="body2">Auto Judge</Typography>
-            <Switch
-              size="small"
-              checked={autoJudgeEnabled ?? bot.autoJudgeEnabled}
-              onChange={(e) => setAutoJudgeEnabled(e.target.checked)}
-            />
-          </Box>
-          <Typography variant="caption" color="text.secondary">
-            Automatically judge generated posts and discard those below the minimum rating.
-          </Typography>
-        </Grid>
-        {(autoJudgeEnabled ?? bot.autoJudgeEnabled) && (
-          <Grid item xs={6}>
-            <TextField
-              fullWidth
-              size="small"
-              type="number"
-              label="Min Rating (1-5)"
-              InputProps={{ inputProps: { min: 1, max: 5 } }}
-              value={autoJudgeMinRating ?? String(bot.autoJudgeMinRating)}
-              onChange={(e) => {
-                const val = parseInt(e.target.value, 10);
-                if (!isNaN(val) && val >= 1 && val <= 5) {
-                  setAutoJudgeMinRating(e.target.value);
-                }
-              }}
-            />
-          </Grid>
-        )}
       </Grid>
       {hasSettingsChanges && (
         <Button
@@ -993,6 +962,36 @@ export default function BotEditBPage() {
                   </MenuItem>
                 ))}
             </Select>
+          )}
+          <Divider sx={{ my: 2 }} />
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+            <Typography variant="body2" fontWeight={600}>
+              Auto Judge
+            </Typography>
+            <Switch
+              size="small"
+              checked={autoJudgeEnabled ?? bot.autoJudgeEnabled}
+              onChange={(e) => setAutoJudgeEnabled(e.target.checked)}
+            />
+          </Box>
+          <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1 }}>
+            Automatically judge generated posts and discard those below the minimum rating.
+          </Typography>
+          {(autoJudgeEnabled ?? bot.autoJudgeEnabled) && (
+            <TextField
+              size="small"
+              type="number"
+              label="Min Rating (1-5)"
+              InputProps={{ inputProps: { min: 1, max: 5 } }}
+              value={autoJudgeMinRating ?? String(bot.autoJudgeMinRating)}
+              onChange={(e) => {
+                const val = parseInt(e.target.value, 10);
+                if (!isNaN(val) && val >= 1 && val <= 5) {
+                  setAutoJudgeMinRating(e.target.value);
+                }
+              }}
+              sx={{ width: 120 }}
+            />
           )}
         </CardContent>
       </Card>
