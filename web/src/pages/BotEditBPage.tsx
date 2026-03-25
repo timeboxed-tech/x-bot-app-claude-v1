@@ -490,7 +490,19 @@ export default function BotEditBPage() {
                 Weight: {totalWeight}%{totalWeight !== 100 ? ' (should be 100%)' : ''}
               </Typography>
               <Box sx={{ display: 'flex', gap: 1 }}>
-                <Button size="small" variant="outlined" onClick={distributeEqually}>
+                <Button
+                  size="small"
+                  variant="outlined"
+                  onClick={() => {
+                    if (
+                      window.confirm(
+                        'This will reset all behaviour weights to equal distribution. Proceed?',
+                      )
+                    ) {
+                      distributeEqually();
+                    }
+                  }}
+                >
                   Distribute Equally
                 </Button>
                 <Button
