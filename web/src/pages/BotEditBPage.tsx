@@ -1235,7 +1235,7 @@ export default function BotEditBPage() {
                 variant="contained"
                 startIcon={<SaveIcon />}
                 onClick={handleSaveBot}
-                disabled={updateBot.isPending || (!hasPromptChanges && !hasSettingsChanges)}
+                disabled={updateBot.isPending}
               >
                 {updateBot.isPending ? 'Saving...' : 'Save Changes'}
               </Button>
