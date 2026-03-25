@@ -35,6 +35,7 @@ const botSelect = {
   minIntervalHours: true,
   preferredHoursStart: true,
   preferredHoursEnd: true,
+  timezone: true,
   knowledgeSource: true,
   judgeKnowledgeSource: true,
   autoJudgeEnabled: true,
