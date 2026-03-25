@@ -309,17 +309,6 @@ export default function BotEditBPage() {
         onChange={(e) => setPrompt(e.target.value)}
         sx={{ mb: 2 }}
       />
-      {hasPromptChanges && (
-        <Button
-          variant="contained"
-          startIcon={<SaveIcon />}
-          onClick={handleSaveBot}
-          disabled={updateBot.isPending}
-          sx={{ mb: 2 }}
-        >
-          {updateBot.isPending ? 'Saving...' : 'Save Changes'}
-        </Button>
-      )}
     </Box>
   );
 
@@ -459,17 +448,6 @@ export default function BotEditBPage() {
           </FormControl>
         </Grid>
       </Grid>
-      {hasSettingsChanges && (
-        <Button
-          variant="contained"
-          startIcon={<SaveIcon />}
-          onClick={handleSaveBot}
-          disabled={updateBot.isPending}
-          sx={{ mt: 2 }}
-        >
-          {updateBot.isPending ? 'Saving...' : 'Save Changes'}
-        </Button>
-      )}
     </Box>
   );
 
@@ -1015,21 +993,6 @@ export default function BotEditBPage() {
               sx={{ width: 120 }}
             />
           )}
-          {(autoJudgeEnabled !== null || autoJudgeMinRating !== null) &&
-            (autoJudgeEnabled !== bot.autoJudgeEnabled ||
-              (autoJudgeMinRating !== null &&
-                autoJudgeMinRating !== String(bot.autoJudgeMinRating))) && (
-              <Button
-                size="small"
-                variant="contained"
-                startIcon={<SaveIcon />}
-                onClick={handleSaveBot}
-                disabled={updateBot.isPending}
-                sx={{ mt: 1 }}
-              >
-                {updateBot.isPending ? 'Saving...' : 'Save'}
-              </Button>
-            )}
         </CardContent>
       </Card>
 
