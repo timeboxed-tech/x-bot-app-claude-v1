@@ -223,6 +223,20 @@ export default function BotEditBPage() {
   const behaviourCount = behaviours?.length ?? 0;
   const canAddBehaviour = behaviourCount < 10;
 
+  function saveBehaviourWeights(weights: Record<string, number>) {
+    if (!bot) return;
+    for (const b of activeBehaviours) {
+      if (weights[b.id] !== undefined) {
+        updateBehaviour.mutate({
+          botId: bot.id,
+          behaviourId: b.id,
+          content: b.content,
+          weight: weights[b.id],
+        });
+      }
+    }
+  }
+
   function distributeEqually() {
     if (activeBehaviours.length === 0) return;
     const equalWeight = Math.floor(100 / activeBehaviours.length);
@@ -232,6 +246,7 @@ export default function BotEditBPage() {
       newWeights[b.id] = equalWeight + (i < remainder ? 1 : 0);
     });
     setEditingWeights((prev) => ({ ...prev, ...newWeights }));
+    saveBehaviourWeights(newWeights);
   }
 
   function fillRemaining() {
@@ -246,6 +261,7 @@ export default function BotEditBPage() {
       newWeights[b.id] = currentWeight + perBehaviour + (i < remainder ? 1 : 0);
     });
     setEditingWeights((prev) => ({ ...prev, ...newWeights }));
+    saveBehaviourWeights(newWeights);
   }
 
   const handleAccordionChange =
