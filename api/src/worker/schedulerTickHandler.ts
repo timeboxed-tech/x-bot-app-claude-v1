@@ -33,22 +33,29 @@ export async function handleSchedulerTick(jobId: string): Promise<string> {
 
   for (const bot of bots) {
     try {
-      // Pipeline count gate
-      const pipelineCount = await getPipelineCount(bot.id);
-      if (pipelineCount >= bot.postsPerDay * 2) {
-        skipped++;
-        continue;
-      }
+      // Always generate if fewer than 4 drafts available
+      const draftCount = await prisma.post.count({
+        where: { botId: bot.id, status: 'draft' },
+      });
 
-      // Check if today's published count has reached postsPerDay (with ±10% jitter)
-      const jitteredCap = Math.max(1, Math.round(bot.postsPerDay * (0.9 + Math.random() * 0.2)));
-      const todayPublished = await postRepository.countPublishedByBotSince(
-        bot.id,
-        getStartOfTodayUtc(),
-      );
-      if (todayPublished >= jitteredCap) {
-        skipped++;
-        continue;
+      if (draftCount >= 4) {
+        // Pipeline count gate
+        const pipelineCount = await getPipelineCount(bot.id);
+        if (pipelineCount >= bot.postsPerDay * 2) {
+          skipped++;
+          continue;
+        }
+
+        // Check if today's published count has reached postsPerDay (with ±10% jitter)
+        const jitteredCap = Math.max(1, Math.round(bot.postsPerDay * (0.9 + Math.random() * 0.2)));
+        const todayPublished = await postRepository.countPublishedByBotSince(
+          bot.id,
+          getStartOfTodayUtc(),
+        );
+        if (todayPublished >= jitteredCap) {
+          skipped++;
+          continue;
+        }
       }
 
       // Generate draft directly
