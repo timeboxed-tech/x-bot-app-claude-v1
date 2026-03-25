@@ -187,17 +187,6 @@ export default function BotEditBPage() {
   const currentHoursEnd = hoursEnd ?? String(bot.preferredHoursEnd);
   const currentTimezone = timezone ?? (bot.timezone || 'UTC');
 
-  const hasPromptChanges = prompt !== null && prompt !== bot.prompt;
-  const hasSettingsChanges =
-    (postMode !== null && postMode !== bot.postMode) ||
-    (postsPerDay !== null && postsPerDay !== String(bot.postsPerDay)) ||
-    (minInterval !== null && minInterval !== String(bot.minIntervalHours)) ||
-    (hoursStart !== null && hoursStart !== String(bot.preferredHoursStart)) ||
-    (hoursEnd !== null && hoursEnd !== String(bot.preferredHoursEnd)) ||
-    (timezone !== null && timezone !== (bot.timezone || 'UTC')) ||
-    (autoJudgeEnabled !== null && autoJudgeEnabled !== bot.autoJudgeEnabled) ||
-    (autoJudgeMinRating !== null && autoJudgeMinRating !== String(bot.autoJudgeMinRating));
-
   const handleSaveBot = () => {
     const updates: Record<string, unknown> = { id: bot.id };
     if (prompt !== null) updates.prompt = prompt;
