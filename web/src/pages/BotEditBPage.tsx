@@ -1267,18 +1267,16 @@ export default function BotEditBPage() {
               </Tabs>
             </Box>
 
-            {(hasPromptChanges || hasSettingsChanges) && (
-              <Box sx={{ mb: 2, display: 'flex', justifyContent: 'flex-end' }}>
-                <Button
-                  variant="contained"
-                  startIcon={<SaveIcon />}
-                  onClick={handleSaveBot}
-                  disabled={updateBot.isPending}
-                >
-                  {updateBot.isPending ? 'Saving...' : 'Save Changes'}
-                </Button>
-              </Box>
-            )}
+            <Box sx={{ mb: 2, display: 'flex', justifyContent: 'flex-end' }}>
+              <Button
+                variant="contained"
+                startIcon={<SaveIcon />}
+                onClick={handleSaveBot}
+                disabled={updateBot.isPending || (!hasPromptChanges && !hasSettingsChanges)}
+              >
+                {updateBot.isPending ? 'Saving...' : 'Save Changes'}
+              </Button>
+            </Box>
 
             {activeTab === 0 && renderPromptTab()}
             {activeTab === 1 && renderScheduleModeTab()}
