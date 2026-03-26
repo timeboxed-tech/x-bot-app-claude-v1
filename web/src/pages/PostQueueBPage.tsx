@@ -421,7 +421,12 @@ export default function PostQueueBPage() {
                         cursor: 'pointer',
                         borderBottom: index < posts.length - 1 || isExpanded ? '1px solid' : 'none',
                         borderColor: 'divider',
-                        '&:hover': { bgcolor: 'action.hover' },
+                        bgcolor: post.flagged ? 'rgba(255, 193, 7, 0.08)' : undefined,
+                        borderLeft: post.flagged ? '3px solid' : undefined,
+                        borderLeftColor: post.flagged ? 'warning.main' : undefined,
+                        '&:hover': {
+                          bgcolor: post.flagged ? 'rgba(255, 193, 7, 0.12)' : 'action.hover',
+                        },
                         '&:hover .row-hover-actions': { opacity: 1 },
                       }}
                     >

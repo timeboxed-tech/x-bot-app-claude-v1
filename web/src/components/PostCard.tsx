@@ -327,7 +327,16 @@ export default function PostCard({ post }: PostCardProps) {
     post.status === 'draft' || post.status === 'approved' || post.status === 'published';
 
   return (
-    <Card sx={{ mb: 2 }}>
+    <Card
+      sx={{
+        mb: 2,
+        ...(post.flagged && {
+          bgcolor: 'rgba(255, 193, 7, 0.08)',
+          borderLeft: '3px solid',
+          borderLeftColor: 'warning.main',
+        }),
+      }}
+    >
       <CardContent>
         <Box
           sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1 }}
