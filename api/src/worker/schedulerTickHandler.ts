@@ -91,7 +91,7 @@ async function generateDraftForBot(
   jobId: string,
 ): Promise<void> {
   const tips = await botTipRepository.findByBotId(bot.id);
-  const recentPosts = await postRepository.findRecentByBotId(bot.id, 10);
+  const recentPosts = await postRepository.findRecentByBotId(bot.id, 20);
   const behaviours = await botBehaviourRepository.findActiveByBotId(bot.id);
   const selectedBehaviour = behaviours.length > 0 ? selectWeightedBehaviour(behaviours) : null;
 
