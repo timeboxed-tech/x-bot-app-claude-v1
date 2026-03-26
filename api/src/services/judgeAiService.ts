@@ -104,7 +104,7 @@ export async function reviewPostWithJudge(
 
   const userContent =
     recentPosts && recentPosts.length > 0
-      ? `Today's date: ${new Date().toISOString().split('T')[0]}\n\nTweet to review:\n${postContent}\n\nRecent posts from this account for context (consider repetition):\n${recentPosts.map((p) => '- ' + p).join('\n')}`
+      ? `Today's date: ${new Date().toISOString().split('T')[0]}\n\nTweet to review:\n${postContent}\n\nRecent posts from this account (published, approved, and drafts). Heavily penalize repetition — if the tweet covers the same topic, uses similar phrasing, or makes the same point as any recent post, rate it significantly lower:\n${recentPosts.map((p) => '- ' + p).join('\n')}`
       : `Today's date: ${new Date().toISOString().split('T')[0]}\n\nTweet to review:\n${postContent}`;
 
   const maxTokens = useWebSearch ? 1024 : 300;

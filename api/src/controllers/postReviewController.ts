@@ -68,7 +68,7 @@ export const postReviewController = {
       }
 
       // Fetch recent posts for repetition context
-      const recentPosts = await postRepository.findRecentByBotId(post.botId, 10);
+      const recentPosts = await postRepository.findRecentByBotId(post.botId, 20);
       const recentContents = recentPosts
         .filter((rp: { content: string }) => rp.content !== post.content)
         .map((rp: { content: string }) => rp.content);
