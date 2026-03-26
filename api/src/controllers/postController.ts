@@ -4,9 +4,11 @@ import { postService } from '../services/postService.js';
 import { botService } from '../services/botService.js';
 import { userRepository } from '../repositories/userRepository.js';
 import { postRepository } from '../repositories/postRepository.js';
+import { botRepository } from '../repositories/botRepository.js';
 import { publishPostNow } from '../services/publishService.js';
 import { findNextScheduledSlot } from '../services/scheduler.js';
 import { buildPostingContext } from '../services/schedulerHelpers.js';
+import { prisma } from '../utils/prisma.js';
 import { paginationSchema, uuidSchema } from '../utils/validation.js';
 import { NotFoundError, ForbiddenError, ValidationError } from '../utils/errors.js';
 
@@ -331,6 +333,27 @@ export const postController = {
 
       const count = await postService.deleteAllDiscarded(scopeToUser ? userId : undefined);
       res.status(200).json({ data: { count } });
+    } catch (err) {
+      next(err);
+    }
+  },
+
+  async discardAllFlagged(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const userId = req.userId!;
+      const { bots } = await botRepository.findByUserId(userId, 1, 1000);
+      const botIds = bots.map((b: { id: string }) => b.id);
+
+      const result = await prisma.post.updateMany({
+        where: {
+          botId: { in: botIds },
+          status: 'draft',
+          flagged: true,
+        },
+        data: { status: 'discarded' },
+      });
+
+      res.json({ data: { count: result.count } });
     } catch (err) {
       next(err);
     }

@@ -35,7 +35,7 @@ export async function handleSchedulerTick(jobId: string): Promise<string> {
     try {
       // Always generate if fewer than 4 drafts available
       const draftCount = await prisma.post.count({
-        where: { botId: bot.id, status: 'draft' },
+        where: { botId: bot.id, status: 'draft', flagged: false },
       });
 
       if (draftCount >= 4) {
@@ -220,14 +220,14 @@ async function autoJudgePost(
 
     if (avgRating < bot.autoJudgeMinRating) {
       await postRepository.update(post.id, {
-        status: 'discarded',
+        flagged: true,
         flagReasons: [
           `Auto-judged below threshold: avg ${avgRating.toFixed(1)}/${bot.autoJudgeMinRating} (${reviews.map((r) => `${r.rating}/5`).join(', ')})`,
         ],
       });
       log(
         'post-generator',
-        `Bot ${bot.xAccountHandle || bot.id}: post ${post.id} discarded (avg rating ${avgRating.toFixed(1)} < ${bot.autoJudgeMinRating})`,
+        `Bot ${bot.xAccountHandle || bot.id}: post ${post.id} flagged (avg rating ${avgRating.toFixed(1)} < ${bot.autoJudgeMinRating})`,
       );
       return;
     }

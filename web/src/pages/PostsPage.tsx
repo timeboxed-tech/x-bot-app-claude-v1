@@ -19,7 +19,12 @@ import DialogTitle from '@mui/material/DialogTitle';
 import DialogContent from '@mui/material/DialogContent';
 import DialogActions from '@mui/material/DialogActions';
 import CircularProgress from '@mui/material/CircularProgress';
-import { usePosts, usePostCounts, useDeleteAllDiscarded } from '../hooks/usePosts';
+import {
+  usePosts,
+  usePostCounts,
+  useDeleteAllDiscarded,
+  useDiscardAllFlagged,
+} from '../hooks/usePosts';
 import { useDashboardVersion } from '../contexts/DashboardVersionContext';
 import PostQueueBPage from './PostQueueBPage';
 
@@ -59,6 +64,7 @@ function PostsAPage() {
 
   const [deleteAllOpen, setDeleteAllOpen] = useState(false);
   const deleteAllDiscarded = useDeleteAllDiscarded();
+  const discardAllFlagged = useDiscardAllFlagged();
 
   const { data: allBots } = useAllBots(showAll && !!user?.isAdmin);
 
@@ -72,6 +78,7 @@ function PostsAPage() {
     showAll,
     selectedBotId || undefined,
   );
+  const isDraftTab = currentTab.status === 'draft';
   const isDiscardedTab = currentTab.status === 'discarded';
 
   const posts = data?.data ?? [];
@@ -144,6 +151,25 @@ function PostsAPage() {
             })}
           </Tabs>
         </Box>
+
+        {isDraftTab && (
+          <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 2 }}>
+            <Button
+              size="small"
+              color="error"
+              variant="outlined"
+              onClick={() => {
+                if (window.confirm('Are you sure you want to discard all flagged drafts?')) {
+                  discardAllFlagged.mutate(undefined, { onSuccess: () => setPage(1) });
+                }
+              }}
+              disabled={discardAllFlagged.isPending}
+            >
+              {discardAllFlagged.isPending ? <CircularProgress size={16} sx={{ mr: 1 }} /> : null}
+              Discard All Flagged
+            </Button>
+          </Box>
+        )}
 
         {isDiscardedTab && posts.length > 0 && (
           <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 2 }}>

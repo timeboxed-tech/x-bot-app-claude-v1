@@ -48,6 +48,8 @@ import {
   usePostCounts,
   useUpdatePost,
   useDeletePost,
+  useDeleteAllDiscarded,
+  useDiscardAllFlagged,
   usePublishPost,
   useTweakPost,
   useAcceptTweak,
@@ -229,6 +231,8 @@ export default function PostQueueBPage() {
   const acceptTweak = useAcceptTweak();
   const requestReview = useRequestReview();
   const deleteReview = useDeleteReview();
+  const deleteAllDiscarded = useDeleteAllDiscarded();
+  const discardAllFlagged = useDiscardAllFlagged();
 
   useEffect(() => {
     if (conversationEndRef.current) {
@@ -315,6 +319,49 @@ export default function PostQueueBPage() {
             );
           })}
         </Box>
+
+        {/* Bulk action buttons */}
+        {activeFilter === 'draft' && (
+          <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 2 }}>
+            <Button
+              size="small"
+              color="error"
+              variant="outlined"
+              onClick={() => {
+                if (window.confirm('Are you sure you want to discard all flagged drafts?')) {
+                  discardAllFlagged.mutate(undefined, { onSuccess: () => setPage(1) });
+                }
+              }}
+              disabled={discardAllFlagged.isPending}
+            >
+              {discardAllFlagged.isPending ? <CircularProgress size={16} sx={{ mr: 1 }} /> : null}
+              Discard All Flagged
+            </Button>
+          </Box>
+        )}
+
+        {activeFilter === 'discarded' && posts.length > 0 && (
+          <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 2 }}>
+            <Button
+              size="small"
+              color="error"
+              variant="outlined"
+              onClick={() => {
+                if (
+                  window.confirm('Are you sure you want to permanently delete all discarded posts?')
+                ) {
+                  deleteAllDiscarded.mutate(showAll && !!user?.isAdmin, {
+                    onSuccess: () => setPage(1),
+                  });
+                }
+              }}
+              disabled={deleteAllDiscarded.isPending}
+            >
+              {deleteAllDiscarded.isPending ? <CircularProgress size={16} sx={{ mr: 1 }} /> : null}
+              Delete All Discarded
+            </Button>
+          </Box>
+        )}
 
         {/* Post list */}
         {isLoading ? (
