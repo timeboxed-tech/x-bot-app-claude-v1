@@ -12,6 +12,7 @@ router.use(authMiddleware);
 router.get('/', postController.list);
 router.get('/counts', postController.counts);
 router.delete('/discarded', postController.removeAllDiscarded);
+router.post('/discard-flagged', postController.discardAllFlagged);
 router.patch('/:id', postController.update);
 router.delete('/:id', postController.remove);
 router.get('/:id/suggested-slot', postController.suggestSlot);

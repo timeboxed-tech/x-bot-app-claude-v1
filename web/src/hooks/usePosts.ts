@@ -191,6 +191,19 @@ export function useDeletePost() {
   });
 }
 
+export function useDiscardAllFlagged() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async () => {
+      const response = await apiClient.post<{ data: { count: number } }>('/posts/discard-flagged');
+      return response.data.data;
+    },
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: queryKeys.posts.all });
+    },
+  });
+}
+
 export function useDeleteAllDiscarded() {
   const queryClient = useQueryClient();
 
