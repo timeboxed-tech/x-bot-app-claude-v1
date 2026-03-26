@@ -96,13 +96,19 @@ async function generateDraftForBot(
   const selectedBehaviour = behaviours.length > 0 ? selectWeightedBehaviour(behaviours) : null;
 
   if (selectedBehaviour?.outcome === 'like_post') {
-    await generateLikePostDraft(bot, selectedBehaviour, jobId);
+    const likePost = await generateLikePostDraft(bot, selectedBehaviour, jobId);
+    if (likePost) {
+      await autoJudgePost(bot, likePost, recentPosts);
+    }
     log('post-generator', `Bot ${bot.xAccountHandle || bot.id}: created like_post draft`);
     return;
   }
 
   if (selectedBehaviour?.outcome === 'reply_to_post') {
-    await generateReplyPostDraft(bot, selectedBehaviour, jobId);
+    const replyPost = await generateReplyPostDraft(bot, selectedBehaviour, jobId);
+    if (replyPost) {
+      await autoJudgePost(bot, replyPost, recentPosts);
+    }
     log('post-generator', `Bot ${bot.xAccountHandle || bot.id}: created reply_to_post draft`);
     return;
   }
@@ -166,66 +172,77 @@ async function generateDraftForBot(
     return;
   }
 
-  // Auto-judge if enabled and judges are assigned
-  if (bot.autoJudgeEnabled) {
-    try {
-      const botJudges = await botJudgeRepository.findByBotId(bot.id);
-      if (botJudges.length > 0) {
-        const recentContents = recentPosts.map((p: { content: string }) => p.content);
-        const useWebSearch = bot.judgeKnowledgeSource === 'ai+web';
-
-        const reviewPromises = botJudges.map(async (bj) => {
-          const judgeResult = await reviewPostWithJudge(
-            bj.judge.name,
-            bj.judge.prompt,
-            result.content,
-            recentContents,
-            useWebSearch,
-          );
-          return {
-            postId: post.id,
-            judgeId: bj.judgeId,
-            rating: judgeResult.rating,
-            opinion: judgeResult.opinion,
-          };
-        });
-
-        const reviews = await Promise.all(reviewPromises);
-        await postReviewRepository.createMany(reviews);
-
-        // Calculate average rating
-        const avgRating = reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length;
-
-        if (avgRating < bot.autoJudgeMinRating) {
-          await postRepository.update(post.id, {
-            status: 'discarded',
-            flagReasons: [
-              `Auto-judged below threshold: avg ${avgRating.toFixed(1)}/${bot.autoJudgeMinRating} (${reviews.map((r) => `${r.rating}/5`).join(', ')})`,
-            ],
-          });
-          log(
-            'post-generator',
-            `Bot ${bot.xAccountHandle || bot.id}: post ${post.id} discarded (avg rating ${avgRating.toFixed(1)} < ${bot.autoJudgeMinRating})`,
-          );
-          return;
-        }
-
-        log(
-          'post-generator',
-          `Bot ${bot.xAccountHandle || bot.id}: post ${post.id} auto-judged (avg ${avgRating.toFixed(1)}, ${reviews.length} judges)`,
-        );
-      }
-    } catch (err) {
-      log(
-        'post-generator',
-        `Bot ${bot.xAccountHandle || bot.id}: auto-judge failed — ${err instanceof Error ? err.message : String(err)}`,
-        'error',
-      );
-      // Don't fail post generation if judging fails
-    }
-  }
+  await autoJudgePost(bot, post, recentPosts);
 
   log('post-generator', `Bot ${bot.xAccountHandle || bot.id}: created draft post`);
+}
+
+async function autoJudgePost(
+  bot: {
+    id: string;
+    xAccountHandle: string;
+    autoJudgeEnabled: boolean;
+    autoJudgeMinRating: number;
+    judgeKnowledgeSource: string;
+  },
+  post: { id: string; content: string },
+  recentPosts: Array<{ content: string }>,
+): Promise<void> {
+  if (!bot.autoJudgeEnabled) return;
+
+  try {
+    const botJudges = await botJudgeRepository.findByBotId(bot.id);
+    if (botJudges.length === 0) return;
+
+    const recentContents = recentPosts.map((p) => p.content);
+    const useWebSearch = bot.judgeKnowledgeSource === 'ai+web';
+
+    const reviewPromises = botJudges.map(async (bj) => {
+      const judgeResult = await reviewPostWithJudge(
+        bj.judge.name,
+        bj.judge.prompt,
+        post.content,
+        recentContents,
+        useWebSearch,
+      );
+      return {
+        postId: post.id,
+        judgeId: bj.judgeId,
+        rating: judgeResult.rating,
+        opinion: judgeResult.opinion,
+      };
+    });
+
+    const reviews = await Promise.all(reviewPromises);
+    await postReviewRepository.createMany(reviews);
+
+    const avgRating = reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length;
+
+    if (avgRating < bot.autoJudgeMinRating) {
+      await postRepository.update(post.id, {
+        status: 'discarded',
+        flagReasons: [
+          `Auto-judged below threshold: avg ${avgRating.toFixed(1)}/${bot.autoJudgeMinRating} (${reviews.map((r) => `${r.rating}/5`).join(', ')})`,
+        ],
+      });
+      log(
+        'post-generator',
+        `Bot ${bot.xAccountHandle || bot.id}: post ${post.id} discarded (avg rating ${avgRating.toFixed(1)} < ${bot.autoJudgeMinRating})`,
+      );
+      return;
+    }
+
+    log(
+      'post-generator',
+      `Bot ${bot.xAccountHandle || bot.id}: post ${post.id} auto-judged (avg ${avgRating.toFixed(1)}, ${reviews.length} judges)`,
+    );
+  } catch (err) {
+    log(
+      'post-generator',
+      `Bot ${bot.xAccountHandle || bot.id}: auto-judge failed — ${err instanceof Error ? err.message : String(err)}`,
+      'error',
+    );
+  }
 }
 
 async function getPipelineCount(botId: string): Promise<number> {
