@@ -6,14 +6,12 @@ We use **Neon Postgres** with connection pooling enabled.
 
 ### Environment Variables
 
-Both environment variables are required:
+| Variable       | Purpose                                                              |
+| -------------- | -------------------------------------------------------------------- |
+| `DATABASE_URL` | Neon pooled connection string — used for both runtime and migrations |
 
-| Variable              | Purpose                                                    |
-| --------------------- | ---------------------------------------------------------- |
-| `DATABASE_URL`        | Pooled connection string, used at runtime by the app       |
-| `DIRECT_DATABASE_URL` | Direct (non-pooled) connection string, used for migrations |
+In production, Neon provides a pooled URL (via PgBouncer) and a direct URL. Currently `prisma.config.ts` uses `DATABASE_URL` for both the runtime datasource and the migration adapter. If you need a separate direct connection for migrations, add a `DIRECT_DATABASE_URL` env var and wire it into `prisma.config.ts`.
 
 ### Configuration
 
-- `schema.prisma` defines `directUrl = env("DIRECT_DATABASE_URL")` so Prisma can bypass the pooler when running migrations.
-- `prisma.config.ts` uses `DATABASE_URL` in the migration adapter (`PrismaPg`) for the pooled runtime connection.
+- In Prisma 7, connection URLs live in `prisma.config.ts`, not in `schema.prisma`.
