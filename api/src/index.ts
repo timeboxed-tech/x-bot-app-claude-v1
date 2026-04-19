@@ -29,7 +29,11 @@ import * as staleLockRecovery from './worker/staleLockRecovery.js';
 const app = express();
 
 // Global middleware
-app.use(helmet());
+app.use(
+  helmet({
+    contentSecurityPolicy: config.isProduction ? false : undefined,
+  }),
+);
 app.use(
   cors({
     origin: config.app.frontendUrl,
