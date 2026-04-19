@@ -1,0 +1,15 @@
+node_modules/
+dist/
+.env
+.env.*
+!.env.example
+*.log
+.DS_Store
+coverage/
+.turbo/
+.claude/
+.git/
+api/src/generated/
+web/playwright-report/
+web/test-results/
+api/GIT_SHA

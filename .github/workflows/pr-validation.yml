@@ -37,24 +37,28 @@ jobs:
       - name: Typecheck Web
         run: npx tsc -p web/tsconfig.json --noEmit
 
-      - name: Build shared
-        run: npm run build --workspace=shared
-
-      - name: Build API
-        run: npm run build --workspace=api
-
-      - name: Build Web
-        run: npm run build --workspace=web
-
       - name: Install Playwright browsers
         run: npx playwright install --with-deps chromium
         working-directory: web
+
+      - name: Start app with docker-compose
+        run: docker compose up -d --build --wait
 
       - name: Run E2E tests
         run: npx playwright test
         working-directory: web
         env:
           CI: true
+          USE_DOCKER: true
+          BASE_URL: http://localhost:3001
+
+      - name: Docker logs
+        if: always()
+        run: docker compose logs app
+
+      - name: Stop docker-compose
+        if: always()
+        run: docker compose down -v
 
       - name: Upload Playwright report
         if: always()

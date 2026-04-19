@@ -1,0 +1,45 @@
+services:
+  db:
+    image: postgres:17
+    environment:
+      POSTGRES_USER: xbot
+      POSTGRES_PASSWORD: xbot
+      POSTGRES_DB: xbot
+    ports:
+      - '5432:5432'
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U xbot']
+      interval: 2s
+      timeout: 5s
+      retries: 10
+
+  app:
+    build: .
+    ports:
+      - '3001:3001'
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: ['CMD-SHELL', 'curl -f http://localhost:3001/api/health || exit 1']
+      interval: 5s
+      timeout: 10s
+      retries: 10
+      start_period: 30s
+    environment:
+      NODE_ENV: production
+      PORT: '3001'
+      DATABASE_URL: postgresql://xbot:xbot@db:5432/xbot
+      DIRECT_DATABASE_URL: postgresql://xbot:xbot@db:5432/xbot
+      JWT_SECRET: local-dev-secret
+      API_BASE_URL: http://localhost:3001
+      FRONTEND_URL: http://localhost:3001
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      X_CLIENT_ID: ${X_CLIENT_ID:-}
+      X_CLIENT_SECRET: ${X_CLIENT_SECRET:-}
+      WORKER_POLL_INTERVAL_MS: '30000'
+
+volumes:
+  pgdata:
