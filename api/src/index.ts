@@ -1,3 +1,5 @@
+import path from 'path';
+import { fileURLToPath } from 'url';
 import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
@@ -27,7 +29,11 @@ import * as staleLockRecovery from './worker/staleLockRecovery.js';
 const app = express();
 
 // Global middleware
-app.use(helmet());
+app.use(
+  helmet({
+    contentSecurityPolicy: config.isProduction ? false : undefined,
+  }),
+);
 app.use(
   cors({
     origin: config.app.frontendUrl,
@@ -54,6 +60,18 @@ app.use('/api/job-configs', jobConfigRoutes);
 app.use('/api/system-configs', systemConfigRoutes);
 app.use('/api/export', exportRoutes);
 app.use('/api/api-logs', apiLogRoutes);
+
+// In production, serve the frontend static files
+if (config.isProduction) {
+  const __dirname = path.dirname(fileURLToPath(import.meta.url));
+  const webDistPath = path.join(__dirname, 'web');
+  app.use(express.static(webDistPath));
+  // SPA fallback: serve index.html for any non-API route
+  app.get('*', (_req, res, next) => {
+    if (_req.path.startsWith('/api/')) return next();
+    res.sendFile(path.join(webDistPath, 'index.html'));
+  });
+}
 
 // 404 handler for unknown routes
 app.use(notFoundHandler);
