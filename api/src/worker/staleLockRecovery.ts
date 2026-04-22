@@ -1,7 +1,7 @@
 import { jobRepository } from '../repositories/jobRepository.js';
 import { log } from './activityLog.js';
 
-const RECOVERY_INTERVAL_MS = 5 * 60 * 1000; // 5 minutes
+const RECOVERY_INTERVAL_MS = parseInt(process.env.WORKER_POLL_INTERVAL_MS || '30000', 10);
 const STALE_THRESHOLD_MINUTES = 10;
 
 let intervalHandle: ReturnType<typeof setInterval> | null = null;
