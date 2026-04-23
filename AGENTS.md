@@ -201,7 +201,7 @@ gh pr review NNN --approve && gh pr merge NNN --squash
 
 ### Phase 6 — Deployment
 
-20. Follow Render, Vercel, EAS one-time setup. Output secrets checklist, confirm every secret stored, get user confirmation before first production deploy.
+20. Follow EAS one-time setup. Output secrets checklist, confirm every secret stored, get user confirmation before first production deploy.
 
 ---
 
@@ -290,22 +290,6 @@ git commit --author="agent-performance-expert <human@example.com>" -m "perf: ...
 
 ## Deployment Setup (Phase 6)
 
-### Render (API + PostgreSQL)
-
-- Create PostgreSQL: `{project-name}-db-prod`, note Internal/External URLs.
-- Create Web Service: root dir `api`, build: `npm ci && npx prisma generate && npm run build`, start: `npx prisma migrate deploy && node dist/index.js`, health check: `/health`.
-- Create Deploy Hook, store as `RENDER_DEPLOY_HOOK_URL`.
-- Create Render API Key, store as `RENDER_API_KEY`.
-- Worker (if background jobs): separate Background Worker, same env vars.
-
-### Vercel (Web)
-
-- Link project: `cd web && npx vercel link`.
-- Build settings: Framework Vite, root `web`, build `npm run build`, output `dist`.
-- Set `VITE_API_URL` and other public env vars.
-- Get tokens: `VERCEL_TOKEN`, `VERCEL_ORG_ID`, `VERCEL_PROJECT_ID`.
-- Disable auto deploys (Ignored Build Step: `exit 1`).
-
 ### EAS (Mobile)
 
 - Create Expo project, note Project ID.
@@ -318,23 +302,12 @@ git commit --author="agent-performance-expert <human@example.com>" -m "perf: ...
 **Core:**
 
 - `JWT_SECRET`
-- `RENDER_DEPLOY_HOOK_URL`
-- `RENDER_API_KEY`
-- `RENDER_SERVICE_ID_API`
 - `PRODUCTION_API_URL`
-- `VERCEL_TOKEN`
-- `VERCEL_ORG_ID`
-- `VERCEL_PROJECT_ID`
 - `PRODUCTION_URL`
 
 **Mobile:**
 
 - `EXPO_TOKEN`
 - `MOBILE_APP_BUNDLE_ID`
-
-**Worker:**
-
-- `RENDER_SERVICE_ID_WORKER`
-- `RENDER_DEPLOY_HOOK_URL_WORKER`
 
 **Project-specific:** per functional spec.
